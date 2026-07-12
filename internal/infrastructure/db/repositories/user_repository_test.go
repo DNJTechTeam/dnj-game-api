@@ -20,8 +20,9 @@ func TestUserRepository_CreateAndFind(t *testing.T) {
 	created, err := TestSuite.UserRepository.Create(ctx, &entities.User{
 		Email:       "repo@example.com",
 		Name:        "Repo User",
-		Password:    "Password@#1493",
 		MobilePhone: "41992395568",
+		Document:    "12345678900",
+		Role:        entities.RoleDefault,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, created)
@@ -35,6 +36,8 @@ func TestUserRepository_CreateAndFind(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, byEmail)
 	assert.Equal(t, created.ID, byEmail.ID)
+	assert.Equal(t, "12345678900", byEmail.Document)
+	assert.Equal(t, entities.RoleDefault, byEmail.Role)
 
 	assert.True(t, TestSuite.UserRepository.ExistsByID(ctx, created.ID))
 	assert.False(t, TestSuite.UserRepository.ExistsByID(ctx, 9999999))
@@ -56,7 +59,7 @@ func TestUserRepository_Create_Error(t *testing.T) {
 	repo := NewUserRepository(gormDB)
 	mock.ExpectBegin().WillReturnError(errors.New("conn failed"))
 
-	_, err := repo.Create(context.Background(), &entities.User{Email: "e@e.com", Name: "N", Password: "p"})
+	_, err := repo.Create(context.Background(), &entities.User{Email: "e@e.com", Name: "N"})
 	assert.ErrorIs(t, err, appErrors.InternalError)
 }
 

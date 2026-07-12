@@ -10,7 +10,6 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	taskEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/task/entities"
 	uEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
-	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"github.com/stretchr/testify/assert"
@@ -28,8 +27,8 @@ func seedTaskUser(t *testing.T, email string) (*uEntities.User, context.Context)
 	user, err := TestSuite.UserRepository.Create(TestSuite.Ctx, &uEntities.User{
 		Email:       email,
 		Name:        "Task User",
-		Password:    common.GenerateRandomPassword(),
 		MobilePhone: "41992395568",
+		Role:        uEntities.RoleDefault,
 	})
 	require.NoError(t, err)
 	return user, TestSuite.ContextWithUser(user.ID)

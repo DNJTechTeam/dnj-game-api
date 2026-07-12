@@ -87,16 +87,6 @@ func ValidatePhone(phone string, isMobile bool) bool {
 	return length >= 10 && length <= 12
 }
 
-func ValidatePasswordComplexity(password string) bool {
-	hasRequiredSize := len(password) >= 8
-	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
-	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
-	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
-	hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password)
-
-	return hasRequiredSize && hasUpper && hasLower && hasNumber && hasSpecial
-}
-
 func CleanString(s string) string {
 	s = strings.Replace(s, ".", "", -1)
 	s = strings.Replace(s, "-", "", -1)
@@ -124,36 +114,14 @@ func ExtractUserIdFromContext(ctx context.Context) uint64 {
 	return userId
 }
 
-// GenerateRandomPassword produces a 12-char password containing at least one
-// lowercase, uppercase, digit and special character. Used by the password
-// recovery flow to issue a temporary password.
-func GenerateRandomPassword() string {
-	const (
-		lowercaseChars = "abcdefghijklmnopqrstuvwxyz"
-		uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		numberChars    = "0123456789"
-		specialChars   = "!@#$%^&*()_+-=[]{};:,.<>/\\"
-		maxLength      = 12
-	)
-
-	allChars := lowercaseChars + uppercaseChars + numberChars + specialChars
-	password := make([]byte, maxLength)
-
-	charSets := []string{lowercaseChars, uppercaseChars, numberChars, specialChars}
-	for i, charSet := range charSets {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charSet))))
-		password[i] = charSet[idx.Int64()]
+// GenerateVerificationCode produces a random 6-digit numeric code (zero
+// padded) used by the passwordless onboarding flow.
+func GenerateVerificationCode() string {
+	const digits = "0123456789"
+	code := make([]byte, 6)
+	for i := range code {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
+		code[i] = digits[idx.Int64()]
 	}
-
-	for i := len(charSets); i < maxLength; i++ {
-		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(allChars))))
-		password[i] = allChars[idx.Int64()]
-	}
-
-	for i := len(password) - 1; i > 0; i-- {
-		j, _ := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
-		password[i], password[j.Int64()] = password[j.Int64()], password[i]
-	}
-
-	return string(password)
+	return string(code)
 }

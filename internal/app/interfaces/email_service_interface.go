@@ -5,6 +5,5 @@ import (
 )
 
 type EmailServiceInterface interface {
-	SendEmailConfirmation(ctx context.Context, email string, confirmationToken string) error
-	SendPasswordRecoveryEmail(ctx context.Context, email string, temporaryPassword string) error
+	SendVerificationCodeEmail(ctx context.Context, email string, verificationCode string) error
 }

@@ -23,13 +23,28 @@ func InitializeServer() *api.API {
 	gormDB := db.ProvideDB()
 	transactionManagerInterface := db.ProvideTransactionManager(gormDB)
 	baseService := services.ProvideBaseService(transactionManagerInterface)
+	subscriptionWebhookVerificationCodeRepositoryInterface := repositories.ProvideSubscriptionWebhookVerificationCodeRepository(gormDB)
 	userRepositoryInterface := repositories.ProvideUserRepository(gormDB)
+	groupRepositoryInterface := repositories.ProvideGroupRepository(gormDB)
 	jwtServiceInterface := services.ProvideJwtService(baseService)
 	emailServiceInterface := services.ProvideEmailService()
-	emailConfirmationServiceInterface := services.ProvideEmailConfirmationService(baseService)
-	userAuthServiceInterface := services.ProvideUserAuthService(baseService, userRepositoryInterface, jwtServiceInterface, emailServiceInterface, emailConfirmationServiceInterface)
-	userAuthHandler := &handlers.UserAuthHandler{
-		UserAuthService: userAuthServiceInterface,
+	authServiceInterface := services.ProvideAuthService(baseService, subscriptionWebhookVerificationCodeRepositoryInterface, userRepositoryInterface, groupRepositoryInterface, jwtServiceInterface, emailServiceInterface)
+	authHandler := &handlers.AuthHandler{
+		AuthService: authServiceInterface,
+	}
+	subscriptionWebhookRepositoryInterface := repositories.ProvideSubscriptionWebhookRepository(gormDB)
+	webhookPayloadTranslatorInterface := services.ProvideWebhookPayloadTranslator()
+	subscriptionWebhookServiceInterface := services.ProvideSubscriptionWebhookService(baseService, subscriptionWebhookRepositoryInterface, subscriptionWebhookVerificationCodeRepositoryInterface, webhookPayloadTranslatorInterface)
+	subscriptionWebhookHandler := &handlers.SubscriptionWebhookHandler{
+		SubscriptionWebhookService: subscriptionWebhookServiceInterface,
+	}
+	groupServiceInterface := services.ProvideGroupService(baseService, groupRepositoryInterface)
+	groupHandler := &handlers.GroupHandler{
+		GroupService: groupServiceInterface,
+	}
+	userServiceInterface := services.ProvideUserService(baseService, userRepositoryInterface, groupRepositoryInterface)
+	userHandler := &handlers.UserHandler{
+		UserService: userServiceInterface,
 	}
 	taskRepositoryInterface := repositories.ProvideTaskRepository(gormDB)
 	taskServiceInterface := services.ProvideTaskService(baseService, taskRepositoryInterface)
@@ -37,9 +52,12 @@ func InitializeServer() *api.API {
 		TaskService: taskServiceInterface,
 	}
 	handlersHandlers := &handlers.Handlers{
-		HealthcheckHandler: healthcheckHandler,
-		UserAuthHandler:    userAuthHandler,
-		TaskHandler:        taskHandler,
+		HealthcheckHandler:         healthcheckHandler,
+		AuthHandler:                authHandler,
+		SubscriptionWebhookHandler: subscriptionWebhookHandler,
+		GroupHandler:               groupHandler,
+		UserHandler:                userHandler,
+		TaskHandler:                taskHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

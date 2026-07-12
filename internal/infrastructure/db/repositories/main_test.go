@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
+	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/test"
 	"github.com/stretchr/testify/require"
@@ -13,7 +16,10 @@ import (
 
 type TestSuiteType struct {
 	*test.Containers
-	UserRepository uInterfaces.UserRepositoryInterface
+	UserRepository                uInterfaces.UserRepositoryInterface
+	GroupRepository               groupInterfaces.GroupRepositoryInterface
+	SubscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
+	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
 }
 
 var TestSuite *TestSuiteType
@@ -23,6 +29,9 @@ func initializeTestSuite() {
 		Containers: test.ProvideContainers(test.DbContainerName),
 	}
 	TestSuite.UserRepository = NewUserRepository(TestSuite.DbConn)
+	TestSuite.GroupRepository = NewGroupRepository(TestSuite.DbConn)
+	TestSuite.SubscriptionWebhookRepository = NewSubscriptionWebhookRepository(TestSuite.DbConn)
+	TestSuite.VerificationCodeRepository = NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {

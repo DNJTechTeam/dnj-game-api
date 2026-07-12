@@ -18,6 +18,14 @@ type TaskHandler struct {
 	TaskService interfaces.TaskServiceInterface
 }
 
+// List godoc
+// @Summary      Lista as tarefas do usuário autenticado
+// @Tags         tasks
+// @Produce      json
+// @Success      200 {array} messages.TaskResponseDTO
+// @Failure      400 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks [get]
 func (h *TaskHandler) List(c *gin.Context) {
 	response, err := h.TaskService.List(c.Request.Context())
 	if err != nil {
@@ -27,6 +35,15 @@ func (h *TaskHandler) List(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+// Get godoc
+// @Summary      Obtém uma tarefa por ID
+// @Tags         tasks
+// @Produce      json
+// @Param        id path uint64 true "ID da tarefa"
+// @Success      200 {object} messages.TaskResponseDTO
+// @Failure      404 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks/{id} [get]
 func (h *TaskHandler) Get(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -46,6 +63,16 @@ func (h *TaskHandler) Get(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+// Create godoc
+// @Summary      Cria uma nova tarefa
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        request body messages.CreateTaskRequestDTO true "Dados da tarefa"
+// @Success      201 {object} messages.TaskResponseDTO
+// @Failure      400 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks [post]
 func (h *TaskHandler) Create(c *gin.Context) {
 	var request messages.CreateTaskRequestDTO
 	if err := ParseRequest(c, &request); err != nil {
@@ -61,6 +88,18 @@ func (h *TaskHandler) Create(c *gin.Context) {
 	ResponseSuccess(c, http.StatusCreated, response)
 }
 
+// Update godoc
+// @Summary      Atualiza uma tarefa
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id path uint64 true "ID da tarefa"
+// @Param        request body messages.UpdateTaskRequestDTO true "Dados da tarefa"
+// @Success      200 {object} messages.TaskResponseDTO
+// @Failure      400 {object} appErrors.Error
+// @Failure      404 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks/{id} [put]
 func (h *TaskHandler) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -86,6 +125,18 @@ func (h *TaskHandler) Update(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+// UpdateStatus godoc
+// @Summary      Atualiza o status de uma tarefa
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id path uint64 true "ID da tarefa"
+// @Param        request body messages.UpdateTaskStatusRequestDTO true "Novo status"
+// @Success      200 {object} messages.TaskResponseDTO
+// @Failure      400 {object} appErrors.Error
+// @Failure      404 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks/{id}/status [patch]
 func (h *TaskHandler) UpdateStatus(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -111,6 +162,14 @@ func (h *TaskHandler) UpdateStatus(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+// Delete godoc
+// @Summary      Remove uma tarefa
+// @Tags         tasks
+// @Param        id path uint64 true "ID da tarefa"
+// @Success      204 "Removida"
+// @Failure      404 {object} appErrors.Error
+// @Security     BearerAuth
+// @Router       /tasks/{id} [delete]
 func (h *TaskHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {

@@ -8,8 +8,6 @@ import (
 // and nothing more. A richer permission model (roles, tenants, scopes) is
 // intentionally left out — add it here when you need it.
 type IdentityClaims struct {
-	UserID             string `json:"sub"`
-	HasUpdatedPassword bool   `json:"hasUpdatedPassword"`
-	EmailConfirmed     bool   `json:"emailConfirmed"`
+	UserID string `json:"sub"`
 	jwt.RegisteredClaims
 }

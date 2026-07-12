@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
+	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
 	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
@@ -21,9 +24,12 @@ import (
 // repositories and BaseService used across service tests.
 type TestSuiteType struct {
 	*test.Containers
-	UserRepository uInterfaces.UserRepositoryInterface
-	TaskRepository taskInterfaces.TaskRepositoryInterface
-	BaseService    *BaseService
+	UserRepository                uInterfaces.UserRepositoryInterface
+	TaskRepository                taskInterfaces.TaskRepositoryInterface
+	GroupRepository               groupInterfaces.GroupRepositoryInterface
+	SubscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
+	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
+	BaseService                   *BaseService
 }
 
 var TestSuite *TestSuiteType
@@ -35,6 +41,9 @@ func initializeTestSuite() {
 	TestSuite.BaseService = NewBaseService(db.NewTransactionManager(TestSuite.DbConn))
 	TestSuite.UserRepository = repositories.NewUserRepository(TestSuite.DbConn)
 	TestSuite.TaskRepository = repositories.NewTaskRepository(TestSuite.DbConn)
+	TestSuite.GroupRepository = repositories.NewGroupRepository(TestSuite.DbConn)
+	TestSuite.SubscriptionWebhookRepository = repositories.NewSubscriptionWebhookRepository(TestSuite.DbConn)
+	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {
@@ -57,7 +66,7 @@ func (ts *TestSuiteType) DefaultSetup(t *testing.T) {
 	t.Setenv("SERVER_ENVIRONMENT", string(common.EnvironmentTest))
 	t.Setenv("GIN_MODE", "debug")
 	t.Setenv("JWT_IDENTITY_SECRET", "testIdentitySecret")
-	t.Setenv("EMAIL_CONFIRMATION_SECRET", "testSecret")
+	t.Setenv("SUBSCRIPTION_WEBHOOK_SECRET", "testWebhookSecret")
 	t.Setenv("FRONTEND_URL", "https://app.example.com")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")
 	t.Setenv("EMAIL_SENDER_EMAIL", "no-reply@example.com")

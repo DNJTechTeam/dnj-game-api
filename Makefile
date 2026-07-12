@@ -8,7 +8,9 @@ COVER_TEST_PKGS=./internal/app/services ./internal/app/messages ./internal/domai
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/presentation/api/|/internal/infrastructure/db/(db.go|transaction.go):|/internal/infrastructure/db/migrations/
 COVER_GATE_REGEX=^github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/(mappers|repositories)/
 
-.PHONY: wire build run run-api vet tidy migrate \
+OPENAPI_DIR=docs/openapi
+
+.PHONY: wire build run run-api vet tidy migrate openapi \
         test test-cover test-cover-check test-cover-html coverage \
         test-services test-repos test-migrations \
         db-up db-down db-reset docker-build
@@ -19,6 +21,15 @@ wire:
 
 build:
 	go build ./...
+
+# openapi regenerates docs/openapi/swagger.{json,yaml} (OpenAPI/Swagger 2.0 —
+# the swaggo/swag CLI does not emit 3.x yet) from @-annotations on the HTTP
+# handlers (see cmd/api/main.go for the general API annotations). The output
+# is committed to the repo — CI fails the PR if it drifts from the code (see
+# .github/workflows/pr.yml, job "openapi").
+openapi:
+	go tool swag init -g cmd/api/main.go -o $(OPENAPI_DIR) \
+		--outputTypes json,yaml --parseDependency --parseInternal
 
 vet:
 	go vet ./...
