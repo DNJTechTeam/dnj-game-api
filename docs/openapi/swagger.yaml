@@ -1,0 +1,473 @@
+basePath: /v1
+definitions:
+  github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error:
+    properties:
+      fields:
+        items:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.FieldError'
+        type: array
+      message:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_errors.FieldError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.CreateTaskRequestDTO:
+    properties:
+      description:
+        type: string
+      dueDate:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO:
+    properties:
+      groupName:
+        type: string
+      id:
+        type: integer
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingRequestDTO:
+    properties:
+      document:
+        type: string
+      email:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      dueDate:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskRequestDTO:
+    properties:
+      description:
+        type: string
+      dueDate:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskStatusRequestDTO:
+    properties:
+      status:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateUserGroupRequestDTO:
+    properties:
+      groupId:
+        type: integer
+      groupName:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO:
+    properties:
+      createdAt:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      group:
+        $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO'
+      id:
+        type: integer
+      mobilePhone:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeRequestDTO:
+    properties:
+      email:
+        type: string
+      verificationCode:
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO:
+    properties:
+      createdAt:
+        type: string
+      document:
+        type: string
+      email:
+        type: string
+      group:
+        $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO'
+      id:
+        type: integer
+      identityToken:
+        type: string
+      mobilePhone:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API REST para gerenciamento de eventos e pontuações da gamificação
+    DNJ.
+  title: DNJ Game API
+  version: "1.0"
+paths:
+  /auth/onboarding:
+    post:
+      consumes:
+      - application/json
+      description: Verifica se o email+documento existem na base de inscrições recebida
+        via webhook e envia um código de 6 dígitos por email.
+      parameters:
+      - description: Email e documento do inscrito
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Código enviado
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      summary: Confirma inscrição e envia código de verificação
+      tags:
+      - auth
+  /auth/verification-code:
+    post:
+      consumes:
+      - application/json
+      description: Confirma o código de verificação, cria o usuário na primeira verificação
+        (idempotente nas seguintes) e retorna o identityToken.
+      parameters:
+      - description: Email e código de verificação
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      summary: Verifica o código e retorna o token de identidade
+      tags:
+      - auth
+  /groups:
+    get:
+      description: Busca case-insensitive por nome (mínimo 3 caracteres), limitada
+        a 20 resultados.
+      parameters:
+      - description: Termo de busca (mínimo 3 caracteres)
+        in: query
+        name: search
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Busca grupos por nome
+      tags:
+      - groups
+  /healthcheck:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Healthcheck
+      tags:
+      - healthcheck
+  /subscriptions/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Grava o payload bruto e cria/atualiza um código de verificação
+        pendente para o inscrito. Payload elástico (formato definido pela plataforma
+        externa).
+      parameters:
+      - description: Secret compartilhado com a plataforma externa
+        in: header
+        name: X-Webhook-Secret
+        required: true
+        type: string
+      - description: Payload do webhook (formato elástico)
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Payload recebido
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+        "401":
+          description: Secret inválido
+      summary: Recebe o webhook de inscrição no evento
+      tags:
+      - subscriptions
+  /tasks:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Lista as tarefas do usuário autenticado
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dados da tarefa
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.CreateTaskRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Cria uma nova tarefa
+      tags:
+      - tasks
+  /tasks/{id}:
+    delete:
+      parameters:
+      - description: ID da tarefa
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Removida
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Remove uma tarefa
+      tags:
+      - tasks
+    get:
+      parameters:
+      - description: ID da tarefa
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Obtém uma tarefa por ID
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID da tarefa
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Dados da tarefa
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Atualiza uma tarefa
+      tags:
+      - tasks
+  /tasks/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID da tarefa
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Novo status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskStatusRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Atualiza o status de uma tarefa
+      tags:
+      - tasks
+  /users/{id}/update-group:
+    post:
+      consumes:
+      - application/json
+      description: Vincula o usuário a um grupo existente (groupId) ou cria um novo
+        grupo pelo nome (groupName) e vincula.
+      parameters:
+      - description: ID do usuário
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Grupo a vincular
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateUserGroupRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+      security:
+      - BearerAuth: []
+      summary: Atualiza o grupo de um usuário
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: Identity token (JWT). Também aceito via cookie identity_token; o
+      header é a forma documentada aqui.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
