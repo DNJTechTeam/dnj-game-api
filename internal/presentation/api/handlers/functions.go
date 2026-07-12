@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 
 	"github.com/gin-gonic/gin"
 )

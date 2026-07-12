@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/joho/godotenv"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/migrations"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/migrations"
 )
 
 func main() {

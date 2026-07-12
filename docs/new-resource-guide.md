@@ -48,7 +48,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/scienceandcode/nucleus-api/internal/domain/widget/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/widget/entities"
 )
 
 type WidgetRepositoryInterface interface {
@@ -347,7 +347,7 @@ page=0 or absent → internal page 0 (first page)
 Add `List` to `internal/domain/widget/interfaces/widget_repository_interface.go`:
 
 ```go
-import "github.com/scienceandcode/nucleus-api/internal/app/messages"
+import "github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 
 type WidgetRepositoryInterface interface {
     Create(ctx context.Context, widget *entities.Widget) (*entities.Widget, error)

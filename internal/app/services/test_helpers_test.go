@@ -1,8 +1,8 @@
 package services
 
 import (
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/email"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/email"
 )
 
 // newTestEmailService returns the real EmailService. SendEmail is a no-op in

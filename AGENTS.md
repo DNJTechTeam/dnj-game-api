@@ -1,4 +1,4 @@
-# AGENTS.md — Nucleus API
+# AGENTS.md — DNJ Game API
 
 Guia para agentes de IA (Codex, Claude e afins) que trabalham neste repositório.
 O conteúdo arquitetural completo está em `CLAUDE.md` e na pasta `docs/` — este
@@ -6,19 +6,17 @@ arquivo é o ponto de entrada e aponta para eles.
 
 ## O que é este projeto
 
-`nucleus-api` é um **template base** de API REST em Go (Gin + GORM + Wire),
-com autenticação JWT de identidade (sem multi-tenant) e um runner que roda como
-servidor HTTP local ou como AWS Lambda. Traz um CRUD de `Task` como exemplo de
-referência.
+`dnj-game-api` é uma API REST em Go (Gin + GORM + Wire), construída a partir
+do template `nucleus-api`, com autenticação JWT de identidade (sem
+multi-tenant) e um runner que roda como servidor HTTP local ou como AWS
+Lambda. Traz um CRUD de `Task` como exemplo de referência.
 
 ## Antes de começar
 
-- **Projeto recém-criado a partir do template?** Rode a renomeação de
-  placeholders descrita em `README.md` (seção "Inicializando o projeto").
 - **Codex**: use a skill de projeto em
   `.codex/skills/nucleus-api-project/SKILL.md`.
-- **Claude Code**: use as skills em `.claude/skills/` (`init-project`,
-  `new-resource`).
+- **Claude Code**: use a skill `new-resource` em `.claude/skills/` para
+  adicionar novos recursos.
 - Leia `CLAUDE.md` para arquitetura e convenções.
 
 ## Tarefas comuns

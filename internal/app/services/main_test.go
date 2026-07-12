@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"testing"
 
-	commonInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/common/interfaces"
-	taskInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces"
-	uInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/user/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/repositories"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/di/test"
+	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
+	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/repositories"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/test"
 	"github.com/stretchr/testify/require"
 )
 

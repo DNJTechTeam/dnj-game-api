@@ -1,12 +1,12 @@
 package services
 
 import (
-	appInterfaces "github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/app/services"
-	commonInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/common/interfaces"
-	taskInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces"
-	uInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/user/interfaces"
-	emailServicePkg "github.com/scienceandcode/nucleus-api/internal/infrastructure/email"
+	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/services"
+	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
+	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
+	emailServicePkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/email"
 )
 
 func ProvideBaseService(transactionManager commonInterfaces.TransactionManagerInterface) *services.BaseService {

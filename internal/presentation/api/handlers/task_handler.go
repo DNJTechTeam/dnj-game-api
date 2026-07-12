@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 
 	"github.com/gin-gonic/gin"
 )

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	commonInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/common/interfaces"
+	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 
 	"gorm.io/gorm"
 )

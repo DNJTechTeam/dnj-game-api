@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	uEntities "github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/api/auth"
+	uEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api/auth"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"

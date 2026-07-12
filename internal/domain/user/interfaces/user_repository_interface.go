@@ -3,7 +3,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 )
 
 type UserRepositoryInterface interface {

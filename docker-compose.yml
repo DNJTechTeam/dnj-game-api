@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:latest
-    container_name: nucleus_db
+    container_name: dnjgame_db
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER}

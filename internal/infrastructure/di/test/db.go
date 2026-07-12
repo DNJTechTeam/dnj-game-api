@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/migrations"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/migrations"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
@@ -27,7 +27,7 @@ func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork)
 			map[string]string{
 				"POSTGRES_USER":     "root",
 				"POSTGRES_PASSWORD": "rootpassword",
-				"POSTGRES_DB":       "nucleus_db",
+				"POSTGRES_DB":       "dnjgame_db",
 			},
 		),
 		network.WithNetwork([]string{DbContainerName}, dockerNetwork),
@@ -53,7 +53,7 @@ func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork)
 	}
 
 	dbConnection, err := gorm.Open(
-		postgres.Open(fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "root", "rootpassword", host, port.Port(), "nucleus_db")),
+		postgres.Open(fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "root", "rootpassword", host, port.Port(), "dnjgame_db")),
 		&gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
 			Logger:                                   logger.Default.LogMode(logger.Silent),

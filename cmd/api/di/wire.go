@@ -4,12 +4,12 @@
 package di
 
 import (
-	diApi "github.com/scienceandcode/nucleus-api/internal/infrastructure/di/api"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/di/db"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/di/db/repositories"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/di/services"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api/handlers"
+	diApi "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/api"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db/repositories"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/services"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 
 	"github.com/google/wire"
 )

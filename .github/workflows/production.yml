@@ -17,7 +17,7 @@ jobs:
     env:
       IMAGE_TAG: latest
       APP_MODE: release
-      IMAGE_REPOSITORY_NAME: scienceandcode/nucleus-api
+      IMAGE_REPOSITORY_NAME: dnjtechteam/dnj-game-api
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

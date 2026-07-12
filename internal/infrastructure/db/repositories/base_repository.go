@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
-	dbPkg "github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	dbPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
 
 	"gorm.io/gorm"
 )

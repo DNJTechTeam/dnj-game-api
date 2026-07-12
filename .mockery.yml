@@ -8,22 +8,22 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
-  github.com/scienceandcode/nucleus-api/internal/app/interfaces:
+  github.com/dnjtechteam/dnj-game-api/internal/app/interfaces:
     config:
       all: true
       dir: './internal/mocks'
       filename: service_mocks.go
-  github.com/scienceandcode/nucleus-api/internal/domain/common/interfaces:
+  github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces:
     config:
       all: true
       dir: './internal/mocks'
       filename: common_domain_mocks.go
-  github.com/scienceandcode/nucleus-api/internal/domain/user/interfaces:
+  github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces:
     config:
       all: true
       dir: './internal/mocks'
       filename: user_domain_mocks.go
-  github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces:
+  github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces:
     config:
       all: true
       dir: './internal/mocks'

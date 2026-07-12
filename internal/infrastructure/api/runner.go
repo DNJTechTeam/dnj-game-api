@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"

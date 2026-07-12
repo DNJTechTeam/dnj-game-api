@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	dbPkg "github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/models"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	dbPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"

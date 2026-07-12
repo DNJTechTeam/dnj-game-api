@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

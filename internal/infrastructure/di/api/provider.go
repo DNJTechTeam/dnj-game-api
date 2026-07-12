@@ -3,9 +3,9 @@ package api
 import (
 	"strings"
 
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api/handlers"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api/routers"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/routers"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

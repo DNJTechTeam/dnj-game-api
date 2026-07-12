@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"testing"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/models"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

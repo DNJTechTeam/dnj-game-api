@@ -3,8 +3,8 @@ package mappers
 import (
 	"strings"
 
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 )
 
 func MapRegisterRequestDTOToEntity(request *messages.RegisterRequestDTO) *entities.User {

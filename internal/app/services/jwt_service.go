@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	uEntities "github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/api/auth"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	uEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api/auth"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 
 	"github.com/golang-jwt/jwt/v5"
 )

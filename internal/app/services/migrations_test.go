@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/migrations"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/migrations"
 	"github.com/stretchr/testify/require"
 )
 

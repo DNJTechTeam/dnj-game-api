@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
 
 	"gorm.io/gorm"
 )

@@ -1,11 +1,9 @@
-# Nucleus API
+# DNJ Game API
 
-A production-shaped **starter template** for REST APIs in Go. It ships a clean
-layered architecture, dependency injection, PostgreSQL, identity-only JWT auth,
-an AWS Lambda-ready runner, CI, and an example `Task` CRUD to copy from.
-
-> `nucleus-api` is a **placeholder name**. After cloning, rename it to your real
-> project — see [Initializing the project](#initializing-the-project).
+A production-shaped REST API in Go, built from the `nucleus-api` starter
+template. It ships a clean layered architecture, dependency injection,
+PostgreSQL, identity-only JWT auth, an AWS Lambda-ready runner, CI, and an
+example `Task` CRUD to copy from.
 
 ## Stack
 
@@ -65,29 +63,6 @@ make test
 
 The suite spins up a throwaway PostgreSQL container via Testcontainers, so
 Docker must be running. No local database is touched.
-
-## Initializing the project
-
-This template uses the distinctive name **`nucleus-api`** everywhere so it can
-be safely find-and-replaced. To turn the template into your project:
-
-- **With Claude Code**: run the `init-project` skill — it asks for your names
-  and applies every replacement, then builds.
-- **Manually**: replace the placeholders below, then run
-  `go mod tidy && go generate ./cmd/api/di && go build ./...`.
-
-| Placeholder | Where it appears | Replace with |
-|-------------|------------------|--------------|
-| `github.com/scienceandcode/nucleus-api` | every Go import + `go.mod` + `.mockery.yml` | your module path |
-| `nucleus-api` | directory name, `build/docker/Dockerfile` binary | your kebab-case project name |
-| `scienceandcode/nucleus-api` | `IMAGE_REPOSITORY_NAME` in `.github/workflows/*.yml` | your ECR repository |
-| `Nucleus API` | `APP_NAME` in `.env` / `.env.example` | your display name |
-| `nucleus_db` | `docker-compose.yml`, `internal/infrastructure/di/test` (`DbContainerName`) | `<shortname>_db` |
-| `nucleus` (standalone) | `DB_*` values in `.env` / `.env.example` | your database name/credentials |
-
-> Replace the **longest** strings first (`github.com/scienceandcode/nucleus-api`,
-> then `nucleus-api`, then `nucleus_db`) so a bare `nucleus` replacement never
-> corrupts the longer ones.
 
 ## Environment variables
 

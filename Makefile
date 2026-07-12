@@ -5,8 +5,8 @@ COVER_PROFILE ?= coverage.out
 COVER_GATE_PROFILE ?= coverage.gate.out
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/app/services ./internal/app/messages ./internal/domain/common/interfaces ./internal/app/errors ./internal/infrastructure/common ./internal/infrastructure/db/repositories ./internal/infrastructure/db/mappers
-COVER_IGNORE_REGEX=^github.com/scienceandcode/nucleus-api/cmd/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/presentation/api/|/internal/infrastructure/db/(db.go|transaction.go):|/internal/infrastructure/db/migrations/
-COVER_GATE_REGEX=^github.com/scienceandcode/nucleus-api/internal/infrastructure/db/(mappers|repositories)/
+COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/presentation/api/|/internal/infrastructure/db/(db.go|transaction.go):|/internal/infrastructure/db/migrations/
+COVER_GATE_REGEX=^github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/(mappers|repositories)/
 
 .PHONY: wire build run run-api vet tidy migrate \
         test test-cover test-cover-check test-cover-html coverage \

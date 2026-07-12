@@ -3,11 +3,11 @@ package repositories
 import (
 	"context"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	taskEntities "github.com/scienceandcode/nucleus-api/internal/domain/task/entities"
-	taskInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/mappers"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/models"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	taskEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/task/entities"
+	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/mappers"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"gorm.io/gorm"
 )

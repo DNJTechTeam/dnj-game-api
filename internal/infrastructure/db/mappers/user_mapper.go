@@ -1,8 +1,8 @@
 package mappers
 
 import (
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/models"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 )
 
 func MapUserToEntity(user *models.User) *entities.User {

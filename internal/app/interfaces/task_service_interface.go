@@ -3,7 +3,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 )
 
 type TaskServiceInterface interface {

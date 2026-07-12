@@ -6,13 +6,13 @@ import (
 	"slices"
 	"strings"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/app/mappers"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
-	taskEntities "github.com/scienceandcode/nucleus-api/internal/domain/task/entities"
-	taskInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	taskEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/task/entities"
+	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 )
 
 // TaskService is the reference resource service. Every operation is scoped to

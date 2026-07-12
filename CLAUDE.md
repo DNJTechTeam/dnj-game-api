@@ -1,12 +1,9 @@
-# Nucleus API — Guia de Arquitetura e Geração de Código
+# DNJ Game API — Guia de Arquitetura e Geração de Código
 
-`nucleus-api` é um **template base** de API REST em Go para iniciar novos
-projetos. Este documento orienta a geração de código mantendo consistência com
-a arquitetura existente. Vale tanto para o Claude quanto para o Codex
-(ver também `AGENTS.md`, que aponta para os mesmos guias).
-
-> **Projeto recém-clonado?** Rode primeiro a skill `init-project` (renomeia
-> todos os placeholders `nucleus-api` para o nome do seu projeto). Veja `README.md`.
+`dnj-game-api` é uma API REST em Go, construída a partir do template
+`nucleus-api`. Este documento orienta a geração de código mantendo
+consistência com a arquitetura existente. Vale tanto para o Claude quanto
+para o Codex (ver também `AGENTS.md`, que aponta para os mesmos guias).
 
 ---
 

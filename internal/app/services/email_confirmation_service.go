@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 )
 
 var (

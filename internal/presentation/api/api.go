@@ -1,6 +1,6 @@
 package api
 
-import "github.com/scienceandcode/nucleus-api/internal/presentation/api/routers"
+import "github.com/dnjtechteam/dnj-game-api/internal/presentation/api/routers"
 
 type API struct {
 	Router *routers.Router

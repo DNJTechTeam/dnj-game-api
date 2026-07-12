@@ -1,9 +1,9 @@
 package routers
 
 import (
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/api/middlewares"
-	infraCommon "github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api/handlers"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api/middlewares"
+	infraCommon "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 
 	"github.com/gin-gonic/gin"
 )

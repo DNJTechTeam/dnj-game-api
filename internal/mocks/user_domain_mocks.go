@@ -7,7 +7,7 @@ package mocks
 import (
 	"context"
 
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	mock "github.com/stretchr/testify/mock"
 )
 

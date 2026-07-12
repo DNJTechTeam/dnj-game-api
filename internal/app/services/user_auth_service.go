@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"time"
 
-	appErrors "github.com/scienceandcode/nucleus-api/internal/app/errors"
-	"github.com/scienceandcode/nucleus-api/internal/app/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/app/mappers"
-	"github.com/scienceandcode/nucleus-api/internal/app/messages"
-	"github.com/scienceandcode/nucleus-api/internal/app/validators"
-	"github.com/scienceandcode/nucleus-api/internal/domain/user/entities"
-	rInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/user/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/validators"
+	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	rInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 
 	"golang.org/x/crypto/bcrypt"
 )

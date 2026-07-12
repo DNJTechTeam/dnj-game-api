@@ -1,9 +1,9 @@
 package repositories
 
 import (
-	taskInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/task/interfaces"
-	uInterfaces "github.com/scienceandcode/nucleus-api/internal/domain/user/interfaces"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/db/repositories"
+	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
+	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/repositories"
 
 	"gorm.io/gorm"
 )

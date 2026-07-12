@@ -6,11 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/scienceandcode/nucleus-api/internal/app/errors"
-	apiCookies "github.com/scienceandcode/nucleus-api/internal/infrastructure/api"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/api/auth"
-	"github.com/scienceandcode/nucleus-api/internal/infrastructure/common"
-	"github.com/scienceandcode/nucleus-api/internal/presentation/api/handlers"
+	"github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	apiCookies "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api/auth"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 )
 
 // AuthMiddlewareCustomizer lets specific routes relax the standard checks.
