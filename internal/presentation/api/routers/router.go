@@ -22,18 +22,21 @@ func NewRouter(engine *gin.Engine, handlers *handlers.Handlers) *Router {
 	}
 }
 
-// authProtected returns the middleware chain for routes that require a valid,
-// fully-onboarded user (email confirmed + password set). Extend this chain
-// when you add a richer authorization model (roles, scopes, ...).
+// authProtected returns the middleware chain for routes that require a valid
+// identity token. Extend this chain when you add a richer authorization
+// model (roles, scopes, ...).
 func (r *Router) authProtected() []gin.HandlerFunc {
 	return []gin.HandlerFunc{
-		middlewares.AuthenticationMiddleware(nil),
+		middlewares.AuthenticationMiddleware(),
 	}
 }
 
 func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterHealthcheckRoutes()
 	r.RegisterAuthRoutes()
+	r.RegisterSubscriptionRoutes()
+	r.RegisterGroupRoutes()
+	r.RegisterUserRoutes()
 	r.RegisterTaskRoutes()
 
 	return r.engine

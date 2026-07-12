@@ -13,18 +13,10 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 )
 
-// AuthMiddlewareCustomizer lets specific routes relax the standard checks.
-// For example, /auth/confirm-email must be reachable before the email is
-// confirmed, and /auth/change-password before the password is set.
-type AuthMiddlewareCustomizer struct {
-	SkipPasswordUpdatedValidation bool
-	SkipEmailConfirmedValidation  bool
-}
-
 // AuthenticationMiddleware validates the identity JWT and puts the user id in
 // the request context under the "userId" key. The token is read from the
 // Authorization header first and falls back to the identity_token cookie.
-func AuthenticationMiddleware(customizer *AuthMiddlewareCustomizer) gin.HandlerFunc {
+func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 
@@ -58,22 +50,6 @@ func AuthenticationMiddleware(customizer *AuthMiddlewareCustomizer) gin.HandlerF
 
 		if time.Now().After(identityClaims.ExpiresAt.Time) {
 			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Token is expired."))
-			c.Abort()
-			return
-		}
-
-		if customizer == nil {
-			customizer = &AuthMiddlewareCustomizer{}
-		}
-
-		if !customizer.SkipPasswordUpdatedValidation && !identityClaims.HasUpdatedPassword {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("A senha deve ser atualizada para entrar no sistema."))
-			c.Abort()
-			return
-		}
-
-		if !customizer.SkipEmailConfirmedValidation && !identityClaims.EmailConfirmed {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Email deve ser confirmado para acessar este recurso."))
 			c.Abort()
 			return
 		}

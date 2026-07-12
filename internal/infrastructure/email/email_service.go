@@ -47,43 +47,22 @@ func buildEmailTemplate(title string, transactionalContent string) string {
 	return html
 }
 
-func (s *EmailService) SendEmailConfirmation(ctx context.Context, email string, confirmationToken string) error {
-	frontendURL := common.GetEnv("FRONTEND_URL")
-	confirmationEmailLink := frontendURL + "/email-confirmation?token=" + confirmationToken
-
-	title := "Confirm your email"
-	transactionalContent := "<p>Confirm your account email by clicking the link below:</p>" +
+func (s *EmailService) SendVerificationCodeEmail(ctx context.Context, email string, verificationCode string) error {
+	title := "Seu código de verificação"
+	transactionalContent := "<p>Use o código abaixo para confirmar sua inscrição:</p>" +
 		"<div style=\"text-align: center; margin: 30px 0;\">" +
-		"<a href=\"" + confirmationEmailLink + "\" style=\"background-color:#12310c; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;\">Confirmation link</a>" +
+		"<p style=\"font-size: 32px; font-weight: bold; letter-spacing: 8px;\">" + verificationCode + "</p>" +
 		"</div>" +
-		"<p style=\"font-size: 12px; color: #666;\">If the button does not work, copy and paste this link into your browser:</p>" +
-		"<p style=\"font-size: 12px; color: #666; word-break: break-all;\">" + confirmationEmailLink + "</p>" +
-		"<p style=\"font-size: 12px; color: #666; margin-top: 30px;\">This confirmation link expires in 96 hours.</p>"
+		"<p style=\"font-size: 12px; color: #666;\">Se você não solicitou este código, pode ignorar este email.</p>"
 
 	htmlContent := buildEmailTemplate(title, transactionalContent)
-	return s.SendEmail(email, "Confirm your email", htmlContent)
-}
-
-func (s *EmailService) SendPasswordRecoveryEmail(ctx context.Context, email string, temporaryPassword string) error {
-	frontendURL := common.GetEnv("FRONTEND_URL")
-	title := "Recover your password"
-	transactionalContent := "<p>Your temporary password is:</p>" +
-		"<div style=\"text-align: center; margin: 30px 0;\">" +
-		"<p style=\"font-size: 18px; font-weight: bold;\">" + temporaryPassword + "</p>" +
-		"</div>" +
-		"<div style=\"text-align: center; margin: 30px 0;\">" +
-		"<a href=\"" + frontendURL + "/login\" style=\"background-color:#12310c; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;\">Sign in</a>" +
-		"</div>" +
-		"<p style=\"font-size: 12px; color: #666;\">This password is temporary and must be changed after the first login.</p>"
-
-	htmlContent := buildEmailTemplate(title, transactionalContent)
-	return s.SendEmail(email, "Recover your password", htmlContent)
+	return s.SendEmail(email, "Seu código de verificação", htmlContent)
 }
 
 // SendEmail is a no-op on localhost/test environments so local development and
 // the test suite never hit a real provider.
 func (s *EmailService) SendEmail(email string, subject string, htmlContent string) error {
-	if common.EnvironmentIs(common.EnvironmentTest) || common.EnvironmentIs(common.EnvironmentLocalhost) {
+	if common.EnvironmentIs(common.EnvironmentTest) {
 		log.Printf("Skipping email sending in test/localhost environment for: %s", email)
 		return nil
 	}

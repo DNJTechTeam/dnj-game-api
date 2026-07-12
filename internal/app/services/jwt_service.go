@@ -25,9 +25,7 @@ func NewJwtService(baseService *BaseService) interfaces.JwtServiceInterface {
 // The token is valid for 24 hours and is signed with JWT_IDENTITY_SECRET.
 func (s *JwtService) GenerateIdentityToken(ctx context.Context, user *uEntities.User) (string, error) {
 	claims := auth.IdentityClaims{
-		UserID:             strconv.FormatUint(user.ID, 10),
-		HasUpdatedPassword: user.PasswordConfirmedAt != nil,
-		EmailConfirmed:     user.EmailConfirmedAt != nil,
+		UserID: strconv.FormatUint(user.ID, 10),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},

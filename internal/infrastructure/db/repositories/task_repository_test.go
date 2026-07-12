@@ -17,9 +17,9 @@ import (
 func seedUser(t *testing.T, ctx context.Context, email string) *entities.User {
 	t.Helper()
 	user, err := TestSuite.UserRepository.Create(ctx, &entities.User{
-		Email:    email,
-		Name:     "Test User",
-		Password: "Password@#1234",
+		Email: email,
+		Name:  "Test User",
+		Role:  entities.RoleDefault,
 	})
 	require.NoError(t, err)
 	return user

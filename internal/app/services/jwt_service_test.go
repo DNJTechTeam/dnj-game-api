@@ -16,35 +16,27 @@ func TestGenerateIdentityToken(t *testing.T) {
 	TestSuite.DefaultSetup(t)
 
 	testCases := []struct {
-		name                       string
-		user                       *uEntities.User
-		expectedUserID             string
-		expectedEmailConfirmed     bool
-		expectedHasUpdatedPassword bool
+		name           string
+		user           *uEntities.User
+		expectedUserID string
 	}{
 		{
-			name: "Email not confirmed, password not updated",
+			name: "Newly created user",
 			user: &uEntities.User{
 				ID:    1,
 				Email: "test@example.com",
 				Name:  "Test User",
 			},
-			expectedUserID:             "1",
-			expectedEmailConfirmed:     false,
-			expectedHasUpdatedPassword: false,
+			expectedUserID: "1",
 		},
 		{
-			name: "Email confirmed, password updated",
+			name: "Large id user",
 			user: &uEntities.User{
-				ID:                  999999,
-				Email:               "largeid@example.com",
-				Name:                "Large ID User",
-				EmailConfirmedAt:    timePtr(time.Now()),
-				PasswordConfirmedAt: timePtr(time.Now()),
+				ID:    999999,
+				Email: "largeid@example.com",
+				Name:  "Large ID User",
 			},
-			expectedUserID:             "999999",
-			expectedEmailConfirmed:     true,
-			expectedHasUpdatedPassword: true,
+			expectedUserID: "999999",
 		},
 	}
 
@@ -65,8 +57,6 @@ func TestGenerateIdentityToken(t *testing.T) {
 			claims, ok := parsedToken.Claims.(*auth.IdentityClaims)
 			require.True(t, ok)
 			assert.Equal(t, testCase.expectedUserID, claims.UserID)
-			assert.Equal(t, testCase.expectedEmailConfirmed, claims.EmailConfirmed)
-			assert.Equal(t, testCase.expectedHasUpdatedPassword, claims.HasUpdatedPassword)
 
 			require.NotNil(t, claims.ExpiresAt)
 			assert.WithinDuration(t, time.Now().Add(time.Hour*24), claims.ExpiresAt.Time, 5*time.Second)
@@ -76,8 +66,4 @@ func TestGenerateIdentityToken(t *testing.T) {
 
 func newJwtService() *JwtService {
 	return NewJwtService(TestSuite.BaseService).(*JwtService)
-}
-
-func timePtr(t time.Time) *time.Time {
-	return &t
 }

@@ -28,3 +28,18 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: task_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: group_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: subscription_webhook_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: subscription_webhook_verification_code_domain_mocks.go

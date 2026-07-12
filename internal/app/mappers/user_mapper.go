@@ -1,28 +1,36 @@
 package mappers
 
 import (
-	"strings"
-
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	groupEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/group/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 )
 
-func MapRegisterRequestDTOToEntity(request *messages.RegisterRequestDTO) *entities.User {
-	return &entities.User{
-		Email:            strings.ToLower(request.Email),
-		Name:             request.Name,
-		Password:         request.Password,
-		MobilePhone:      request.MobilePhone,
-		EmailConfirmedAt: nil,
-	}
-}
-
-func MapUserToResponseDTO(user *entities.User) *messages.CreateUserResponseDTO {
+func MapUserToResponseDTO(user *entities.User, group *groupEntities.Group) *messages.UserResponseDTO {
 	if user == nil {
 		return nil
 	}
 
-	return &messages.CreateUserResponseDTO{
-		ID: messages.Uint64StringFromUint64(user.ID),
+	return &messages.UserResponseDTO{
+		ID:          messages.Uint64StringFromUint64(user.ID),
+		Email:       user.Email,
+		Name:        user.Name,
+		MobilePhone: user.MobilePhone,
+		Document:    user.Document,
+		Role:        string(user.Role),
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		Group:       MapGroupToSummaryDTO(group),
+	}
+}
+
+func MapUserToVerificationCodeResponseDTO(user *entities.User, group *groupEntities.Group, identityToken string) *messages.VerificationCodeResponseDTO {
+	if user == nil {
+		return nil
+	}
+
+	return &messages.VerificationCodeResponseDTO{
+		UserResponseDTO: *MapUserToResponseDTO(user, group),
+		IdentityToken:   identityToken,
 	}
 }

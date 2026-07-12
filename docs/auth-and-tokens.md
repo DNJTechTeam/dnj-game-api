@@ -1,21 +1,39 @@
 # Authentication & Tokens
 
-Nucleus API uses a single, deliberately minimal token: an **identity JWT**. It
-proves *who* the user is and carries no tenant, roles or scopes. A richer
+DNJ Game API uses a single, deliberately minimal token: an **identity JWT**.
+It proves *who* the user is and carries no tenant, roles or scopes. A richer
 authorization model is meant to be layered on top later.
+
+Authentication is **passwordless**. A `User` is only created the first time a
+subscriber confirms the 6-digit verification code sent by email — there is no
+register/login/forgot-password flow.
+
+## Passwordless onboarding flow
+
+1. The external event-subscription platform calls `POST /subscriptions/webhook`
+   (protected by a shared secret, see below). The raw payload is stored and
+   translated into a `subscription_webhook_verification_codes` row — with a
+   fresh 6-digit `verification_code` — keyed by `email` (`user_id` stays
+   `null` at this point).
+2. The subscriber calls `POST /auth/onboarding` with `email` + `document`. If
+   they match a pending record, the verification code is emailed to them
+   (PT-BR, via `EmailServiceInterface.SendVerificationCodeEmail`).
+3. The subscriber calls `POST /auth/verification-code` with `email` + the
+   code. On the first successful match, a `User` is created (role `DEFAULT`)
+   and linked back to the verification-code row; on subsequent calls the
+   same `User` is reused (idempotent). The response includes the
+   `identityToken`.
 
 ## The identity token
 
 - **Type**: `auth.IdentityClaims` (`internal/infrastructure/api/auth/jwt_claims.go`).
 - **Algorithm**: HS256, signed with `JWT_IDENTITY_SECRET`.
 - **Lifetime**: 24 hours.
-- **Claims**:
-  - `sub` — the user id.
-  - `hasUpdatedPassword` — whether the user has set a definitive password.
-  - `emailConfirmed` — whether the email is confirmed.
+- **Claims**: `sub` — the user id. Nothing else — see "Adding authorization
+  later" below.
 
 Issued by `JwtService.GenerateIdentityToken` (`internal/app/services/jwt_service.go`)
-on successful login.
+when a verification code is confirmed.
 
 ## Header *and* cookie
 
@@ -25,9 +43,10 @@ accepts the token from either transport:
 1. The `Authorization` request header.
 2. Failing that, the `identity_token` cookie.
 
-On login, `UserAuthHandler.Login` calls `apiHelpers.SetIdentityToken`, which
-sets `identity_token` as an `HttpOnly` cookie. The exact same token value is
-also returned for clients that prefer the header (mobile apps, server-to-server).
+`AuthHandler.VerifyCode` calls `apiHelpers.SetIdentityToken`, which sets
+`identity_token` as an `HttpOnly` cookie. The exact same token value is also
+returned in the response body for clients that prefer the header (mobile
+apps, server-to-server).
 
 ### Cookie attributes (`internal/infrastructure/api/cookies.go`)
 
@@ -45,48 +64,30 @@ both. CORS must allow credentials and the exact frontend origin
 
 ## What the middleware enforces
 
-For a route wrapped with `authProtected()` / `AuthenticationMiddleware(nil)`:
+For a route wrapped with `authProtected()` / `AuthenticationMiddleware()`:
 
 1. A token is present and valid (signature + not expired).
-2. `hasUpdatedPassword` is true — unless the route opts out with
-   `AuthMiddlewareCustomizer{SkipPasswordUpdatedValidation: true}`.
-3. `emailConfirmed` is true — unless the route opts out with
-   `SkipEmailConfirmedValidation: true`.
 
 On success the user id (a string) is placed in the request context under
 `common.UserIDContextKey`. Services read it with
 `common.ExtractUserIdFromContext(ctx)`.
 
-The customizer is what lets `/auth/confirm-email`, `/auth/resend-confirmation`
-and `/auth/change-password` run *before* the user is fully onboarded.
-
-## Auth routes (`internal/presentation/api/routers/auth_router.go`)
+## Routes (`internal/presentation/api/routers/`)
 
 | Method & path | Auth | Purpose |
 |---------------|------|---------|
-| `POST /auth/register` | public | Create a user, send the confirmation email |
-| `POST /auth/login` | public | Validate credentials, issue the identity token |
-| `POST /auth/forgot-password` | public | Email a temporary password |
-| `POST /auth/confirm-email` | token (email check skipped) | Confirm the email |
-| `POST /auth/resend-confirmation` | token (email check skipped) | Resend the link |
-| `PATCH /auth/change-password` | token (both checks skipped) | Set a definitive password |
-| `POST /auth/logout` | token (both checks skipped) | Clear the cookie |
-
-## Passwords
-
-Passwords are hashed with bcrypt in the `User` GORM hooks
-(`internal/infrastructure/db/models/user.go`): `BeforeCreate` always hashes;
-`BeforeUpdate` re-hashes only when the value is not already a bcrypt hash.
-
-## Email-confirmation token
-
-Separate from the JWT: `EmailConfirmationService` issues an HMAC-SHA256 signed,
-base64 payload (`userID|email|expiresAt|issuedAt`) valid for 96 hours, signed
-with `EMAIL_CONFIRMATION_SECRET`.
+| `POST /subscriptions/webhook` | `X-Webhook-Secret` header (`SUBSCRIPTION_WEBHOOK_SECRET`) | Ingest a subscription webhook, upsert a pending verification code |
+| `POST /auth/onboarding` | public | Confirm email+document, (re)send the verification code |
+| `POST /auth/verification-code` | public | Confirm the code, create/reuse the user, issue the identity token |
+| `GET /groups` | token | Search groups by name (`?search=`, min 3 chars) |
+| `POST /users/{id}/update-group` | token | Link a user to an existing or newly-created group |
 
 ## Adding authorization later
 
 The natural extension point is `Router.authProtected()` in
 `internal/presentation/api/routers/router.go` — add role/scope middleware to
-that chain, and enrich `IdentityClaims` (or introduce a second token type) as
-needed.
+that chain (`User.Role` already exists: `ADMIN`, `EVENT_MANAGER`, `DEFAULT`),
+and enrich `IdentityClaims` (or introduce a second token type) as needed. As
+of this version, `POST /users/{id}/update-group` is reachable by any
+authenticated user — gating it to `ADMIN`/`EVENT_MANAGER` is a known
+follow-up once that middleware exists.
