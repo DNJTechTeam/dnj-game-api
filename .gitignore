@@ -1,0 +1,7 @@
+.env
+vendor/
+__debug_bin*
+
+# Test coverage outputs
+coverage.out
+coverage.html

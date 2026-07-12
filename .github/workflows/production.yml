@@ -1,0 +1,99 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  deploy:
+    name: Build, Test & Deploy to Production
+    environment: production
+    env:
+      IMAGE_TAG: latest
+      APP_MODE: release
+      IMAGE_REPOSITORY_NAME: scienceandcode/nucleus-api
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Run tests with coverage
+        run: make test-cover-check
+
+      - name: Run database migrations
+        run: go run cmd/migrate/main.go
+        env:
+          SERVER_ENVIRONMENT: production
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          SEED_ADMIN_EMAIL: ${{ secrets.SEED_ADMIN_EMAIL }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build --provenance=false \
+            -t $ECR_REGISTRY/$IMAGE_REPOSITORY_NAME:$IMAGE_TAG \
+            -f ./build/docker/Dockerfile \
+            --build-arg APP_MODE=$APP_MODE \
+            --no-cache .
+          docker push $ECR_REGISTRY/$IMAGE_REPOSITORY_NAME:$IMAGE_TAG
+
+      - name: Update Lambda
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
+            --image-uri $ECR_REGISTRY/$IMAGE_REPOSITORY_NAME:$IMAGE_TAG
+
+      - name: Create Release Tag
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MERGE_MSG=$(git log --merges -1 --pretty=format:"%s" 2>/dev/null || echo "")
+          VERSION=$(echo "$MERGE_MSG" | grep -oP '(?<=release/)\d+\.\d+\.\d+' || echo "")
+          if [ -n "$VERSION" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "v$VERSION"
+            git push origin "v$VERSION"
+            gh release create "v$VERSION" \
+              --title "v$VERSION" \
+              --generate-notes \
+              --verify-tag
+          fi

@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-branch:
+    name: Validate Release Branch Name
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - name: Extract and validate version
+        id: extract
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          VERSION="${BRANCH#release/}"
+          if ! echo "$VERSION" | grep -qP '^\d+\.\d+\.\d+$'; then
+            echo "::error::Branch name '$BRANCH' does not follow 'release/X.Y.Z' (semver) format."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+  validate:
+    name: Validate
+    needs: validate-branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Run tests with coverage
+        run: make test-cover-check
+
+      - name: Run migrations idempotency test
+        run: make test-migrations
+
+  create-pr:
+    name: Create PR to main
+    needs: [validate-branch, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.validate-branch.outputs.version }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for $BRANCH → main. Skipping creation."
+            exit 0
+          fi
+
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges | head -30)
+          fi
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release v$VERSION" \
+            --body "$(cat <<EOF
+          ## Release v$VERSION
+
+          Este PR foi criado automaticamente a partir da branch \`$BRANCH\`.
+
+          ### O que está incluído
+
+          $CHANGELOG
+
+          ### Checklist de release
+
+          - [ ] Todos os testes passando em develop
+          - [ ] QA validado no ambiente develop
+          - [ ] Nenhuma feature nova adicionada nesta branch (somente bug-fixes de estabilização)
+          - [ ] \`docs/RELEASE.md\` consultado
+          - [ ] Aprovação de 1 reviewer antes de mergear para \`main\`
+
+          ---
+
+          Após aprovação e merge, o workflow de produção irá:
+          1. Buildar e publicar a imagem Docker no ECR com tag \`latest\`
+          2. Atualizar a Lambda de produção
+          3. Criar a tag \`v$VERSION\` e publicar a GitHub Release automaticamente
+          EOF
+          )"

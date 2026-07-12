@@ -1,0 +1,7 @@
+interface:
+  display_name: "Nucleus API Project"
+  short_description: "Initialize and extend Nucleus API"
+  default_prompt: "Use $nucleus-api-project to initialize this template or create a new REST API resource."
+
+policy:
+  allow_implicit_invocation: true

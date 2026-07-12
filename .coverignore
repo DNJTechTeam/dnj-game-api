@@ -1,0 +1,11 @@
+cmd/api
+cmd/api/di
+internal/app/errors
+internal/infrastructure/api
+internal/infrastructure/common
+internal/infrastructure/db
+internal/infrastructure/db/migrations
+internal/infrastructure/di
+internal/infrastructure/email
+internal/presentation
+internal/mocks
