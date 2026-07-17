@@ -36,33 +36,96 @@ func TestAuthService_Onboarding(t *testing.T) {
 	truncateAuthTables(t)
 
 	service := newAuthService()
-	webhook := seedSubscriptionWebhook(t, "{}")
-	seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "", "12345678900")
 
-	t.Run("email not found", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "missing@example.com",
-			Document: "12345678900",
+	t.Run("document not found", func(t *testing.T) {
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "00000000099",
 		})
 		require.Error(t, err)
+		assert.Nil(t, response)
 		assert.IsType(t, &appErrors.Error{}, err)
 	})
 
-	t.Run("document mismatch", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "onboard@example.com",
-			Document: "00000000000",
-		})
-		require.Error(t, err)
-		assert.IsType(t, &appErrors.Error{}, err)
-	})
+	t.Run("document found with email already on file sends the code", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "", "12345678900")
 
-	t.Run("success", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "onboard@example.com",
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
 			Document: "12345678900",
 		})
 		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusCodeSent, response.Status)
+		assert.Equal(t, "o***d@example.com", response.Email)
+	})
+
+	t.Run("document found without email and request has no email returns EMAIL_REQUIRED", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "654321", "", "22200000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "22200000000",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusEmailRequired, response.Status)
+		assert.Empty(t, response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "22200000000")
+		require.NoError(t, err)
+		assert.Empty(t, code.Email)
+	})
+
+	t.Run("document found without email and request provides one backfills and sends the code", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "111111", "", "33300000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "33300000000",
+			Email:    " Companion@Example.COM ",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusCodeSent, response.Status)
+		assert.Equal(t, "c***n@example.com", response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "33300000000")
+		require.NoError(t, err)
+		assert.Equal(t, "companion@example.com", code.Email)
+	})
+
+	t.Run("document found without email and request email in invalid format returns validation error", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "222222", "", "44400000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "44400000000",
+			Email:    "not-an-email",
+		})
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.IsType(t, &appErrors.Error{}, err)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "44400000000")
+		require.NoError(t, err)
+		assert.Empty(t, code.Email)
+	})
+
+	t.Run("document found with email already on file ignores a different email in the request", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "keep-me@example.com", "333333", "", "55500000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "55500000000",
+			Email:    "someone-else@example.com",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, "k***e@example.com", response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "55500000000")
+		require.NoError(t, err)
+		assert.Equal(t, "keep-me@example.com", code.Email)
 	})
 }
 

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"net/mail"
 	"strings"
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
@@ -14,11 +15,11 @@ import (
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 )
 
-// errLookupFailed is the single generic error returned for both "email not
-// found" and "document mismatch" during onboarding, so the endpoint can't be
-// used to enumerate which emails are registered.
+// errLookupFailed is the single generic error returned when the informed
+// document isn't found, so the endpoint can't be used to enumerate which
+// documents are registered.
 var errLookupFailed = appErrors.NewError("Ocorreu um erro ao tentar localizar o jovem na base.", []*appErrors.FieldError{
-	appErrors.NewFieldError("email", "email não localizado"),
+	appErrors.NewFieldError("document", "documento não localizado"),
 })
 
 var errInvalidVerificationCode = appErrors.NewError("Código de verificação inválido.", []*appErrors.FieldError{
@@ -57,29 +58,80 @@ func NewAuthService(
 }
 
 // Onboarding looks up the pending verification code created from a
-// subscription webhook and, when the document matches, (re)sends the code by
-// email. Calling it again after the user already verified is allowed — it
-// works as a "resend code to log in again" flow, reusing the same code since
-// there is no TTL/rotation yet.
-func (s *AuthService) Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) error {
-	email := strings.ToLower(strings.TrimSpace(request.Email))
+// subscription webhook by document (CPF) and (re)sends the code by email.
+// Calling it again after the user already verified is allowed — it works as
+// a "resend code to log in again" flow, reusing the same code since there is
+// no TTL/rotation yet.
+//
+// Some records arrive from the order webhook with no email on file (a
+// companion registered under the buyer's shared email — see
+// OrderPayloadTranslator). When that happens, Onboarding returns
+// EMAIL_REQUIRED without sending anything; the caller is expected to call
+// this same endpoint again with the email filled in, which backfills the
+// record and sends the code.
+func (s *AuthService) Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) (*messages.OnboardingResponseDTO, error) {
+	document := strings.TrimSpace(request.Document)
+	if document == "" {
+		return nil, appErrors.NewError("Documento é obrigatório.", []*appErrors.FieldError{
+			appErrors.NewFieldError("document", "documento não informado"),
+		})
+	}
 
-	code, err := s.verificationCodeRepository.FindByEmail(ctx, email)
+	code, err := s.verificationCodeRepository.FindByDocument(ctx, document)
 	if err != nil {
-		return appErrors.InternalError
+		return nil, appErrors.InternalError
 	}
 	if code == nil {
-		return errLookupFailed
-	}
-	if strings.TrimSpace(code.Document) != strings.TrimSpace(request.Document) {
-		return errLookupFailed
+		return nil, errLookupFailed
 	}
 
-	if err := s.emailService.SendVerificationCodeEmail(ctx, code.Email, code.VerificationCode); err != nil {
-		return appErrors.NewSimpleError("Erro ao enviar email de verificação. Tente novamente.")
+	email := strings.TrimSpace(code.Email)
+	if email == "" {
+		requestEmail := strings.ToLower(strings.TrimSpace(request.Email))
+		if requestEmail == "" {
+			return &messages.OnboardingResponseDTO{Status: messages.OnboardingStatusEmailRequired}, nil
+		}
+		if _, err := mail.ParseAddress(requestEmail); err != nil {
+			return nil, appErrors.NewError("E-mail inválido.", []*appErrors.FieldError{
+				appErrors.NewFieldError("email", "e-mail em formato inválido"),
+			})
+		}
+
+		code.Email = requestEmail
+		code, err = s.verificationCodeRepository.Update(ctx, code)
+		if err != nil {
+			return nil, appErrors.InternalError
+		}
+		email = requestEmail
 	}
 
-	return nil
+	if err := s.emailService.SendVerificationCodeEmail(ctx, email, code.VerificationCode); err != nil {
+		return nil, appErrors.NewError("Erro ao enviar email de verificação. Tente novamente.", nil)
+	}
+
+	return &messages.OnboardingResponseDTO{
+		Status: messages.OnboardingStatusCodeSent,
+		Email:  obfuscateEmail(email),
+	}, nil
+}
+
+// obfuscateEmail masks the local-part of an email for display, keeping the
+// first and last character (or just the first, when the local-part has 2
+// characters or fewer) and the full domain.
+func obfuscateEmail(email string) string {
+	at := strings.LastIndex(email, "@")
+	if at <= 0 {
+		return email
+	}
+
+	local := email[:at]
+	domain := email[at:]
+
+	if len(local) <= 2 {
+		return string(local[0]) + "***" + domain
+	}
+
+	return string(local[0]) + "***" + string(local[len(local)-1]) + domain
 }
 
 func (s *AuthService) VerifyCode(ctx context.Context, request *messages.VerificationCodeRequestDTO) (*messages.VerificationCodeResponseDTO, error) {

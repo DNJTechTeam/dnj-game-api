@@ -12,20 +12,20 @@ import (
 )
 
 // AuthHandler exposes the passwordless onboarding flow: a subscriber
-// confirms email+document, receives a 6-digit code by email, and exchanges
-// it for an identity token.
+// confirms their document (CPF), receives a 6-digit code by email once an
+// email is on file, and exchanges the code for an identity token.
 type AuthHandler struct {
 	AuthService interfaces.AuthServiceInterface
 }
 
 // Onboarding godoc
 // @Summary      Confirma inscrição e envia código de verificação
-// @Description  Verifica se o email+documento existem na base de inscrições recebida via webhook e envia um código de 6 dígitos por email.
+// @Description  Localiza a inscrição pelo documento (CPF). Se o registro já tem email, envia o código e retorna status CODE_SENT com o email ofuscado. Se não tem email, retorna status EMAIL_REQUIRED sem enviar nada — a mesma rota deve ser chamada de novo com o campo email preenchido para completar o cadastro e enviar o código.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body messages.OnboardingRequestDTO true "Email e documento do inscrito"
-// @Success      204 "Código enviado"
+// @Param        request body messages.OnboardingRequestDTO true "Documento do inscrito (e opcionalmente o email, quando ainda não cadastrado)"
+// @Success      200 {object} messages.OnboardingResponseDTO
 // @Failure      400 {object} appErrors.Error
 // @Router       /auth/onboarding [post]
 func (h *AuthHandler) Onboarding(c *gin.Context) {
@@ -35,11 +35,12 @@ func (h *AuthHandler) Onboarding(c *gin.Context) {
 		return
 	}
 
-	if err := h.AuthService.Onboarding(c.Request.Context(), &request); err != nil {
+	response, err := h.AuthService.Onboarding(c.Request.Context(), &request)
+	if err != nil {
 		ResponseBadRequest(c, err.(*appErrors.Error))
 		return
 	}
-	c.Status(http.StatusNoContent)
+	ResponseSuccess(c, http.StatusOK, response)
 }
 
 // VerifyCode godoc

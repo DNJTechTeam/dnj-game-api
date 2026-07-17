@@ -41,20 +41,31 @@ func (_m *MockAuthServiceInterface) EXPECT() *MockAuthServiceInterface_Expecter 
 }
 
 // Onboarding provides a mock function for the type MockAuthServiceInterface
-func (_mock *MockAuthServiceInterface) Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) error {
+func (_mock *MockAuthServiceInterface) Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) (*messages.OnboardingResponseDTO, error) {
 	ret := _mock.Called(ctx, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Onboarding")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.OnboardingRequestDTO) error); ok {
+	var r0 *messages.OnboardingResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.OnboardingRequestDTO) (*messages.OnboardingResponseDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.OnboardingRequestDTO) *messages.OnboardingResponseDTO); ok {
 		r0 = returnFunc(ctx, request)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.OnboardingResponseDTO)
+		}
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.OnboardingRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // MockAuthServiceInterface_Onboarding_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Onboarding'
@@ -87,12 +98,12 @@ func (_c *MockAuthServiceInterface_Onboarding_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockAuthServiceInterface_Onboarding_Call) Return(err error) *MockAuthServiceInterface_Onboarding_Call {
-	_c.Call.Return(err)
+func (_c *MockAuthServiceInterface_Onboarding_Call) Return(onboardingResponseDTO *messages.OnboardingResponseDTO, err error) *MockAuthServiceInterface_Onboarding_Call {
+	_c.Call.Return(onboardingResponseDTO, err)
 	return _c
 }
 
-func (_c *MockAuthServiceInterface_Onboarding_Call) RunAndReturn(run func(ctx context.Context, request *messages.OnboardingRequestDTO) error) *MockAuthServiceInterface_Onboarding_Call {
+func (_c *MockAuthServiceInterface_Onboarding_Call) RunAndReturn(run func(ctx context.Context, request *messages.OnboardingRequestDTO) (*messages.OnboardingResponseDTO, error)) *MockAuthServiceInterface_Onboarding_Call {
 	_c.Call.Return(run)
 	return _c
 }

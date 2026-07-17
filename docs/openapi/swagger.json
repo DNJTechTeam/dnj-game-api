@@ -10,7 +10,7 @@
     "paths": {
         "/auth/onboarding": {
             "post": {
-                "description": "Verifica se o email+documento existem na base de inscrições recebida via webhook e envia um código de 6 dígitos por email.",
+                "description": "Localiza a inscrição pelo documento (CPF). Se o registro já tem email, envia o código e retorna status CODE_SENT com o email ofuscado. Se não tem email, retorna status EMAIL_REQUIRED sem enviar nada — a mesma rota deve ser chamada de novo com o campo email preenchido para completar o cadastro e enviar o código.",
                 "consumes": [
                     "application/json"
                 ],
@@ -23,7 +23,7 @@
                 "summary": "Confirma inscrição e envia código de verificação",
                 "parameters": [
                     {
-                        "description": "Email e documento do inscrito",
+                        "description": "Documento do inscrito (e opcionalmente o email, quando ainda não cadastrado)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -33,8 +33,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Código enviado"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -570,10 +573,29 @@
             "type": "object",
             "properties": {
                 "document": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "12345678900"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "jovem@example.com"
+                }
+            }
+        },
+        "github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "c***a@hotmail.com"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "CODE_SENT",
+                        "EMAIL_REQUIRED"
+                    ],
+                    "example": "CODE_SENT"
                 }
             }
         },

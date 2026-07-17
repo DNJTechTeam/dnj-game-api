@@ -7,6 +7,6 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) error
+	Onboarding(ctx context.Context, request *messages.OnboardingRequestDTO) (*messages.OnboardingResponseDTO, error)
 	VerifyCode(ctx context.Context, request *messages.VerificationCodeRequestDTO) (*messages.VerificationCodeResponseDTO, error)
 }
