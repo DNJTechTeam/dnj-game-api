@@ -53,6 +53,7 @@ flowchart TD
     D1 --> D2[go run cmd/migrate/main.go\nDB credentials via secrets]
     D2 --> D3[docker build → ECR develop]
     D3 --> D4[Lambda update develop]
+    D4 --> D5[publica Swagger UI\nGitHub Pages /develop]
 
     REL[git push release/X.Y.Z] -->|release.yml| R1[valida semver do nome]
     R1 --> R2[vet + test-cover-check\nmigrations-idempotency]
@@ -62,7 +63,8 @@ flowchart TD
     P1 --> P2[go run cmd/migrate/main.go\nDB credentials via secrets]
     P2 --> P3[docker build → ECR latest]
     P3 --> P4[Lambda update production]
-    P4 --> P5[cria tag vX.Y.Z\nGitHub Release]
+    P4 --> P5[publica Swagger UI\nGitHub Pages /production]
+    P5 --> P6[cria tag vX.Y.Z\nGitHub Release]
 ```
 
 ---
@@ -158,9 +160,11 @@ sequenceDiagram
     CI->>LB: update-function-code
     LB-->>CI: ok
     Note over CI,LB: Lambda serve requests com schema e código novos
+    CI->>CI: publica Swagger UI (docs/openapi) no GitHub Pages
 ```
 
 A migration roda **antes** do deploy do Lambda: schema atualizado primeiro, código novo depois.
+A publicação do Swagger UI roda **depois** do Lambda: sempre reflete o código já em produção/develop.
 
 ---
 
@@ -202,10 +206,21 @@ make migrate   # roda migrations (carrega .env automaticamente)
 
 ## Ambientes
 
-| Ambiente | Branch | Trigger | Migrations |
-|----------|--------|---------|-----------|
-| Develop | `develop` | push automático | via pipeline (DB secrets) |
-| Production | `main` | push automático | via pipeline (DB secrets) |
+| Ambiente | Branch | Trigger | Migrations | Swagger UI |
+|----------|--------|---------|-----------|-----------|
+| Develop | `develop` | push automático | via pipeline (DB secrets) | GitHub Pages `/develop/` |
+| Production | `main` | push automático | via pipeline (DB secrets) | GitHub Pages `/production/` |
+
+### Documentação OpenAPI (Swagger)
+
+A cada deploy (`develop.yml`/`production.yml`), depois do `Update Lambda`, a
+pipeline publica a spec já commitada em `docs/openapi/swagger.json` como
+Swagger UI navegável no GitHub Pages (branch `gh-pages`, uma subpasta por
+ambiente — `keep_files: true` garante que publicar um ambiente não apaga o
+outro). O `host`/`basePath` da spec são recalculados nesse passo a partir da
+secret `API_BASE_URL` do Environment correspondente (`develop`/`production`,
+cadastrada sem o basePath da aplicação — ex: sem o `/v1`, que já vem da spec
+gerada). Veja `scripts/publish-openapi-docs.sh`.
 
 ---
 

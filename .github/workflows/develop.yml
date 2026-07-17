@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -75,3 +75,13 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
             --image-uri $ECR_REGISTRY/$IMAGE_REPOSITORY_NAME:$IMAGE_TAG
+
+      - name: Build OpenAPI docs site
+        run: ./scripts/publish-openapi-docs.sh docs/openapi/swagger.json "${{ secrets.API_BASE_URL }}" develop
+
+      - name: Publish OpenAPI docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: true
