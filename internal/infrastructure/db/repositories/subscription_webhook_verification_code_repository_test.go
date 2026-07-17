@@ -73,6 +73,36 @@ func TestSubscriptionWebhookVerificationCodeRepository_FindByEmail(t *testing.T)
 	})
 }
 
+func TestSubscriptionWebhookVerificationCodeRepository_FindByDocument(t *testing.T) {
+	ctx := context.Background()
+	TestSuite.TruncateTable(t, &models.SubscriptionWebhookVerificationCode{})
+	TestSuite.TruncateTable(t, &models.SubscriptionWebhook{})
+
+	repo := NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
+	webhook := seedWebhook(t, ctx)
+
+	_, err := repo.Create(ctx, &entities.SubscriptionWebhookVerificationCode{
+		SubscriptionWebhookID: webhook.ID,
+		Email:                 "finddocument@example.com",
+		Document:              "12345678900",
+		VerificationCode:      "222222",
+	})
+	require.NoError(t, err)
+
+	t.Run("found", func(t *testing.T) {
+		found, err := repo.FindByDocument(ctx, "12345678900")
+		require.NoError(t, err)
+		require.NotNil(t, found)
+		assert.Equal(t, "222222", found.VerificationCode)
+	})
+
+	t.Run("not found returns nil, nil", func(t *testing.T) {
+		found, err := repo.FindByDocument(ctx, "00000000000")
+		require.NoError(t, err)
+		assert.Nil(t, found)
+	})
+}
+
 func TestSubscriptionWebhookVerificationCodeRepository_FindByEmailAndCode(t *testing.T) {
 	ctx := context.Background()
 	TestSuite.TruncateTable(t, &models.SubscriptionWebhookVerificationCode{})
@@ -118,6 +148,15 @@ func TestSubscriptionWebhookVerificationCodeRepository_FindByEmail_Error(t *test
 	mock.ExpectQuery(`SELECT`).WillReturnError(errors.New("db failure"))
 
 	_, err := repo.FindByEmail(context.Background(), "e@e.com")
+	assert.ErrorIs(t, err, appErrors.InternalError)
+}
+
+func TestSubscriptionWebhookVerificationCodeRepository_FindByDocument_Error(t *testing.T) {
+	gormDB, mock := newMockDB(t)
+	repo := NewSubscriptionWebhookVerificationCodeRepository(gormDB)
+	mock.ExpectQuery(`SELECT`).WillReturnError(errors.New("db failure"))
+
+	_, err := repo.FindByDocument(context.Background(), "12345678900")
 	assert.ErrorIs(t, err, appErrors.InternalError)
 }
 

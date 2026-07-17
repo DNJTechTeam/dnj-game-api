@@ -6,6 +6,7 @@ import (
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
+	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	swEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/entities"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/entities"
@@ -20,6 +21,7 @@ type SubscriptionWebhookService struct {
 	*BaseService
 	subscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
 	verificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
+	groupRepository               groupInterfaces.GroupRepositoryInterface
 	translator                    interfaces.WebhookPayloadTranslatorInterface
 }
 
@@ -27,12 +29,14 @@ func NewSubscriptionWebhookService(
 	baseService *BaseService,
 	subscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface,
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface,
+	groupRepository groupInterfaces.GroupRepositoryInterface,
 	translator interfaces.WebhookPayloadTranslatorInterface,
 ) interfaces.SubscriptionWebhookServiceInterface {
 	return &SubscriptionWebhookService{
 		BaseService:                   baseService,
 		subscriptionWebhookRepository: subscriptionWebhookRepository,
 		verificationCodeRepository:    verificationCodeRepository,
+		groupRepository:               groupRepository,
 		translator:                    translator,
 	}
 }
@@ -56,15 +60,26 @@ func (s *SubscriptionWebhookService) Ingest(ctx context.Context, rawPayload map[
 	}
 
 	return s.WithTransaction(ctx, func(ctx context.Context) error {
-		return s.upsertVerificationCode(ctx, webhook.ID, translated)
+		for _, subscription := range translated {
+			if err := s.upsertVerificationCode(ctx, webhook.ID, subscription); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
 func (s *SubscriptionWebhookService) upsertVerificationCode(ctx context.Context, webhookID uint64, translated *interfaces.TranslatedSubscription) error {
-	existing, err := s.verificationCodeRepository.FindByEmail(ctx, translated.Email)
+	existing, err := s.verificationCodeRepository.FindByDocument(ctx, translated.Document)
 	if err != nil {
 		return appErrors.InternalError
 	}
+
+	group, err := s.resolveGroup(ctx, translated.Group)
+	if err != nil {
+		return err
+	}
+	translated.Group = group
 
 	code := common.GenerateVerificationCode()
 
@@ -95,4 +110,23 @@ func (s *SubscriptionWebhookService) upsertVerificationCode(ctx context.Context,
 		return appErrors.InternalError
 	}
 	return nil
+}
+
+// resolveGroup only links a verification code to a group that already
+// exists. An unrecognized group name (e.g. one event's custom_forms answer
+// that doesn't match any registered group) is silently ignored rather than
+// treated as a validation error.
+func (s *SubscriptionWebhookService) resolveGroup(ctx context.Context, name string) (string, error) {
+	if name == "" {
+		return "", nil
+	}
+
+	group, err := s.groupRepository.FindByNameExact(ctx, name)
+	if err != nil {
+		return "", appErrors.InternalError
+	}
+	if group == nil {
+		return "", nil
+	}
+	return name, nil
 }

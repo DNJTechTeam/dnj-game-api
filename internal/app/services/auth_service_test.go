@@ -37,7 +37,7 @@ func TestAuthService_Onboarding(t *testing.T) {
 
 	service := newAuthService()
 	webhook := seedSubscriptionWebhook(t, "{}")
-	seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "")
+	seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "", "12345678900")
 
 	t.Run("email not found", func(t *testing.T) {
 		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
@@ -74,7 +74,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("invalid code", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "invalid-code@example.com", "123456", "")
+		seedVerificationCode(t, webhook.ID, "invalid-code@example.com", "123456", "", "11111111111")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "invalid-code@example.com",
@@ -88,7 +88,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 	t.Run("success creates user and resolves group", func(t *testing.T) {
 		group := seedGroup(t, "Grupo Jovens A")
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "verify@example.com", "654321", group.Name)
+		seedVerificationCode(t, webhook.ID, "verify@example.com", "654321", group.Name, "22222222222")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "verify@example.com",
@@ -104,7 +104,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("no matching group leaves user without a group", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "nogroup@example.com", "111222", "Grupo Inexistente")
+		seedVerificationCode(t, webhook.ID, "nogroup@example.com", "111222", "Grupo Inexistente", "33333333333")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "nogroup@example.com",
@@ -117,7 +117,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("idempotent when user already verified", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "idempotent@example.com", "333444", "")
+		seedVerificationCode(t, webhook.ID, "idempotent@example.com", "333444", "", "44444444444")
 
 		first, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "idempotent@example.com",

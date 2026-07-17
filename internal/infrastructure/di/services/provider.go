@@ -26,7 +26,7 @@ func ProvideEmailService() appInterfaces.EmailServiceInterface {
 }
 
 func ProvideWebhookPayloadTranslator() appInterfaces.WebhookPayloadTranslatorInterface {
-	return webhookPkg.NewNaivePayloadTranslator()
+	return webhookPkg.NewOrderPayloadTranslator()
 }
 
 func ProvideTaskService(
@@ -40,9 +40,10 @@ func ProvideSubscriptionWebhookService(
 	baseService *services.BaseService,
 	subscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface,
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface,
+	groupRepository groupInterfaces.GroupRepositoryInterface,
 	translator appInterfaces.WebhookPayloadTranslatorInterface,
 ) appInterfaces.SubscriptionWebhookServiceInterface {
-	return services.NewSubscriptionWebhookService(baseService, subscriptionWebhookRepository, verificationCodeRepository, translator)
+	return services.NewSubscriptionWebhookService(baseService, subscriptionWebhookRepository, verificationCodeRepository, groupRepository, translator)
 }
 
 func ProvideAuthService(

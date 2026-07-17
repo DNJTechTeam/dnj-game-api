@@ -1086,23 +1086,23 @@ func (_m *MockWebhookPayloadTranslatorInterface) EXPECT() *MockWebhookPayloadTra
 }
 
 // Translate provides a mock function for the type MockWebhookPayloadTranslatorInterface
-func (_mock *MockWebhookPayloadTranslatorInterface) Translate(payload map[string]any) (*interfaces.TranslatedSubscription, error) {
+func (_mock *MockWebhookPayloadTranslatorInterface) Translate(payload map[string]any) ([]*interfaces.TranslatedSubscription, error) {
 	ret := _mock.Called(payload)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Translate")
 	}
 
-	var r0 *interfaces.TranslatedSubscription
+	var r0 []*interfaces.TranslatedSubscription
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(map[string]any) (*interfaces.TranslatedSubscription, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(map[string]any) ([]*interfaces.TranslatedSubscription, error)); ok {
 		return returnFunc(payload)
 	}
-	if returnFunc, ok := ret.Get(0).(func(map[string]any) *interfaces.TranslatedSubscription); ok {
+	if returnFunc, ok := ret.Get(0).(func(map[string]any) []*interfaces.TranslatedSubscription); ok {
 		r0 = returnFunc(payload)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*interfaces.TranslatedSubscription)
+			r0 = ret.Get(0).([]*interfaces.TranslatedSubscription)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(map[string]any) error); ok {
@@ -1137,12 +1137,12 @@ func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) Run(run func(pay
 	return _c
 }
 
-func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) Return(translatedSubscription *interfaces.TranslatedSubscription, err error) *MockWebhookPayloadTranslatorInterface_Translate_Call {
-	_c.Call.Return(translatedSubscription, err)
+func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) Return(translatedSubscriptions []*interfaces.TranslatedSubscription, err error) *MockWebhookPayloadTranslatorInterface_Translate_Call {
+	_c.Call.Return(translatedSubscriptions, err)
 	return _c
 }
 
-func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) RunAndReturn(run func(payload map[string]any) (*interfaces.TranslatedSubscription, error)) *MockWebhookPayloadTranslatorInterface_Translate_Call {
+func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) RunAndReturn(run func(payload map[string]any) ([]*interfaces.TranslatedSubscription, error)) *MockWebhookPayloadTranslatorInterface_Translate_Call {
 	_c.Call.Return(run)
 	return _c
 }

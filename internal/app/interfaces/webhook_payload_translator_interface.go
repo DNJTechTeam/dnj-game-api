@@ -10,9 +10,10 @@ type TranslatedSubscription struct {
 	Group       string
 }
 
-// WebhookPayloadTranslatorInterface isolates the (currently unknown) shape of
-// the external platform's webhook payload from the rest of the application.
-// Swap the implementation once the real payload format is known.
+// WebhookPayloadTranslatorInterface isolates the shape of the external
+// platform's webhook payload from the rest of the application. A single
+// webhook payload (an order) can carry multiple participants, so Translate
+// returns one TranslatedSubscription per participant.
 type WebhookPayloadTranslatorInterface interface {
-	Translate(payload map[string]any) (*TranslatedSubscription, error)
+	Translate(payload map[string]any) ([]*TranslatedSubscription, error)
 }

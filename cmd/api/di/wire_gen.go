@@ -34,7 +34,7 @@ func InitializeServer() *api.API {
 	}
 	subscriptionWebhookRepositoryInterface := repositories.ProvideSubscriptionWebhookRepository(gormDB)
 	webhookPayloadTranslatorInterface := services.ProvideWebhookPayloadTranslator()
-	subscriptionWebhookServiceInterface := services.ProvideSubscriptionWebhookService(baseService, subscriptionWebhookRepositoryInterface, subscriptionWebhookVerificationCodeRepositoryInterface, webhookPayloadTranslatorInterface)
+	subscriptionWebhookServiceInterface := services.ProvideSubscriptionWebhookService(baseService, subscriptionWebhookRepositoryInterface, subscriptionWebhookVerificationCodeRepositoryInterface, groupRepositoryInterface, webhookPayloadTranslatorInterface)
 	subscriptionWebhookHandler := &handlers.SubscriptionWebhookHandler{
 		SubscriptionWebhookService: subscriptionWebhookServiceInterface,
 	}
