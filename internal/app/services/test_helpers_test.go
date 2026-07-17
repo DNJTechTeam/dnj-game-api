@@ -32,14 +32,14 @@ func seedSubscriptionWebhook(t *testing.T, payload string) *swEntities.Subscript
 	return webhook
 }
 
-func seedVerificationCode(t *testing.T, webhookID uint64, email string, code string, group string) *svcEntities.SubscriptionWebhookVerificationCode {
+func seedVerificationCode(t *testing.T, webhookID uint64, email string, code string, group string, document string) *svcEntities.SubscriptionWebhookVerificationCode {
 	t.Helper()
 	verificationCode, err := TestSuite.VerificationCodeRepository.Create(TestSuite.Ctx, &svcEntities.SubscriptionWebhookVerificationCode{
 		SubscriptionWebhookID: webhookID,
 		Email:                 email,
 		Name:                  "Test Subscriber",
 		MobilePhone:           "41992395568",
-		Document:              "12345678900",
+		Document:              document,
 		VerificationCode:      code,
 		Group:                 group,
 	})

@@ -35,8 +35,22 @@ definitions:
   github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingRequestDTO:
     properties:
       document:
+        example: "12345678900"
         type: string
       email:
+        example: jovem@example.com
+        type: string
+    type: object
+  github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO:
+    properties:
+      email:
+        example: c***a@hotmail.com
+        type: string
+      status:
+        enum:
+        - CODE_SENT
+        - EMAIL_REQUIRED
+        example: CODE_SENT
         type: string
     type: object
   github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO:
@@ -139,10 +153,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Verifica se o email+documento existem na base de inscrições recebida
-        via webhook e envia um código de 6 dígitos por email.
+      description: Localiza a inscrição pelo documento (CPF). Se o registro já tem
+        email, envia o código e retorna status CODE_SENT com o email ofuscado. Se
+        não tem email, retorna status EMAIL_REQUIRED sem enviar nada — a mesma rota
+        deve ser chamada de novo com o campo email preenchido para completar o cadastro
+        e enviar o código.
       parameters:
-      - description: Email e documento do inscrito
+      - description: Documento do inscrito (e opcionalmente o email, quando ainda
+          não cadastrado)
         in: body
         name: request
         required: true
@@ -151,8 +169,10 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: Código enviado
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO'
         "400":
           description: Bad Request
           schema:

@@ -5,10 +5,10 @@ import "time"
 type SubscriptionWebhookVerificationCode struct {
 	ID                    uint64    `gorm:"primaryKey;autoIncrement"`
 	SubscriptionWebhookID uint64    `gorm:"not null;index"`
-	Email                 string    `gorm:"uniqueIndex;not null"`
+	Email                 string    `gorm:"index;not null"`
 	Name                  string    `gorm:"not null"`
 	MobilePhone           string    `gorm:"default:null"`
-	Document              string    `gorm:"default:null"`
+	Document              string    `gorm:"uniqueIndex;not null"`
 	VerificationCode      string    `gorm:"not null"`
 	Group                 string    `gorm:"default:null"`
 	UserID                *uint64   `gorm:"index;default:null"`

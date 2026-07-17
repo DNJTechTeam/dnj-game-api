@@ -36,33 +36,96 @@ func TestAuthService_Onboarding(t *testing.T) {
 	truncateAuthTables(t)
 
 	service := newAuthService()
-	webhook := seedSubscriptionWebhook(t, "{}")
-	seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "")
 
-	t.Run("email not found", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "missing@example.com",
-			Document: "12345678900",
+	t.Run("document not found", func(t *testing.T) {
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "00000000099",
 		})
 		require.Error(t, err)
+		assert.Nil(t, response)
 		assert.IsType(t, &appErrors.Error{}, err)
 	})
 
-	t.Run("document mismatch", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "onboard@example.com",
-			Document: "00000000000",
-		})
-		require.Error(t, err)
-		assert.IsType(t, &appErrors.Error{}, err)
-	})
+	t.Run("document found with email already on file sends the code", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "onboard@example.com", "123456", "", "12345678900")
 
-	t.Run("success", func(t *testing.T) {
-		err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
-			Email:    "onboard@example.com",
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
 			Document: "12345678900",
 		})
 		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusCodeSent, response.Status)
+		assert.Equal(t, "o***d@example.com", response.Email)
+	})
+
+	t.Run("document found without email and request has no email returns EMAIL_REQUIRED", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "654321", "", "22200000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "22200000000",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusEmailRequired, response.Status)
+		assert.Empty(t, response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "22200000000")
+		require.NoError(t, err)
+		assert.Empty(t, code.Email)
+	})
+
+	t.Run("document found without email and request provides one backfills and sends the code", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "111111", "", "33300000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "33300000000",
+			Email:    " Companion@Example.COM ",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, messages.OnboardingStatusCodeSent, response.Status)
+		assert.Equal(t, "c***n@example.com", response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "33300000000")
+		require.NoError(t, err)
+		assert.Equal(t, "companion@example.com", code.Email)
+	})
+
+	t.Run("document found without email and request email in invalid format returns validation error", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "", "222222", "", "44400000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "44400000000",
+			Email:    "not-an-email",
+		})
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.IsType(t, &appErrors.Error{}, err)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "44400000000")
+		require.NoError(t, err)
+		assert.Empty(t, code.Email)
+	})
+
+	t.Run("document found with email already on file ignores a different email in the request", func(t *testing.T) {
+		webhook := seedSubscriptionWebhook(t, "{}")
+		seedVerificationCode(t, webhook.ID, "keep-me@example.com", "333333", "", "55500000000")
+
+		response, err := service.Onboarding(TestSuite.Ctx, &messages.OnboardingRequestDTO{
+			Document: "55500000000",
+			Email:    "someone-else@example.com",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, "k***e@example.com", response.Email)
+
+		code, err := TestSuite.VerificationCodeRepository.FindByDocument(TestSuite.Ctx, "55500000000")
+		require.NoError(t, err)
+		assert.Equal(t, "keep-me@example.com", code.Email)
 	})
 }
 
@@ -74,7 +137,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("invalid code", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "invalid-code@example.com", "123456", "")
+		seedVerificationCode(t, webhook.ID, "invalid-code@example.com", "123456", "", "11111111111")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "invalid-code@example.com",
@@ -88,7 +151,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 	t.Run("success creates user and resolves group", func(t *testing.T) {
 		group := seedGroup(t, "Grupo Jovens A")
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "verify@example.com", "654321", group.Name)
+		seedVerificationCode(t, webhook.ID, "verify@example.com", "654321", group.Name, "22222222222")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "verify@example.com",
@@ -104,7 +167,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("no matching group leaves user without a group", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "nogroup@example.com", "111222", "Grupo Inexistente")
+		seedVerificationCode(t, webhook.ID, "nogroup@example.com", "111222", "Grupo Inexistente", "33333333333")
 
 		response, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "nogroup@example.com",
@@ -117,7 +180,7 @@ func TestAuthService_VerifyCode(t *testing.T) {
 
 	t.Run("idempotent when user already verified", func(t *testing.T) {
 		webhook := seedSubscriptionWebhook(t, "{}")
-		seedVerificationCode(t, webhook.ID, "idempotent@example.com", "333444", "")
+		seedVerificationCode(t, webhook.ID, "idempotent@example.com", "333444", "", "44444444444")
 
 		first, err := service.VerifyCode(TestSuite.Ctx, &messages.VerificationCodeRequestDTO{
 			Email:            "idempotent@example.com",

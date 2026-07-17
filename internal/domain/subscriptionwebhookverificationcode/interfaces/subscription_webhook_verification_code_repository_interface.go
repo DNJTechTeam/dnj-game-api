@@ -10,6 +10,8 @@ type SubscriptionWebhookVerificationCodeRepositoryInterface interface {
 	Create(ctx context.Context, code *entities.SubscriptionWebhookVerificationCode) (*entities.SubscriptionWebhookVerificationCode, error)
 	// FindByEmail returns nil, nil when no record exists for that email.
 	FindByEmail(ctx context.Context, email string) (*entities.SubscriptionWebhookVerificationCode, error)
+	// FindByDocument returns nil, nil when no record exists for that document (CPF).
+	FindByDocument(ctx context.Context, document string) (*entities.SubscriptionWebhookVerificationCode, error)
 	Update(ctx context.Context, code *entities.SubscriptionWebhookVerificationCode) (*entities.SubscriptionWebhookVerificationCode, error)
 	// FindByEmailAndCode returns nil, nil when no record matches both fields.
 	FindByEmailAndCode(ctx context.Context, email string, verificationCode string) (*entities.SubscriptionWebhookVerificationCode, error)

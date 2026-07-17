@@ -113,4 +113,58 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		"1.1.0",
 		&models.SubscriptionWebhookVerificationCode{},
 	))
+
+	registry.Register(Migration{
+		Name:        "switch_subscription_webhook_verification_codes_dedup_key_to_document",
+		Description: "Dedup subscription webhook verification codes by document (CPF) instead of email",
+		Version:     "1.2.0",
+		Up: func(db *gorm.DB) error {
+			migrator := db.Migrator()
+			if !migrator.HasTable(&models.SubscriptionWebhookVerificationCode{}) {
+				return nil
+			}
+
+			if err := db.Exec(`DROP INDEX IF EXISTS idx_subscription_webhook_verification_codes_email`).Error; err != nil {
+				return fmt.Errorf("failed to drop email unique index: %w", err)
+			}
+
+			if err := db.Exec(`UPDATE subscription_webhook_verification_codes SET document = '' WHERE document IS NULL`).Error; err != nil {
+				return fmt.Errorf("failed to backfill null documents: %w", err)
+			}
+
+			if err := db.Exec(`ALTER TABLE subscription_webhook_verification_codes ALTER COLUMN document SET NOT NULL`).Error; err != nil {
+				return fmt.Errorf("failed to set document not null: %w", err)
+			}
+
+			if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_webhook_verification_codes_document ON subscription_webhook_verification_codes (document)`).Error; err != nil {
+				return fmt.Errorf("failed to create document unique index: %w", err)
+			}
+
+			if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_subscription_webhook_verification_codes_email ON subscription_webhook_verification_codes (email)`).Error; err != nil {
+				return fmt.Errorf("failed to create email index: %w", err)
+			}
+
+			return nil
+		},
+		Down: func(db *gorm.DB) error {
+			migrator := db.Migrator()
+			if !migrator.HasTable(&models.SubscriptionWebhookVerificationCode{}) {
+				return nil
+			}
+
+			if err := db.Exec(`DROP INDEX IF EXISTS idx_subscription_webhook_verification_codes_document`).Error; err != nil {
+				return err
+			}
+
+			if err := db.Exec(`DROP INDEX IF EXISTS idx_subscription_webhook_verification_codes_email`).Error; err != nil {
+				return err
+			}
+
+			if err := db.Exec(`ALTER TABLE subscription_webhook_verification_codes ALTER COLUMN document DROP NOT NULL`).Error; err != nil {
+				return err
+			}
+
+			return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_webhook_verification_codes_email ON subscription_webhook_verification_codes (email)`).Error
+		},
+	})
 }

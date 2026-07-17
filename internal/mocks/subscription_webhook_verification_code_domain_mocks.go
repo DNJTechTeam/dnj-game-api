@@ -106,6 +106,74 @@ func (_c *MockSubscriptionWebhookVerificationCodeRepositoryInterface_Create_Call
 	return _c
 }
 
+// FindByDocument provides a mock function for the type MockSubscriptionWebhookVerificationCodeRepositoryInterface
+func (_mock *MockSubscriptionWebhookVerificationCodeRepositoryInterface) FindByDocument(ctx context.Context, document string) (*entities.SubscriptionWebhookVerificationCode, error) {
+	ret := _mock.Called(ctx, document)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByDocument")
+	}
+
+	var r0 *entities.SubscriptionWebhookVerificationCode
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.SubscriptionWebhookVerificationCode, error)); ok {
+		return returnFunc(ctx, document)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.SubscriptionWebhookVerificationCode); ok {
+		r0 = returnFunc(ctx, document)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.SubscriptionWebhookVerificationCode)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, document)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByDocument'
+type MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call struct {
+	*mock.Call
+}
+
+// FindByDocument is a helper method to define mock.On call
+//   - ctx context.Context
+//   - document string
+func (_e *MockSubscriptionWebhookVerificationCodeRepositoryInterface_Expecter) FindByDocument(ctx interface{}, document interface{}) *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call {
+	return &MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call{Call: _e.mock.On("FindByDocument", ctx, document)}
+}
+
+func (_c *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call) Run(run func(ctx context.Context, document string)) *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call) Return(subscriptionWebhookVerificationCode *entities.SubscriptionWebhookVerificationCode, err error) *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call {
+	_c.Call.Return(subscriptionWebhookVerificationCode, err)
+	return _c
+}
+
+func (_c *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call) RunAndReturn(run func(ctx context.Context, document string) (*entities.SubscriptionWebhookVerificationCode, error)) *MockSubscriptionWebhookVerificationCodeRepositoryInterface_FindByDocument_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindByEmail provides a mock function for the type MockSubscriptionWebhookVerificationCodeRepositoryInterface
 func (_mock *MockSubscriptionWebhookVerificationCodeRepositoryInterface) FindByEmail(ctx context.Context, email string) (*entities.SubscriptionWebhookVerificationCode, error) {
 	ret := _mock.Called(ctx, email)

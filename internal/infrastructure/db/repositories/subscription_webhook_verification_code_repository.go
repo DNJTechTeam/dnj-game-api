@@ -42,6 +42,18 @@ func (r *SubscriptionWebhookVerificationCodeRepository) FindByEmail(ctx context.
 	return mappers.MapSubscriptionWebhookVerificationCodeToEntity(&model), nil
 }
 
+func (r *SubscriptionWebhookVerificationCodeRepository) FindByDocument(ctx context.Context, document string) (*svcEntities.SubscriptionWebhookVerificationCode, error) {
+	var model models.SubscriptionWebhookVerificationCode
+	err := r.getDB(ctx).Where("document = ?", document).First(&model).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, handleRepositoryError(err)
+	}
+	return mappers.MapSubscriptionWebhookVerificationCodeToEntity(&model), nil
+}
+
 func (r *SubscriptionWebhookVerificationCodeRepository) Update(ctx context.Context, code *svcEntities.SubscriptionWebhookVerificationCode) (*svcEntities.SubscriptionWebhookVerificationCode, error) {
 	model := mappers.MapSubscriptionWebhookVerificationCodeEntityToModel(code)
 	if err := r.BaseRepository.Update(ctx, model); err != nil {
