@@ -1,0 +1,752 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "API REST para gerenciamento de eventos e pontuações da gamificação DNJ.",
+    "title": "DNJ Game API",
+    "contact": {},
+    "version": "1.0"
+  },
+  "basePath": "/v1",
+  "paths": {
+    "/auth/onboarding": {
+      "post": {
+        "description": "Localiza a inscrição pelo documento (CPF). Se o registro já tem email, envia o código e retorna status CODE_SENT com o email ofuscado. Se não tem email, retorna status EMAIL_REQUIRED sem enviar nada — a mesma rota deve ser chamada de novo com o campo email preenchido para completar o cadastro e enviar o código.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirma inscrição e envia código de verificação",
+        "parameters": [
+          {
+            "description": "Documento do inscrito (e opcionalmente o email, quando ainda não cadastrado)",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/auth/verification-code": {
+      "post": {
+        "description": "Confirma o código de verificação, cria o usuário na primeira verificação (idempotente nas seguintes) e retorna o identityToken.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verifica o código e retorna o token de identidade",
+        "parameters": [
+          {
+            "description": "Email e código de verificação",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Busca case-insensitive por nome (mínimo 3 caracteres), limitada a 20 resultados.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "groups"
+        ],
+        "summary": "Busca grupos por nome",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Termo de busca (mínimo 3 caracteres)",
+            "name": "search",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/healthcheck": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "healthcheck"
+        ],
+        "summary": "Healthcheck",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/webhook": {
+      "post": {
+        "description": "Grava o payload bruto e cria/atualiza um código de verificação pendente para o inscrito. Payload elástico (formato definido pela plataforma externa).",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Recebe o webhook de inscrição no evento",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Secret compartilhado com a plataforma externa",
+            "name": "X-Webhook-Secret",
+            "in": "header",
+            "required": true
+          },
+          {
+            "description": "Payload do webhook (formato elástico)",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Payload recebido"
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          },
+          "401": {
+            "description": "Secret inválido"
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Lista as tarefas do usuário autenticado",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Cria uma nova tarefa",
+        "parameters": [
+          {
+            "description": "Dados da tarefa",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.CreateTaskRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Obtém uma tarefa por ID",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID da tarefa",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Atualiza uma tarefa",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID da tarefa",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Dados da tarefa",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Remove uma tarefa",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID da tarefa",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removida"
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{id}/status": {
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Atualiza o status de uma tarefa",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID da tarefa",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Novo status",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskStatusRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/update-group": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Vincula o usuário a um grupo existente (groupId) ou cria um novo grupo pelo nome (groupName) e vincula.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Atualiza o grupo de um usuário",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID do usuário",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Grupo a vincular",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateUserGroupRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.FieldError"
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_errors.FieldError": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.CreateTaskRequestDTO": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO": {
+      "type": "object",
+      "properties": {
+        "groupName": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingRequestDTO": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "type": "string",
+          "example": "12345678900"
+        },
+        "email": {
+          "type": "string",
+          "example": "jovem@example.com"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.OnboardingResponseDTO": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "c***a@hotmail.com"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CODE_SENT",
+            "EMAIL_REQUIRED"
+          ],
+          "example": "CODE_SENT"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.TaskResponseDTO": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskRequestDTO": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateTaskStatusRequestDTO": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.UpdateUserGroupRequestDTO": {
+      "type": "object",
+      "properties": {
+        "groupId": {
+          "type": "integer"
+        },
+        "groupName": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "document": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "group": {
+          "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "mobilePhone": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeRequestDTO": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "verificationCode": {
+          "type": "string"
+        }
+      }
+    },
+    "github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string"
+        },
+        "document": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "group": {
+          "$ref": "#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_messages.GroupSummaryDTO"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "identityToken": {
+          "type": "string"
+        },
+        "mobilePhone": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "description": "Identity token (JWT). Também aceito via cookie identity_token; o header é a forma documentada aqui.",
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "host": "umsty3atr5biyvl34yvsly34zy0fhgcm.lambda-url.sa-east-1.on.aws",
+  "schemes": [
+    "https"
+  ]
+}
