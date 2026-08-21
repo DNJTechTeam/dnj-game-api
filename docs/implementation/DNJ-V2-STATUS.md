@@ -60,6 +60,8 @@ silenciosa.
 
 ## Evidência da Iteração 1
 
+Commit de implementação: `2314d06`
+
 | Controle | Evidência executada em 2026-08-21 |
 |---|---|
 | Gate agregado | `make validate`: Wire, build, vet, race, cobertura, migrations e OpenAPI verdes |
