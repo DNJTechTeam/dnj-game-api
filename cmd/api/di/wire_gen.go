@@ -19,8 +19,10 @@ import (
 
 func InitializeServer() *api.API {
 	engine := api2.ProvideEngine()
-	healthcheckHandler := &handlers.HealthcheckHandler{}
 	gormDB := db.ProvideDB()
+	healthcheckHandler := &handlers.HealthcheckHandler{
+		DB: gormDB,
+	}
 	transactionManagerInterface := db.ProvideTransactionManager(gormDB)
 	baseService := services.ProvideBaseService(transactionManagerInterface)
 	subscriptionWebhookVerificationCodeRepositoryInterface := repositories.ProvideSubscriptionWebhookVerificationCodeRepository(gormDB)

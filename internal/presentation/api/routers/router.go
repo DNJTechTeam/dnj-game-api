@@ -12,6 +12,7 @@ type Router struct {
 	engine   *gin.Engine
 	handlers *handlers.Handlers
 	group    *gin.RouterGroup
+	v2Group  *gin.RouterGroup
 }
 
 func NewRouter(engine *gin.Engine, handlers *handlers.Handlers) *Router {
@@ -19,6 +20,7 @@ func NewRouter(engine *gin.Engine, handlers *handlers.Handlers) *Router {
 		engine:   engine,
 		handlers: handlers,
 		group:    engine.Group(infraCommon.GetEnv("API_PREFIX")),
+		v2Group:  engine.Group("/v2"),
 	}
 }
 

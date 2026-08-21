@@ -9,14 +9,16 @@ Migrations are plain Go functions, registered in code and tracked in a
   the `schema_migrations` model, and `RunAll()`.
 - `internal/infrastructure/db/migrations/model_migrations.go` — every migration,
   registered in order inside `RegisterModelMigrations`.
-- `migrate.go` — `MigrateModels()`, called from `cmd/api/main.go` right after
-  the DB connection is opened.
+- `migrate.go` — `MigrateModels()`, called by `cmd/migrate/main.go`. Local
+  `make run-api` runs this command before starting HTTP; deploy workflows run
+  it explicitly before replacing the Lambda image.
 
 `RunAll()`:
 
-1. Ensures the `schema_migrations` table exists.
-2. For each registered migration, checks `schema_migrations` by `Name`. If
-   already recorded, it is **skipped**.
+1. Acquires a transaction-scoped PostgreSQL advisory lock and ensures the
+   `schema_migrations` table exists.
+2. For each registered migration, validates the immutable SHA-256 checksum. A
+   legacy row without checksum is backfilled; a mismatch fails closed.
 3. Otherwise it runs `Up` **inside its own transaction**, inserts the tracking
    row, and commits. Any error rolls the whole migration back.
 
@@ -58,6 +60,7 @@ registry.Register(Migration{
     Name:        "add_priority_to_tasks",            // unique, immutable
     Description: "Add priority column to tasks",
     Version:     "1.1.0",
+    Definition:  "add-tasks-priority-v1",             // unique, immutable
     Up: func(db *gorm.DB) error {
         migrator := db.Migrator()
         if migrator.HasTable(&models.Task{}) && !migrator.HasColumn(&models.Task{}, "priority") {
@@ -75,11 +78,16 @@ registry.Register(Migration{
 })
 ```
 
-> Never rename or edit the `Name` of a migration that already shipped — the
-> tracker keys off it. To change applied schema, add a *new* migration.
+> Never rename or edit `Name`, `Version`, `Description` or `Definition` after
+> shipment. To change applied schema, add a *new* migration.
 
 For a brand-new table, prefer the helper:
 
 ```go
 registry.Register(createModelMigration("create_widgets_table", "1.1.0", &models.Widget{}))
 ```
+
+The complete operational approach (expand/backfill/contract, backups and
+rollback) is in `docs/implementation/migration-strategy.md`. Run
+`make test-migrations` to exercise clean install, direct `Up` replay, legacy
+partial upgrade, concurrent runners and checksum drift against real Postgres.

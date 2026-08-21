@@ -1,0 +1,14 @@
+operations:
+  - operationId: getHealthcheck
+    method: GET
+    path: /healthcheck
+    statuses: ['200']
+    automatedTests:
+      - internal/presentation/api/routers/healthcheck_router_test.go
+  - operationId: getReadiness
+    method: GET
+    path: /readiness
+    statuses: ['200', '503']
+    automatedTests:
+      - internal/presentation/api/routers/healthcheck_router_test.go
+      - internal/presentation/api/handlers/healthcheck_handler_test.go

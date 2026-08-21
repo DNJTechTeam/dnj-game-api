@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: Vet
-        run: go vet ./...
+        run: make build vet
 
   test:
     name: Run Tests
@@ -57,6 +57,22 @@ jobs:
 
       - name: Run migrations idempotency test
         run: make test-migrations
+
+  race:
+    name: Race Detector
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run race detector
+        run: make test-race
 
   openapi:
     name: OpenAPI Contract

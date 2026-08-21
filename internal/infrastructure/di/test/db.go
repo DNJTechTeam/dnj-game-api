@@ -19,10 +19,10 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork) (*gorm.DB, testcontainers.Container) {
+func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork, runMigrations bool) (*gorm.DB, testcontainers.Container) {
 	dbContainer, err := postgresContainer.Run(
 		ctx,
-		"postgres:latest",
+		"postgres:16-alpine",
 		testcontainers.WithEnv(
 			map[string]string{
 				"POSTGRES_USER":     "root",
@@ -64,9 +64,11 @@ func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork)
 		log.Fatalf("failed to connect to db: %s", err)
 	}
 
-	db.SetConnection(dbConnection)
-	if err := migrations.MigrateModels(); err != nil {
-		log.Fatalf("failed to run database migrations: %s", err)
+	if runMigrations {
+		db.SetConnection(dbConnection)
+		if err := migrations.MigrateModels(); err != nil {
+			log.Fatalf("failed to run database migrations: %s", err)
+		}
 	}
 
 	return dbConnection, dbContainer

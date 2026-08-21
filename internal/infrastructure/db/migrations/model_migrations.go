@@ -16,6 +16,7 @@ func createModelMigration(name, version string, model interface{}) Migration {
 		Name:        name,
 		Description: fmt.Sprintf("Create and migrate table for %s", name),
 		Version:     version,
+		Definition:  "model-table-v1:" + name,
 		Up: func(db *gorm.DB) error {
 			migrator := db.Migrator()
 
@@ -56,6 +57,7 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		Name:        "create_users_table",
 		Description: "Create and migrate table for create_users_table",
 		Version:     "1.0.0",
+		Definition:  "users-passwordless-columns-v1",
 		Up: func(db *gorm.DB) error {
 			migrator := db.Migrator()
 
@@ -118,6 +120,7 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		Name:        "switch_subscription_webhook_verification_codes_dedup_key_to_document",
 		Description: "Dedup subscription webhook verification codes by document (CPF) instead of email",
 		Version:     "1.2.0",
+		Definition:  "verification-code-document-dedup-v1",
 		Up: func(db *gorm.DB) error {
 			migrator := db.Migrator()
 			if !migrator.HasTable(&models.SubscriptionWebhookVerificationCode{}) {

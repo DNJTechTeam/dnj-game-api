@@ -28,6 +28,11 @@ const (
 // authenticated user id (as a string) in the request context.
 const UserIDContextKey = "userId"
 
+// RequestIDContextKey stores the correlation id shared by HTTP logs and
+// responses. It intentionally uses a plain string for compatibility with the
+// existing Gin-to-standard-context bridge used by the application.
+const RequestIDContextKey = "requestId"
+
 func GetEnv(env string) string {
 	value, isSet := os.LookupEnv(env)
 
@@ -112,6 +117,11 @@ func ExtractUserIdFromContext(ctx context.Context) uint64 {
 		return 0
 	}
 	return userId
+}
+
+func ExtractRequestID(ctx context.Context) string {
+	requestID, _ := ctx.Value(RequestIDContextKey).(string)
+	return requestID
 }
 
 // GenerateVerificationCode produces a random 6-digit numeric code (zero

@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: DNJ Game API V2
+  version: 2.0.0
+  description: >-
+    Contrato canônico e versionado da V2. Somente operações já implementadas,
+    testadas e liberadas entram neste documento.
+servers:
+  - url: http://localhost:8081/v2
+    description: Desenvolvimento local
+tags:
+  - name: Operations
+paths:
+  /healthcheck:
+    get:
+      tags: [Operations]
+      operationId: getHealthcheck
+      summary: Confirma que o processo HTTP está ativo
+      responses:
+        '200':
+          description: Processo ativo
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthcheckResponse'
+  /readiness:
+    get:
+      tags: [Operations]
+      operationId: getReadiness
+      summary: Confirma que a API e o PostgreSQL estão prontos
+      responses:
+        '200':
+          description: Dependências prontas
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Uma dependência obrigatória está indisponível
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  headers:
+    RequestID:
+      description: Identificador seguro de correlação da requisição
+      schema:
+        type: string
+  schemas:
+    HealthcheckResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        service:
+          type: string
+          enum: [dnj-game-api]
+    ReadinessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready]
+    Error:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: string
+          example: DEPENDENCY_UNAVAILABLE
+        message:
+          type: string
+        details:
+          nullable: true
+        requestId:
+          type: string

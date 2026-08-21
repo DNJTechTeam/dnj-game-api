@@ -13,6 +13,9 @@ Documentação sobre padrões de testes adotados no projeto. Todo novo recurso A
 - **DB**: Testcontainers em `internal/infrastructure/di/test` (PostgreSQL real em cada suite)
 - **Contexto**: `TestSuite.ContextWithUser(userID)` para simular usuário autenticado
 - **Limpeza**: `TestSuite.TruncateTable(t, model)` antes/depois de cada teste
+- **Gates**: código mantido nunca pode cair abaixo de 55%; mappers/repositories
+  permanecem em 90% no mínimo (100% no baseline atual). A meta é elevar o gate
+  mantido progressivamente até 90%, sem contar código gerado, DI ou runtime glue.
 
 ---
 
