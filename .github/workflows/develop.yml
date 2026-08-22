@@ -60,6 +60,32 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
+      - name: Sync database configuration to Lambda
+        env:
+          FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          current=$(aws lambda get-function-configuration \
+            --function-name "$FUNCTION_NAME" \
+            --query 'Environment.Variables' \
+            --output json)
+          updated=$(jq -c \
+            --arg host "$DB_HOST" \
+            --arg port "$DB_PORT" \
+            --arg user "$DB_USER" \
+            --arg password "$DB_PASSWORD" \
+            --arg name "$DB_NAME" \
+            '(. // {}) + {DB_HOST: $host, DB_PORT: $port, DB_USER: $user, DB_PASSWORD: $password, DB_NAME: $name}' \
+            <<<"$current")
+          aws lambda update-function-configuration \
+            --function-name "$FUNCTION_NAME" \
+            --environment "Variables=$updated" >/dev/null
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
