@@ -44,7 +44,7 @@ automatizado e evidência no ambiente `develop`.
 |---|---|---|---|---|
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
-| 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Implementada localmente; publicação pendente |
+| 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
 | 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
@@ -150,7 +150,7 @@ Dependências externas e etapas posteriores:
 O enabler externo de ambiente foi resolvido em 2026-08-22. Não há bloqueio de
 backend pendente para iniciar a Iteração 3.
 
-## Evidência local da Iteração 3
+## Evidência da Iteração 3
 
 | Controle | Evidência em 2026-08-22 |
 |---|---|
@@ -170,3 +170,29 @@ Enabler preservado para as etapas finais: o frontend deve migrar sessão/perfil,
 trocar o alias deprecated `POST /users/me/group` pelo `PATCH` canônico, consumir
 paginação e implementar as telas administrativas de convite. Nenhum arquivo do
 frontend foi alterado nesta iteração.
+
+## Deploy e smokes remotos da Iteração 3
+
+- Commit de implementação: `7ea0cfd`.
+- Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32602976830>.
+- API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
+- OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
+
+| Smoke em 2026-08-22 | Resultado |
+|---|---|
+| Migrations/checksums CockroachDB | etapa do workflow verde, sem reset ou bypass |
+| `GET /healthcheck` | 200 `ok` |
+| `GET /readiness` | 200 `ready` |
+| UI OpenAPI | 200 |
+| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.2.0 e 16 paths |
+| `GET /users/me` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `GET /groups` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `GET /groups/me` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `GET /groups/me/members` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `POST /groups/invites/consume` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `GET /admin/groups/1/invites` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+
+Não há bloqueio de backend pendente para iniciar a Iteração 4. A integração do
+frontend com os contratos das Iterações 2 e 3 permanece deliberadamente como
+enabler das etapas finais, conforme os handoffs, sem alteração antecipada do
+repositório frontend.
