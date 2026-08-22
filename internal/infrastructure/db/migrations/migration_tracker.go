@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const migrationLockID = int64(1)
+
 type MigrationRecord struct {
 	ID          uint64    `gorm:"primaryKey;autoIncrement"`
 	Name        string    `gorm:"uniqueIndex;not null"`
@@ -137,70 +139,103 @@ func (r *MigrationRegistry) GetAppliedMigrations() ([]string, error) {
 	return names, nil
 }
 
-func (r *MigrationRegistry) RunAll() error {
-	bootstrapTx := r.db.Begin()
-	if bootstrapTx.Error != nil {
-		return fmt.Errorf("failed to begin migration tracker transaction: %w", bootstrapTx.Error)
+// ensureMigrationLock creates the singleton row used to serialize migration
+// runners. A row lock is supported by PostgreSQL and CockroachDB, unlike
+// PostgreSQL advisory locks, and keeps the coordination state in the same
+// database whose schema is being changed.
+func (r *MigrationRegistry) ensureMigrationLock() error {
+	if err := r.db.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migration_lock (
+			id BIGINT PRIMARY KEY
+		)
+	`).Error; err != nil {
+		return fmt.Errorf("failed to create migration lock table: %w", err)
 	}
-	if err := bootstrapTx.Exec(`SELECT pg_advisory_xact_lock(?)`, int64(0x444e4a4d49475241)).Error; err != nil {
-		bootstrapTx.Rollback()
-		return fmt.Errorf("failed to acquire migration tracker lock: %w", err)
+
+	if err := r.db.Exec(`
+		INSERT INTO schema_migration_lock (id)
+		VALUES (?)
+		ON CONFLICT (id) DO NOTHING
+	`, migrationLockID).Error; err != nil {
+		return fmt.Errorf("failed to initialize migration lock row: %w", err)
 	}
-	if err := NewMigrationRegistry(bootstrapTx).EnsureTrackerTable(); err != nil {
-		bootstrapTx.Rollback()
+
+	return nil
+}
+
+func acquireMigrationLock(tx *gorm.DB) error {
+	var id int64
+	if err := tx.Raw(`
+		SELECT id
+		FROM schema_migration_lock
+		WHERE id = ?
+		FOR UPDATE
+	`, migrationLockID).Scan(&id).Error; err != nil {
 		return err
 	}
-	if err := bootstrapTx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit migration tracker bootstrap: %w", err)
+	if id != migrationLockID {
+		return fmt.Errorf("migration lock row %d is missing", migrationLockID)
+	}
+	return nil
+}
+
+func (r *MigrationRegistry) runLockedTransaction(label string, run func(*gorm.DB) error) error {
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("failed to begin %s transaction: %w", label, tx.Error)
+	}
+	if err := acquireMigrationLock(tx); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to acquire lock for %s: %w", label, err)
+	}
+	if err := run(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit %s: %w", label, err)
+	}
+	return nil
+}
+
+func (r *MigrationRegistry) RunAll() error {
+	if err := r.ensureMigrationLock(); err != nil {
+		return err
+	}
+
+	if err := r.runLockedTransaction("migration tracker bootstrap", func(tx *gorm.DB) error {
+		return NewMigrationRegistry(tx).EnsureTrackerTable()
+	}); err != nil {
+		return err
 	}
 
 	for _, migration := range r.migrations {
-		tx := r.db.Begin()
-		if tx.Error != nil {
-			return fmt.Errorf("failed to begin transaction for migration %s: %w", migration.Name, tx.Error)
-		}
-		// A transaction-scoped advisory lock serializes concurrent migration
-		// runners. The status check happens only after the lock is held, which
-		// prevents two deploys from applying the same migration together.
-		if err := tx.Exec(`SELECT pg_advisory_xact_lock(?)`, int64(0x444e4a4d49475241)).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to acquire migration lock for %s: %w", migration.Name, err)
-		}
-
-		hasRun, err := NewMigrationRegistry(tx).HasMigration(migration.Name)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error checking migration %s: %w", migration.Name, err)
-		}
-		if hasRun {
-			if err := r.validateAppliedMigration(tx, migration); err != nil {
-				tx.Rollback()
-				return err
+		if err := r.runLockedTransaction("migration "+migration.Name, func(tx *gorm.DB) error {
+			hasRun, err := NewMigrationRegistry(tx).HasMigration(migration.Name)
+			if err != nil {
+				return fmt.Errorf("error checking migration %s: %w", migration.Name, err)
 			}
-			if err := tx.Commit().Error; err != nil {
-				return fmt.Errorf("failed to commit checksum validation for migration %s: %w", migration.Name, err)
+			if hasRun {
+				return r.validateAppliedMigration(tx, migration)
 			}
-			continue
-		}
 
-		if err := migration.Up(tx); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("migration %s failed: %w", migration.Name, err)
-		}
+			if err := migration.Up(tx); err != nil {
+				return fmt.Errorf("migration %s failed: %w", migration.Name, err)
+			}
 
-		record := &MigrationRecord{
-			Name:        migration.Name,
-			Description: migration.Description,
-			Version:     migration.Version,
-			Checksum:    migration.Checksum(),
-		}
-		if err := tx.Create(record).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to record migration %s: %w", migration.Name, err)
-		}
+			record := &MigrationRecord{
+				Name:        migration.Name,
+				Description: migration.Description,
+				Version:     migration.Version,
+				Checksum:    migration.Checksum(),
+			}
+			if err := tx.Create(record).Error; err != nil {
+				return fmt.Errorf("failed to record migration %s: %w", migration.Name, err)
+			}
 
-		if err := tx.Commit().Error; err != nil {
-			return fmt.Errorf("failed to commit migration %s: %w", migration.Name, err)
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 

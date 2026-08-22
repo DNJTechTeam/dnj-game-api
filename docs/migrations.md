@@ -15,8 +15,8 @@ Migrations are plain Go functions, registered in code and tracked in a
 
 `RunAll()`:
 
-1. Acquires a transaction-scoped PostgreSQL advisory lock and ensures the
-   `schema_migrations` table exists.
+1. Locks a singleton row with `SELECT FOR UPDATE` (supported by PostgreSQL and
+   CockroachDB) and ensures the `schema_migrations` table exists.
 2. For each registered migration, validates the immutable SHA-256 checksum. A
    legacy row without checksum is backfilled; a mismatch fails closed.
 3. Otherwise it runs `Up` **inside its own transaction**, inserts the tracking

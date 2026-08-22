@@ -31,7 +31,8 @@ durante o deploy.
 - `schema_migrations` guarda checksum SHA-256 de definição imutável.
 - Registros legados sem checksum recebem backfill; alteração posterior falha
   fechada e exige uma migration nova.
-- Advisory lock transacional do PostgreSQL serializa deploys concorrentes.
+- Lock transacional de linha com `SELECT FOR UPDATE`, compatível com PostgreSQL
+  e CockroachDB, serializa deploys concorrentes.
 - Cada migration e seu registro são confirmados na mesma transação.
 - O gate executa cada função `Up` diretamente duas vezes, além do replay pelo
   registry; portanto não confunde “foi pulada” com “é idempotente”.
