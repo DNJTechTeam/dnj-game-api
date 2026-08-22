@@ -6,13 +6,194 @@
         "schema": {
           "type": "string"
         }
+      },
+      "SessionCookies": {
+        "description": "identity_token e refresh_token são HttpOnly; csrf_token é legível pelo cliente. Em ambiente publicado todos são Secure e SameSite=None.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "CSRFHeader": {
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "required": true,
+        "schema": {
+          "minLength": 32,
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Requisição inválida",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Conflict": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Vínculo de identidade ou CPF conflitante",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "DependencyUnavailable": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Dependência obrigatória indisponível",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Proteção CSRF rejeitou a requisição",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "IdentitySession": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IdentitySessionResponse"
+            }
+          }
+        },
+        "description": "Sessão criada ou renovada",
+        "headers": {
+          "Set-Cookie": {
+            "$ref": "#/components/headers/SessionCookies"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "InternalError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Erro interno sem detalhes sensíveis",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Recurso relacionado não encontrado",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Credencial ausente, inválida, expirada ou reutilizada",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
       }
     },
     "schemas": {
+      "CompleteOnboardingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "example": "52998224725",
+            "type": "string"
+          },
+          "groupId": {
+            "example": "12",
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "mobilePhone": {
+            "example": "5541999990000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "mobilePhone",
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "CurrentSessionResponse": {
+        "properties": {
+          "onboardingRequired": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/IdentityUser"
+          }
+        },
+        "required": [
+          "onboardingRequired",
+          "user"
+        ],
+        "type": "object"
+      },
       "Error": {
         "properties": {
           "code": {
-            "example": "DEPENDENCY_UNAVAILABLE",
+            "example": "UNAUTHENTICATED",
             "type": "string"
           },
           "details": {
@@ -29,6 +210,34 @@
           "code",
           "message",
           "requestId"
+        ],
+        "type": "object"
+      },
+      "GoogleAuthRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "idToken": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken"
+        ],
+        "type": "object"
+      },
+      "GroupSummary": {
+        "properties": {
+          "groupName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "groupName"
         ],
         "type": "object"
       },
@@ -53,6 +262,111 @@
         ],
         "type": "object"
       },
+      "IdentitySessionResponse": {
+        "properties": {
+          "accessToken": {
+            "description": "JWT HS256 válido por 900 segundos",
+            "type": "string"
+          },
+          "csrfToken": {
+            "description": "Mesmo valor do cookie csrf_token",
+            "type": "string"
+          },
+          "expiresIn": {
+            "enum": [
+              900
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "onboardingRequired": {
+            "type": "boolean"
+          },
+          "tokenType": {
+            "enum": [
+              "Bearer"
+            ],
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/IdentityUser"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn",
+          "csrfToken",
+          "onboardingRequired",
+          "user"
+        ],
+        "type": "object"
+      },
+      "IdentityUser": {
+        "properties": {
+          "documentMasked": {
+            "description": "CPF integral nunca é retornado pela V2",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "mobilePhone": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboardingComplete": {
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "ADMIN",
+              "EVENT_MANAGER",
+              "DEFAULT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "mobilePhone",
+          "documentMasked",
+          "role",
+          "group",
+          "onboardingComplete"
+        ],
+        "type": "object"
+      },
+      "LogoutResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "logged_out"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "status": {
@@ -67,15 +381,254 @@
         ],
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "csrfCookie": {
+        "in": "cookie",
+        "name": "csrf_token",
+        "type": "apiKey"
+      },
+      "identityCookie": {
+        "in": "cookie",
+        "name": "identity_token",
+        "type": "apiKey"
+      },
+      "refreshCookie": {
+        "in": "cookie",
+        "name": "refresh_token",
+        "type": "apiKey"
+      }
     }
   },
   "info": {
-    "description": "Contrato canônico e versionado da V2. Somente operações já implementadas, testadas e liberadas entram neste documento.",
+    "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "openapi": "3.0.3",
   "paths": {
+    "/auth/google": {
+      "post": {
+        "description": "Valida assinatura, issuer, audience, expiração e email_verified. Uma conta nova permanece incompleta até receber CPF, telefone e grupo.",
+        "operationId": "authenticateWithGoogle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/IdentitySession"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Valida um ID token Google e inicia uma sessão",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutIdentitySession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CSRFHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            },
+            "description": "Sessão revogada",
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/SessionCookies"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "csrfCookie": [],
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Revoga a família da sessão atual e remove os cookies",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/onboarding": {
+      "patch": {
+        "operationId": "completeIdentityOnboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteOnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSessionResponse"
+                }
+              }
+            },
+            "description": "Perfil completo",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Completa CPF, telefone e grupo do perfil autenticado",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Requer os cookies refresh_token e csrf_token e o mesmo valor CSRF no header. Reuso de refresh token revoga toda a família.",
+        "operationId": "refreshIdentitySession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CSRFHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/IdentitySession"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "csrfCookie": [],
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Rotaciona o refresh token e renova a sessão",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "getCurrentIdentitySession",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSessionResponse"
+                }
+              }
+            },
+            "description": "Sessão atual",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna o usuário e o estado atual do onboarding",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/healthcheck": {
       "get": {
         "operationId": "getHealthcheck",
@@ -122,22 +675,10 @@
             }
           },
           "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Uma dependência obrigatória está indisponível",
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/RequestID"
-              }
-            }
+            "$ref": "#/components/responses/DependencyUnavailable"
           }
         },
-        "summary": "Confirma que a API e o PostgreSQL estão prontos",
+        "summary": "Confirma que a API e o banco estão prontos",
         "tags": [
           "Operations"
         ]
@@ -153,6 +694,9 @@
   "tags": [
     {
       "name": "Operations"
+    },
+    {
+      "name": "Identity"
     }
   ]
 }

@@ -667,6 +667,9 @@
         "document": {
           "type": "string"
         },
+        "documentMasked": {
+          "type": "string"
+        },
         "email": {
           "type": "string"
         },
@@ -681,6 +684,9 @@
         },
         "name": {
           "type": "string"
+        },
+        "onboardingComplete": {
+          "type": "boolean"
         },
         "role": {
           "type": "string"
@@ -710,6 +716,9 @@
         "document": {
           "type": "string"
         },
+        "documentMasked": {
+          "type": "string"
+        },
         "email": {
           "type": "string"
         },
@@ -727,6 +736,9 @@
         },
         "name": {
           "type": "string"
+        },
+        "onboardingComplete": {
+          "type": "boolean"
         },
         "role": {
           "type": "string"
