@@ -10,6 +10,8 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	userInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
@@ -35,6 +37,7 @@ type AuthService struct {
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
 	userRepository             userInterfaces.UserRepositoryInterface
 	groupRepository            groupInterfaces.GroupRepositoryInterface
+	membershipRepository       membershipInterfaces.GroupMembershipRepositoryInterface
 	jwtService                 interfaces.JwtServiceInterface
 	emailService               interfaces.EmailServiceInterface
 }
@@ -44,6 +47,7 @@ func NewAuthService(
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface,
 	userRepository userInterfaces.UserRepositoryInterface,
 	groupRepository groupInterfaces.GroupRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 	jwtService interfaces.JwtServiceInterface,
 	emailService interfaces.EmailServiceInterface,
 ) interfaces.AuthServiceInterface {
@@ -52,6 +56,7 @@ func NewAuthService(
 		verificationCodeRepository: verificationCodeRepository,
 		userRepository:             userRepository,
 		groupRepository:            groupRepository,
+		membershipRepository:       membershipRepository,
 		jwtService:                 jwtService,
 		emailService:               emailService,
 	}
@@ -174,6 +179,9 @@ func (s *AuthService) VerifyCode(ctx context.Context, request *messages.Verifica
 					created.GroupID = &matchedGroup.ID
 					created, err = s.userRepository.Update(ctx, created)
 					if err != nil {
+						return appErrors.InternalError
+					}
+					if _, err := s.membershipRepository.UpsertForUser(ctx, &membershipEntities.GroupMembership{UserID: created.ID, GroupID: matchedGroup.ID, JoinedAt: created.UpdatedAt.UTC()}); err != nil {
 						return appErrors.InternalError
 					}
 				}

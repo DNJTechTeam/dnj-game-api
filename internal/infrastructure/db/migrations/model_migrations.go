@@ -254,4 +254,83 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_iteration3_profiles_groups",
+		Description: "Expand profiles with points and create current memberships and hashed group invites",
+		Version:     "2.2.0",
+		Definition:  "iteration3-profiles-groups-expand-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0`,
+				`CREATE TABLE IF NOT EXISTS group_memberships (
+					id BIGSERIAL PRIMARY KEY,
+					user_id BIGINT NOT NULL UNIQUE,
+					group_id BIGINT NOT NULL,
+					joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)`,
+				`CREATE TABLE IF NOT EXISTS group_invites (
+					id BIGSERIAL PRIMARY KEY,
+					group_id BIGINT NOT NULL,
+					code_hash VARCHAR(64) NOT NULL UNIQUE,
+					expires_at TIMESTAMPTZ NOT NULL,
+					revoked_at TIMESTAMPTZ,
+					consumed_at TIMESTAMPTZ,
+					consumed_by_user_id BIGINT,
+					created_by_user_id BIGINT NOT NULL,
+					replaces_invite_id BIGINT,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_iteration3_group_memberships",
+		Description: "Backfill current memberships without changing legacy users.group_id",
+		Version:     "2.2.0",
+		Definition:  "iteration3-group-memberships-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`
+				INSERT INTO group_memberships (user_id, group_id, joined_at, created_at, updated_at)
+				SELECT users.id, users.group_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+				FROM users
+				WHERE users.group_id IS NOT NULL
+				  AND NOT EXISTS (SELECT 1 FROM group_memberships WHERE group_memberships.user_id = users.id)
+			`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_iteration3_group_indexes",
+		Description: "Enforce deterministic and scoped membership and invite lookups",
+		Version:     "2.2.0",
+		Definition:  "iteration3-groups-contract-indexes-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE INDEX IF NOT EXISTS group_memberships_group_user_idx ON group_memberships (group_id, user_id)`,
+				`CREATE INDEX IF NOT EXISTS group_invites_group_created_idx ON group_invites (group_id, created_at DESC, id DESC)`,
+				`CREATE INDEX IF NOT EXISTS group_invites_availability_idx ON group_invites (expires_at, id)`,
+				`CREATE INDEX IF NOT EXISTS users_points_rank_idx ON users (points DESC, id ASC)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

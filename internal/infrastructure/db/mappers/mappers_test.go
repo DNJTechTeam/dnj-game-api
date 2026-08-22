@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	inviteEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/entities"
+	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
 	identityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/entities"
 	refreshEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
@@ -13,6 +15,24 @@ import (
 
 func TestMapTaskToEntity_NilInput(t *testing.T) {
 	assert.Nil(t, MapTaskToEntity(nil))
+}
+
+func TestIteration3Mappers(t *testing.T) {
+	now := time.Now().UTC()
+	membershipModel := &models.GroupMembership{ID: 1, UserID: 2, GroupID: 3, JoinedAt: now, CreatedAt: now, UpdatedAt: now}
+	membership := MapGroupMembershipToEntity(membershipModel)
+	assert.Equal(t, membershipModel.GroupID, membership.GroupID)
+	assert.Equal(t, membershipModel.UserID, MapGroupMembershipEntityToModel(membership).UserID)
+	assert.Nil(t, MapGroupMembershipToEntity(nil))
+	assert.Nil(t, MapGroupMembershipEntityToModel((*membershipEntities.GroupMembership)(nil)))
+
+	consumerID := uint64(4)
+	inviteModel := &models.GroupInvite{ID: 5, GroupID: 3, CodeHash: "hash", ExpiresAt: now.Add(time.Hour), ConsumedByUserID: &consumerID, CreatedByUserID: 1, CreatedAt: now, UpdatedAt: now}
+	invite := MapGroupInviteToEntity(inviteModel)
+	assert.Equal(t, inviteModel.CodeHash, invite.CodeHash)
+	assert.Equal(t, inviteModel.ConsumedByUserID, MapGroupInviteEntityToModel(invite).ConsumedByUserID)
+	assert.Nil(t, MapGroupInviteToEntity(nil))
+	assert.Nil(t, MapGroupInviteEntityToModel((*inviteEntities.GroupInvite)(nil)))
 }
 
 func TestGoogleIdentityMappers(t *testing.T) {

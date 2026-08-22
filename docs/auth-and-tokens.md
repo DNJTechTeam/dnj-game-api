@@ -128,6 +128,9 @@ frontend contract is considered delivered until that consumer work is done.
   tokens, CPF, cookie values or raw Google claims.
 - Keep every published status synchronized between
   `docs/openapi/dnj-v2.openapi.yaml`, its operation manifest and automated tests.
+- Profile, current-group, membership and invite authorization are documented in
+  `docs/profile-and-groups.md`. The frontend integration remains an explicit
+  final-stage enabler; this backend iteration does not alter the frontend.
 
 ## Preserved V1 passwordless flow
 

@@ -3,6 +3,7 @@ package interfaces
 import (
 	"context"
 
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/group/entities"
 )
 
@@ -15,5 +16,6 @@ type GroupRepositoryInterface interface {
 	// Search does a case-insensitive partial match, ordered by name, capped
 	// at limit results.
 	Search(ctx context.Context, query string, limit int) ([]*entities.Group, error)
+	SearchPage(ctx context.Context, query string, page uint64) (*messages.PaginatedResponse[entities.Group], error)
 	ExistsByID(ctx context.Context, id uint64) bool
 }

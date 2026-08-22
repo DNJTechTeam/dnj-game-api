@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.1.0
+  version: 2.2.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -9,6 +9,9 @@ servers:
 tags:
   - name: Operations
   - name: Identity
+  - name: Profile
+  - name: Groups
+  - name: Group invites
 paths:
   /healthcheck:
     get:
@@ -139,6 +142,170 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /users/me:
+    get:
+      tags: [Profile]
+      operationId: getCurrentProfile
+      summary: Retorna o perfil autenticado sem CPF integral ou hashes
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200':
+          description: Perfil atual
+          content: {application/json: {schema: {$ref: '#/components/schemas/CurrentProfile'}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    patch:
+      tags: [Profile]
+      operationId: updateCurrentProfile
+      summary: Edita somente nome e telefone móvel do perfil atual
+      description: Email, CPF, identidade, papel, pontos e grupo são somente leitura nesta operação.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/UpdateCurrentProfileRequest'}}}
+      responses:
+        '200': {description: Perfil atualizado, content: {application/json: {schema: {$ref: '#/components/schemas/CurrentProfile'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /users/me/group:
+    patch:
+      tags: [Groups]
+      operationId: updateCurrentUserGroup
+      summary: Entra, troca ou sai do grupo atual
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody: {$ref: '#/components/requestBodies/UpdateCurrentGroup'}
+      responses:
+        '200': {description: Perfil com grupo atualizado, content: {application/json: {schema: {$ref: '#/components/schemas/CurrentProfile'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Groups]
+      operationId: updateCurrentUserGroupCompatibility
+      deprecated: true
+      summary: Alias temporário compatível com o frontend atual
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody: {$ref: '#/components/requestBodies/UpdateCurrentGroup'}
+      responses:
+        '200': {description: Perfil com grupo atualizado, content: {application/json: {schema: {$ref: '#/components/schemas/CurrentProfile'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /groups:
+    get:
+      tags: [Groups]
+      operationId: listGroups
+      summary: Lista ou pesquisa grupos em ordem determinística
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - {name: search, in: query, schema: {type: string}, description: Vazio lista todos; quando informado exige pelo menos 3 caracteres.}
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200':
+          description: Página de grupos; o corpo permanece um array para compatibilidade direta.
+          headers:
+            X-Page: {$ref: '#/components/headers/Page'}
+            X-Limit: {$ref: '#/components/headers/Limit'}
+            X-Has-Next-Page: {$ref: '#/components/headers/HasNextPage'}
+          content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/GroupSummary'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /groups/me:
+    get:
+      tags: [Groups]
+      operationId: getCurrentGroup
+      summary: Retorna somente o grupo e a membership do solicitante
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Grupo atual ou valores nulos, content: {application/json: {schema: {$ref: '#/components/schemas/CurrentGroup'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /groups/me/members:
+    get:
+      tags: [Groups]
+      operationId: listCurrentGroupMembers
+      summary: Lista membros somente do grupo atual
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página de membros sem email, telefone ou documento, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedGroupMembers'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /groups/invites/consume:
+    post:
+      tags: [Group invites]
+      operationId: consumeGroupInvite
+      summary: Consome uma vez um código de convite de alta entropia
+      description: Retry pelo mesmo consumidor é idempotente; todos os demais estados indisponíveis retornam o mesmo 404.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ConsumeGroupInviteRequest'}}}
+      responses:
+        '200': {description: Membership atualizada, content: {application/json: {schema: {$ref: '#/components/schemas/CurrentGroup'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/groups/{groupId}/invites:
+    parameters: [{$ref: '#/components/parameters/GroupID'}]
+    get:
+      tags: [Group invites]
+      operationId: listGroupInvites
+      summary: Lista convites do grupo para administradores
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página de convites sem códigos, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedGroupInvites'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Group invites]
+      operationId: createGroupInvite
+      summary: Cria convite de sete dias para administradores
+      description: O código aparece somente nesta resposta e nunca é persistido em claro.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '201': {description: Convite criado com código, content: {application/json: {schema: {$ref: '#/components/schemas/GroupInviteWithCode'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/groups/{groupId}/invites/{inviteId}/renew:
+    parameters: [{$ref: '#/components/parameters/GroupID'}, {$ref: '#/components/parameters/InviteID'}]
+    post:
+      tags: [Group invites]
+      operationId: renewGroupInvite
+      summary: Revoga o convite anterior e cria outro atomicamente
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '201': {description: Novo convite e código, content: {application/json: {schema: {$ref: '#/components/schemas/GroupInviteWithCode'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/groups/{groupId}/invites/{inviteId}:
+    parameters: [{$ref: '#/components/parameters/GroupID'}, {$ref: '#/components/parameters/InviteID'}]
+    delete:
+      tags: [Group invites]
+      operationId: revokeGroupInvite
+      summary: Revoga de forma idempotente um convite não consumido
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '204': {description: Convite revogado ou já revogado}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
@@ -154,12 +321,36 @@ components:
         identity_token e refresh_token são HttpOnly; csrf_token é legível pelo
         cliente. Em ambiente publicado todos são Secure e SameSite=None.
       schema: {type: string}
+    Page: {description: Página atual, schema: {type: string}}
+    Limit: {description: Quantidade máxima por página, schema: {type: integer}}
+    HasNextPage: {description: Indica existência da próxima página, schema: {type: boolean}}
   parameters:
     CSRFHeader:
       name: X-CSRF-Token
       in: header
       required: true
       schema: {type: string, minLength: 32}
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: {type: integer, minimum: 1, default: 1}
+    GroupID:
+      name: groupId
+      in: path
+      required: true
+      schema: {type: string, pattern: '^[1-9][0-9]*$'}
+    InviteID:
+      name: inviteId
+      in: path
+      required: true
+      schema: {type: string, pattern: '^[1-9][0-9]*$'}
+  requestBodies:
+    UpdateCurrentGroup:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/UpdateCurrentGroupRequest'}
   responses:
     IdentitySession:
       description: Sessão criada ou renovada
@@ -184,7 +375,7 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
     Forbidden:
-      description: Proteção CSRF rejeitou a requisição
+      description: Proteção CSRF ou autorização rejeitou a requisição
       headers:
         X-Request-ID: {$ref: '#/components/headers/RequestID'}
       content:
@@ -198,7 +389,7 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
     Conflict:
-      description: Vínculo de identidade ou CPF conflitante
+      description: Estado atual impede a operação
       headers:
         X-Request-ID: {$ref: '#/components/headers/RequestID'}
       content:
@@ -281,6 +472,104 @@ components:
       properties:
         id: {type: string}
         groupName: {type: string}
+    CurrentProfile:
+      type: object
+      required: [id, email, name, mobilePhone, documentMasked, role, group, points, rankPosition, onboardingComplete, createdAt, updatedAt]
+      properties:
+        id: {type: string, pattern: '^[1-9][0-9]*$'}
+        email: {type: string, format: email, readOnly: true}
+        name: {type: string, minLength: 2, maxLength: 120}
+        mobilePhone: {type: string}
+        documentMasked: {type: string, readOnly: true, description: CPF integral e hashes nunca são retornados.}
+        role: {type: string, enum: [ADMIN, EVENT_MANAGER, DEFAULT], readOnly: true}
+        group:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/GroupSummary'}]
+        points: {type: integer, minimum: 0, readOnly: true}
+        rankPosition: {type: integer, format: int64, minimum: 1, readOnly: true}
+        onboardingComplete: {type: boolean, readOnly: true}
+        createdAt: {type: string, format: date-time, readOnly: true}
+        updatedAt: {type: string, format: date-time, readOnly: true}
+    UpdateCurrentProfileRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: {type: string, minLength: 2, maxLength: 120}
+        mobilePhone: {type: string, minLength: 11, maxLength: 13}
+    UpdateCurrentGroupRequest:
+      type: object
+      additionalProperties: false
+      required: [groupId]
+      properties:
+        groupId: {type: string, pattern: '^[1-9][0-9]*$', nullable: true}
+    GroupMembership:
+      type: object
+      required: [id, userId, groupId, joinedAt]
+      properties:
+        id: {type: string}
+        userId: {type: string}
+        groupId: {type: string}
+        joinedAt: {type: string, format: date-time}
+    CurrentGroup:
+      type: object
+      required: [group, membership]
+      properties:
+        group: {nullable: true, allOf: [{$ref: '#/components/schemas/GroupSummary'}]}
+        membership: {nullable: true, allOf: [{$ref: '#/components/schemas/GroupMembership'}]}
+    GroupMember:
+      type: object
+      required: [id, name, role, joinedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        role: {type: string, enum: [ADMIN, EVENT_MANAGER, DEFAULT]}
+        joinedAt: {type: string, format: date-time}
+    Pagination:
+      type: object
+      required: [currentPage, hasNextPage, limit]
+      properties:
+        currentPage: {type: string}
+        hasNextPage: {type: boolean}
+        limit: {type: integer, minimum: 1}
+    PaginatedGroupMembers:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/GroupMember'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    ConsumeGroupInviteRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: {type: string, minLength: 20, description: Código opaco recebido fora da API de listagem.}
+    GroupInvite:
+      type: object
+      required: [id, groupId, status, expiresAt, revokedAt, consumedAt, consumedByUserId, createdByUserId, replacesInviteId, createdAt]
+      properties:
+        id: {type: string}
+        groupId: {type: string}
+        status: {type: string, enum: [ACTIVE, EXPIRED, REVOKED, CONSUMED]}
+        expiresAt: {type: string, format: date-time}
+        revokedAt: {type: string, format: date-time, nullable: true}
+        consumedAt: {type: string, format: date-time, nullable: true}
+        consumedByUserId: {type: string, nullable: true}
+        createdByUserId: {type: string}
+        replacesInviteId: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+    GroupInviteWithCode:
+      allOf:
+        - {$ref: '#/components/schemas/GroupInvite'}
+        - type: object
+          required: [code]
+          properties: {code: {type: string, minLength: 20, description: Exibido somente na criação ou renovação.}}
+    PaginatedGroupInvites:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/GroupInvite'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
     LogoutResponse:
       type: object
       required: [status]

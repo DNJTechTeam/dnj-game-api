@@ -14,7 +14,7 @@ import (
 )
 
 func newUserService() interfaces.UserServiceInterface {
-	return NewUserService(TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository)
+	return NewUserService(TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository, TestSuite.GroupMembershipRepository)
 }
 
 func seedPlainUser(t *testing.T, email string) *userEntities.User {

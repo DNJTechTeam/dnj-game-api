@@ -44,7 +44,7 @@ automatizado e evidência no ambiente `develop`.
 |---|---|---|---|---|
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
-| 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Pendente |
+| 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Implementada localmente; publicação pendente |
 | 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
@@ -149,3 +149,24 @@ Dependências externas e etapas posteriores:
 
 O enabler externo de ambiente foi resolvido em 2026-08-22. Não há bloqueio de
 backend pendente para iniciar a Iteração 3.
+
+## Evidência local da Iteração 3
+
+| Controle | Evidência em 2026-08-22 |
+|---|---|
+| Perfil seguro | leitura/edição restrita a nome e telefone; email, identidade, papel, pontos e grupo preservados; JSON sem CPF integral ou hashes |
+| Membership atual | unicidade por usuário; `group_memberships` e `users.group_id` alterados na mesma transação |
+| Isolamento | membros derivados exclusivamente do grupo do JWT; nenhuma rota aceita outro `groupId` para listar membros |
+| Convites | 128 bits aleatórios, SHA-256 em repouso, sete dias, revogação, renovação e consumo único/idempotente |
+| Autorização | somente `ADMIN` cria, lista, renova e revoga; qualquer identidade autenticada consome; `EVENT_MANAGER` não herda gestão |
+| Concorrência | teste PostgreSQL real confirma um vencedor no consumo simultâneo e uma única membership |
+| Paginação | grupos `name,id`; membros `name,user_id`; convites `created_at DESC,id DESC` |
+| Migrations PostgreSQL | expand/backfill/contract, aplicação limpa, replay direto duplo, schema parcial, quatro runners e checksum drift verdes |
+| CockroachDB | `v25.2.19` descartável: aplicação e replay sem reset/bypass; 13 migrations, 0 checksum ausente |
+| Cobertura | mantida 70,6% ≥ 55%; mappers/repositories 93,9% ≥ 90% |
+| Contrato | OpenAPI 3.0.3 `2.2.0`, manifesto operação→testes e guia `docs/profile-and-groups.md` |
+
+Enabler preservado para as etapas finais: o frontend deve migrar sessão/perfil,
+trocar o alias deprecated `POST /users/me/group` pelo `PATCH` canônico, consumir
+paginação e implementar as telas administrativas de convite. Nenhum arquivo do
+frontend foi alterado nesta iteração.

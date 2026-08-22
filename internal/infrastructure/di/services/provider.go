@@ -5,6 +5,8 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/services"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
@@ -36,12 +38,13 @@ func ProvideIdentityService(
 	baseService *services.BaseService,
 	userRepository uInterfaces.UserRepositoryInterface,
 	groupRepository groupInterfaces.GroupRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 	identityRepository identityInterfaces.GoogleIdentityRepositoryInterface,
 	refreshRepository refreshInterfaces.RefreshSessionRepositoryInterface,
 	jwtService appInterfaces.JwtServiceInterface,
 	googleVerifier appInterfaces.GoogleIDTokenVerifierInterface,
 ) appInterfaces.IdentityServiceInterface {
-	return services.NewIdentityService(baseService, userRepository, groupRepository, identityRepository, refreshRepository, jwtService, googleVerifier)
+	return services.NewIdentityService(baseService, userRepository, groupRepository, membershipRepository, identityRepository, refreshRepository, jwtService, googleVerifier)
 }
 
 func ProvideWebhookPayloadTranslator() appInterfaces.WebhookPayloadTranslatorInterface {
@@ -70,23 +73,35 @@ func ProvideAuthService(
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface,
 	userRepository uInterfaces.UserRepositoryInterface,
 	groupRepository groupInterfaces.GroupRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 	jwtService appInterfaces.JwtServiceInterface,
 	emailService appInterfaces.EmailServiceInterface,
 ) appInterfaces.AuthServiceInterface {
-	return services.NewAuthService(baseService, verificationCodeRepository, userRepository, groupRepository, jwtService, emailService)
+	return services.NewAuthService(baseService, verificationCodeRepository, userRepository, groupRepository, membershipRepository, jwtService, emailService)
 }
 
 func ProvideGroupService(
 	baseService *services.BaseService,
 	groupRepository groupInterfaces.GroupRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 ) appInterfaces.GroupServiceInterface {
-	return services.NewGroupService(baseService, groupRepository)
+	return services.NewGroupService(baseService, groupRepository, userRepository, membershipRepository)
+}
+
+func ProvideProfileService(baseService *services.BaseService, userRepository uInterfaces.UserRepositoryInterface, groupRepository groupInterfaces.GroupRepositoryInterface) appInterfaces.ProfileServiceInterface {
+	return services.NewProfileService(baseService, userRepository, groupRepository)
+}
+
+func ProvideGroupInviteService(baseService *services.BaseService, userRepository uInterfaces.UserRepositoryInterface, groupRepository groupInterfaces.GroupRepositoryInterface, membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface, inviteRepository inviteInterfaces.GroupInviteRepositoryInterface) appInterfaces.GroupInviteServiceInterface {
+	return services.NewGroupInviteService(baseService, userRepository, groupRepository, membershipRepository, inviteRepository)
 }
 
 func ProvideUserService(
 	baseService *services.BaseService,
 	userRepository uInterfaces.UserRepositoryInterface,
 	groupRepository groupInterfaces.GroupRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 ) appInterfaces.UserServiceInterface {
-	return services.NewUserService(baseService, userRepository, groupRepository)
+	return services.NewUserService(baseService, userRepository, groupRepository, membershipRepository)
 }

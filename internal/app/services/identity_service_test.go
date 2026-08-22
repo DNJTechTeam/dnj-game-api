@@ -34,6 +34,7 @@ func setupIdentityServiceTest(t *testing.T, payload *appInterfaces.GooglePayload
 	}
 	return NewIdentityService(
 		TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
+		TestSuite.GroupMembershipRepository,
 		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
 		NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: payload},
 	)
@@ -88,6 +89,7 @@ func TestIdentityService_AuthenticateGoogle(t *testing.T) {
 		require.NoError(t, err)
 		service = NewIdentityService(
 			TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
+			TestSuite.GroupMembershipRepository,
 			TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
 			NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: verifiedGooglePayload("google-sub-conflict", "attacker@example.com")},
 		)
@@ -201,6 +203,7 @@ func TestIdentityService_RejectsDuplicateDocument(t *testing.T) {
 	require.NoError(t, err)
 	secondService := NewIdentityService(
 		TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
+		TestSuite.GroupMembershipRepository,
 		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
 		NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: verifiedGooglePayload("google-document-2", "second-document@example.com")},
 	)

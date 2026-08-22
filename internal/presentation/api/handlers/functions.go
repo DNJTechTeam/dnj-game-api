@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -30,6 +32,18 @@ func ResponseAPIError(c *gin.Context, status int, code string, message string, d
 func ParseRequest(c *gin.Context, dto any) error {
 	if err := c.BindJSON(&dto); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ParseStrictRequest(c *gin.Context, dto any) error {
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dto); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.NewSimpleError("request body must contain one JSON object")
 	}
 	return nil
 }

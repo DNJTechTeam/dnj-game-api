@@ -37,6 +37,7 @@ func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterHealthcheckRoutes()
 	r.RegisterAuthRoutes()
 	r.RegisterIdentityRoutes()
+	r.RegisterProfileRoutes()
 	r.RegisterSubscriptionRoutes()
 	r.RegisterGroupRoutes()
 	r.RegisterUserRoutes()

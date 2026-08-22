@@ -14,6 +14,7 @@ type User struct {
 	DocumentLast4      string    `gorm:"size:4;default:null"`
 	Role               string    `gorm:"not null;default:'DEFAULT'"`
 	GroupID            *uint64   `gorm:"index;default:null"`
+	Points             int       `gorm:"not null;default:0"`
 	OnboardingComplete bool      `gorm:"not null;default:false"`
 	CreatedAt          time.Time `gorm:"autoCreateTime:nano"`
 	UpdatedAt          time.Time `gorm:"autoUpdateTime:nano"`

@@ -136,3 +136,37 @@ func TestMigrations_ChecksumBackfillAndDriftDetection(t *testing.T) {
 	require.Error(t, driftErr)
 	assert.Contains(t, driftErr.Error(), "checksum mismatch")
 }
+
+func TestMigrations_Iteration3BackfillPreservesLegacyGroupID(t *testing.T) {
+	// given
+	resetSchema(t)
+	require.NoError(t, migrations.MigrateModelsWithDB(migrationSuite.DbConn))
+	var groupID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`INSERT INTO groups (name) VALUES (?) RETURNING id`, "Legacy Group").Scan(&groupID).Error)
+	var userID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`INSERT INTO users (email, name, role, group_id, points, onboarding_complete, created_at, updated_at) VALUES (?, ?, ?, ?, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id`, "legacy-iteration3@example.com", "Legacy User", "DEFAULT", groupID).Scan(&userID).Error)
+	var backfill migrations.Migration
+	for _, migration := range registeredMigrations() {
+		if migration.Name == "backfill_iteration3_group_memberships" {
+			backfill = migration
+			break
+		}
+	}
+	require.NotNil(t, backfill.Up)
+
+	// when
+	firstErr := backfill.Up(migrationSuite.DbConn)
+	secondErr := backfill.Up(migrationSuite.DbConn)
+	var membershipCount int64
+	countErr := migrationSuite.DbConn.Table("group_memberships").Where("user_id = ? AND group_id = ?", userID, groupID).Count(&membershipCount).Error
+	var preservedGroupID uint64
+	userErr := migrationSuite.DbConn.Table("users").Select("group_id").Where("id = ?", userID).Scan(&preservedGroupID).Error
+
+	// then
+	require.NoError(t, firstErr)
+	require.NoError(t, secondErr)
+	require.NoError(t, countErr)
+	require.NoError(t, userErr)
+	assert.Equal(t, int64(1), membershipCount)
+	assert.Equal(t, groupID, preservedGroupID)
+}

@@ -48,3 +48,88 @@ operations:
     automatedTests:
       - internal/presentation/api/handlers/identity_handler_test.go
       - internal/app/services/identity_service_test.go
+  - operationId: getCurrentProfile
+    method: GET
+    path: /users/me
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/app/services/profile_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+      - internal/infrastructure/api/middlewares/auth_middlewares_test.go
+  - operationId: updateCurrentProfile
+    method: PATCH
+    path: /users/me
+    statuses: ['200', '400', '401', '500']
+    automatedTests:
+      - internal/app/services/profile_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: updateCurrentUserGroup
+    method: PATCH
+    path: /users/me/group
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: updateCurrentUserGroupCompatibility
+    method: POST
+    path: /users/me/group
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listGroups
+    method: GET
+    path: /groups
+    statuses: ['200', '400', '401', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: getCurrentGroup
+    method: GET
+    path: /groups/me
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listCurrentGroupMembers
+    method: GET
+    path: /groups/me/members
+    statuses: ['200', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: consumeGroupInvite
+    method: POST
+    path: /groups/invites/consume
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listGroupInvites
+    method: GET
+    path: /admin/groups/{groupId}/invites
+    statuses: ['200', '401', '403', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: createGroupInvite
+    method: POST
+    path: /admin/groups/{groupId}/invites
+    statuses: ['201', '401', '403', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: renewGroupInvite
+    method: POST
+    path: /admin/groups/{groupId}/invites/{inviteId}/renew
+    statuses: ['201', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: revokeGroupInvite
+    method: DELETE
+    path: /admin/groups/{groupId}/invites/{inviteId}
+    statuses: ['204', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go

@@ -150,6 +150,16 @@ definitions:
       updatedAt:
         type: string
     type: object
+  internal_presentation_api_handlers.APIError:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+      requestId:
+        type: string
+    type: object
 info:
   contact: {}
   description: API REST para gerenciamento de eventos e pontuações da gamificação
@@ -217,14 +227,17 @@ paths:
       - auth
   /groups:
     get:
-      description: Busca case-insensitive por nome (mínimo 3 caracteres), limitada
-        a 20 resultados.
+      description: Lista grupos ou busca case-insensitive por nome, limitada a 20
+        resultados por página.
       parameters:
-      - description: Termo de busca (mínimo 3 caracteres)
+      - description: Termo de busca (vazio ou mínimo 3 caracteres)
         in: query
         name: search
-        required: true
         type: string
+      - description: Página 1-indexed
+        in: query
+        name: page
+        type: integer
       produces:
       - application/json
       responses:
@@ -237,7 +250,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github_com_dnjtechteam_dnj-game-api_internal_app_errors.Error'
+            $ref: '#/definitions/internal_presentation_api_handlers.APIError'
       security:
       - BearerAuth: []
       summary: Busca grupos por nome

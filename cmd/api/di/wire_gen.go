@@ -28,18 +28,28 @@ func InitializeServer() *api.API {
 	subscriptionWebhookVerificationCodeRepositoryInterface := repositories.ProvideSubscriptionWebhookVerificationCodeRepository(gormDB)
 	userRepositoryInterface := repositories.ProvideUserRepository(gormDB)
 	groupRepositoryInterface := repositories.ProvideGroupRepository(gormDB)
+	groupMembershipRepositoryInterface := repositories.ProvideGroupMembershipRepository(gormDB)
 	jwtServiceInterface := services.ProvideJwtService(baseService)
 	emailServiceInterface := services.ProvideEmailService()
-	authServiceInterface := services.ProvideAuthService(baseService, subscriptionWebhookVerificationCodeRepositoryInterface, userRepositoryInterface, groupRepositoryInterface, jwtServiceInterface, emailServiceInterface)
+	authServiceInterface := services.ProvideAuthService(baseService, subscriptionWebhookVerificationCodeRepositoryInterface, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, jwtServiceInterface, emailServiceInterface)
 	authHandler := &handlers.AuthHandler{
 		AuthService: authServiceInterface,
 	}
 	googleIdentityRepositoryInterface := repositories.ProvideGoogleIdentityRepository(gormDB)
 	refreshSessionRepositoryInterface := repositories.ProvideRefreshSessionRepository(gormDB)
 	googleIDTokenVerifierInterface := services.ProvideGoogleIDTokenVerifier()
-	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface)
+	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface)
 	identityHandler := &handlers.IdentityHandler{
 		IdentityService: identityServiceInterface,
+	}
+	profileServiceInterface := services.ProvideProfileService(baseService, userRepositoryInterface, groupRepositoryInterface)
+	profileHandler := &handlers.ProfileHandler{
+		ProfileService: profileServiceInterface,
+	}
+	groupInviteRepositoryInterface := repositories.ProvideGroupInviteRepository(gormDB)
+	groupInviteServiceInterface := services.ProvideGroupInviteService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, groupInviteRepositoryInterface)
+	groupInviteHandler := &handlers.GroupInviteHandler{
+		GroupInviteService: groupInviteServiceInterface,
 	}
 	subscriptionWebhookRepositoryInterface := repositories.ProvideSubscriptionWebhookRepository(gormDB)
 	webhookPayloadTranslatorInterface := services.ProvideWebhookPayloadTranslator()
@@ -47,11 +57,11 @@ func InitializeServer() *api.API {
 	subscriptionWebhookHandler := &handlers.SubscriptionWebhookHandler{
 		SubscriptionWebhookService: subscriptionWebhookServiceInterface,
 	}
-	groupServiceInterface := services.ProvideGroupService(baseService, groupRepositoryInterface)
+	groupServiceInterface := services.ProvideGroupService(baseService, groupRepositoryInterface, userRepositoryInterface, groupMembershipRepositoryInterface)
 	groupHandler := &handlers.GroupHandler{
 		GroupService: groupServiceInterface,
 	}
-	userServiceInterface := services.ProvideUserService(baseService, userRepositoryInterface, groupRepositoryInterface)
+	userServiceInterface := services.ProvideUserService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface)
 	userHandler := &handlers.UserHandler{
 		UserService: userServiceInterface,
 	}
@@ -64,6 +74,8 @@ func InitializeServer() *api.API {
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
 		IdentityHandler:            identityHandler,
+		ProfileHandler:             profileHandler,
+		GroupInviteHandler:         groupInviteHandler,
 		SubscriptionWebhookHandler: subscriptionWebhookHandler,
 		GroupHandler:               groupHandler,
 		UserHandler:                userHandler,

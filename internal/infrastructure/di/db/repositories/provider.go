@@ -2,6 +2,8 @@ package repositories
 
 import (
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
@@ -31,6 +33,14 @@ func ProvideTaskRepository(db *gorm.DB) taskInterfaces.TaskRepositoryInterface {
 
 func ProvideGroupRepository(db *gorm.DB) groupInterfaces.GroupRepositoryInterface {
 	return repositories.NewGroupRepository(db)
+}
+
+func ProvideGroupMembershipRepository(db *gorm.DB) membershipInterfaces.GroupMembershipRepositoryInterface {
+	return repositories.NewGroupMembershipRepository(db)
+}
+
+func ProvideGroupInviteRepository(db *gorm.DB) inviteInterfaces.GroupInviteRepositoryInterface {
+	return repositories.NewGroupInviteRepository(db)
 }
 
 func ProvideSubscriptionWebhookRepository(db *gorm.DB) swInterfaces.SubscriptionWebhookRepositoryInterface {

@@ -18,6 +18,7 @@ func newAuthService() interfaces.AuthServiceInterface {
 		TestSuite.VerificationCodeRepository,
 		TestSuite.UserRepository,
 		TestSuite.GroupRepository,
+		TestSuite.GroupMembershipRepository,
 		NewJwtService(TestSuite.BaseService),
 		newTestEmailService(),
 	)

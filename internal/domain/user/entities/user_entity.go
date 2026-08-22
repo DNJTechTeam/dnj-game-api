@@ -34,6 +34,7 @@ type User struct {
 	DocumentLast4      string
 	Role               UserRole
 	GroupID            *uint64
+	Points             int
 	OnboardingComplete bool
 	CreatedAt          time.Time
 	UpdatedAt          time.Time

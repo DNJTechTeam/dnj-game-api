@@ -11,6 +11,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserRepository struct {
@@ -40,6 +41,15 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint64) (*entities.Use
 		return nil, err
 	}
 	return mappers.MapUserToEntity(user), nil
+}
+
+func (r *UserRepository) FindByIDForUpdate(ctx context.Context, id uint64) (*entities.User, error) {
+	var user models.User
+	err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, id).Error
+	if err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return mappers.MapUserToEntity(&user), nil
 }
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*entities.User, error) {
@@ -77,4 +87,14 @@ func (r *UserRepository) Update(ctx context.Context, user *entities.User) (*enti
 
 func (r *UserRepository) ExistsByID(ctx context.Context, id uint64) bool {
 	return r.BaseRepository.ExistsBy(ctx, map[string]interface{}{"id": id})
+}
+
+func (r *UserRepository) RankPosition(ctx context.Context, userID uint64, points int) (int64, error) {
+	var ahead int64
+	err := r.getDB(ctx).Model(&models.User{}).
+		Where("points > ? OR (points = ? AND id < ?)", points, points, userID).Count(&ahead).Error
+	if err != nil {
+		return 0, handleRepositoryError(err)
+	}
+	return ahead + 1, nil
 }

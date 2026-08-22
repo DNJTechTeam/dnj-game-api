@@ -19,6 +19,8 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	groupEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/group/entities"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/entities"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	refreshEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/entities"
@@ -37,6 +39,7 @@ type IdentityService struct {
 	*BaseService
 	users           userInterfaces.UserRepositoryInterface
 	groups          groupInterfaces.GroupRepositoryInterface
+	memberships     membershipInterfaces.GroupMembershipRepositoryInterface
 	identities      identityInterfaces.GoogleIdentityRepositoryInterface
 	refreshSessions refreshInterfaces.RefreshSessionRepositoryInterface
 	jwt             appInterfaces.JwtServiceInterface
@@ -48,12 +51,13 @@ func NewIdentityService(
 	base *BaseService,
 	users userInterfaces.UserRepositoryInterface,
 	groups groupInterfaces.GroupRepositoryInterface,
+	memberships membershipInterfaces.GroupMembershipRepositoryInterface,
 	identities identityInterfaces.GoogleIdentityRepositoryInterface,
 	refreshSessions refreshInterfaces.RefreshSessionRepositoryInterface,
 	jwt appInterfaces.JwtServiceInterface,
 	google appInterfaces.GoogleIDTokenVerifierInterface,
 ) appInterfaces.IdentityServiceInterface {
-	return &IdentityService{BaseService: base, users: users, groups: groups, identities: identities, refreshSessions: refreshSessions, jwt: jwt, google: google, now: time.Now}
+	return &IdentityService{BaseService: base, users: users, groups: groups, memberships: memberships, identities: identities, refreshSessions: refreshSessions, jwt: jwt, google: google, now: time.Now}
 }
 
 func identityError(status int, code, message string) error {
@@ -315,13 +319,24 @@ func (s *IdentityService) CompleteOnboarding(ctx context.Context, request *messa
 	if existing != nil && existing.ID != user.ID {
 		return nil, identityError(http.StatusConflict, "DOCUMENT_ALREADY_LINKED", "CPF já vinculado a outra conta.")
 	}
-	user.Document = ""
-	user.DocumentHash = documentHash
-	user.DocumentLast4 = document[len(document)-4:]
-	user.MobilePhone = phone
-	user.GroupID = &groupID
-	user.OnboardingComplete = true
-	if _, err := s.users.Update(ctx, user); errors.Is(err, appErrors.ErrConflict) {
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		locked, lockErr := s.users.FindByIDForUpdate(txCtx, userID)
+		if lockErr != nil {
+			return lockErr
+		}
+		locked.Document = ""
+		locked.DocumentHash = documentHash
+		locked.DocumentLast4 = document[len(document)-4:]
+		locked.MobilePhone = phone
+		locked.GroupID = &groupID
+		locked.OnboardingComplete = true
+		if _, membershipErr := s.memberships.UpsertForUser(txCtx, &membershipEntities.GroupMembership{UserID: userID, GroupID: groupID, JoinedAt: s.now().UTC()}); membershipErr != nil {
+			return membershipErr
+		}
+		_, updateErr := s.users.Update(txCtx, locked)
+		return updateErr
+	})
+	if errors.Is(err, appErrors.ErrConflict) {
 		return nil, identityError(http.StatusConflict, "DOCUMENT_ALREADY_LINKED", "CPF já vinculado a outra conta.")
 	} else if err != nil {
 		return nil, appErrors.InternalError

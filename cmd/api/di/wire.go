@@ -24,6 +24,8 @@ func InitializeServer() *api.API {
 		repositories.ProvideRefreshSessionRepository,
 		repositories.ProvideTaskRepository,
 		repositories.ProvideGroupRepository,
+		repositories.ProvideGroupMembershipRepository,
+		repositories.ProvideGroupInviteRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
 		repositories.ProvideSubscriptionWebhookVerificationCodeRepository,
 
@@ -37,6 +39,8 @@ func InitializeServer() *api.API {
 		services.ProvideSubscriptionWebhookService,
 		services.ProvideAuthService,
 		services.ProvideGroupService,
+		services.ProvideProfileService,
+		services.ProvideGroupInviteService,
 		services.ProvideUserService,
 
 		diApi.ProvideEngine,
@@ -45,6 +49,8 @@ func InitializeServer() *api.API {
 		wire.Struct(new(handlers.HealthcheckHandler), "*"),
 		wire.Struct(new(handlers.AuthHandler), "*"),
 		wire.Struct(new(handlers.IdentityHandler), "*"),
+		wire.Struct(new(handlers.ProfileHandler), "*"),
+		wire.Struct(new(handlers.GroupInviteHandler), "*"),
 		wire.Struct(new(handlers.SubscriptionWebhookHandler), "*"),
 		wire.Struct(new(handlers.GroupHandler), "*"),
 		wire.Struct(new(handlers.UserHandler), "*"),

@@ -9,6 +9,8 @@ import (
 
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
@@ -29,6 +31,8 @@ type TestSuiteType struct {
 	UserRepository                uInterfaces.UserRepositoryInterface
 	TaskRepository                taskInterfaces.TaskRepositoryInterface
 	GroupRepository               groupInterfaces.GroupRepositoryInterface
+	GroupMembershipRepository     membershipInterfaces.GroupMembershipRepositoryInterface
+	GroupInviteRepository         inviteInterfaces.GroupInviteRepositoryInterface
 	SubscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
 	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
 	GoogleIdentityRepository      identityInterfaces.GoogleIdentityRepositoryInterface
@@ -46,6 +50,8 @@ func initializeTestSuite() {
 	TestSuite.UserRepository = repositories.NewUserRepository(TestSuite.DbConn)
 	TestSuite.TaskRepository = repositories.NewTaskRepository(TestSuite.DbConn)
 	TestSuite.GroupRepository = repositories.NewGroupRepository(TestSuite.DbConn)
+	TestSuite.GroupMembershipRepository = repositories.NewGroupMembershipRepository(TestSuite.DbConn)
+	TestSuite.GroupInviteRepository = repositories.NewGroupInviteRepository(TestSuite.DbConn)
 	TestSuite.SubscriptionWebhookRepository = repositories.NewSubscriptionWebhookRepository(TestSuite.DbConn)
 	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
 	TestSuite.GoogleIdentityRepository = repositories.NewGoogleIdentityRepository(TestSuite.DbConn)

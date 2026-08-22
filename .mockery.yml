@@ -33,6 +33,16 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: group_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: group_membership_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: group_invite_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces:
     config:
       all: true

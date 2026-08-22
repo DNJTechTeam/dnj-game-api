@@ -367,6 +367,146 @@ func (_c *MockUserRepositoryInterface_FindByID_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// FindByIDForUpdate provides a mock function for the type MockUserRepositoryInterface
+func (_mock *MockUserRepositoryInterface) FindByIDForUpdate(ctx context.Context, id uint64) (*entities.User, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByIDForUpdate")
+	}
+
+	var r0 *entities.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*entities.User, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *entities.User); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepositoryInterface_FindByIDForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByIDForUpdate'
+type MockUserRepositoryInterface_FindByIDForUpdate_Call struct {
+	*mock.Call
+}
+
+// FindByIDForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uint64
+func (_e *MockUserRepositoryInterface_Expecter) FindByIDForUpdate(ctx interface{}, id interface{}) *MockUserRepositoryInterface_FindByIDForUpdate_Call {
+	return &MockUserRepositoryInterface_FindByIDForUpdate_Call{Call: _e.mock.On("FindByIDForUpdate", ctx, id)}
+}
+
+func (_c *MockUserRepositoryInterface_FindByIDForUpdate_Call) Run(run func(ctx context.Context, id uint64)) *MockUserRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_FindByIDForUpdate_Call) Return(user *entities.User, err error) *MockUserRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(run func(ctx context.Context, id uint64) (*entities.User, error)) *MockUserRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RankPosition provides a mock function for the type MockUserRepositoryInterface
+func (_mock *MockUserRepositoryInterface) RankPosition(ctx context.Context, userID uint64, points int) (int64, error) {
+	ret := _mock.Called(ctx, userID, points)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RankPosition")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, int) (int64, error)); ok {
+		return returnFunc(ctx, userID, points)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, int) int64); ok {
+		r0 = returnFunc(ctx, userID, points)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64, int) error); ok {
+		r1 = returnFunc(ctx, userID, points)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepositoryInterface_RankPosition_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RankPosition'
+type MockUserRepositoryInterface_RankPosition_Call struct {
+	*mock.Call
+}
+
+// RankPosition is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+//   - points int
+func (_e *MockUserRepositoryInterface_Expecter) RankPosition(ctx interface{}, userID interface{}, points interface{}) *MockUserRepositoryInterface_RankPosition_Call {
+	return &MockUserRepositoryInterface_RankPosition_Call{Call: _e.mock.On("RankPosition", ctx, userID, points)}
+}
+
+func (_c *MockUserRepositoryInterface_RankPosition_Call) Run(run func(ctx context.Context, userID uint64, points int)) *MockUserRepositoryInterface_RankPosition_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_RankPosition_Call) Return(n int64, err error) *MockUserRepositoryInterface_RankPosition_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_RankPosition_Call) RunAndReturn(run func(ctx context.Context, userID uint64, points int) (int64, error)) *MockUserRepositoryInterface_RankPosition_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function for the type MockUserRepositoryInterface
 func (_mock *MockUserRepositoryInterface) Update(ctx context.Context, user *entities.User) (*entities.User, error) {
 	ret := _mock.Called(ctx, user)

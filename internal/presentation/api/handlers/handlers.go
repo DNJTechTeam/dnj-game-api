@@ -6,6 +6,8 @@ type Handlers struct {
 	HealthcheckHandler         *HealthcheckHandler
 	AuthHandler                *AuthHandler
 	IdentityHandler            *IdentityHandler
+	ProfileHandler             *ProfileHandler
+	GroupInviteHandler         *GroupInviteHandler
 	SubscriptionWebhookHandler *SubscriptionWebhookHandler
 	GroupHandler               *GroupHandler
 	UserHandler                *UserHandler
