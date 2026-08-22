@@ -1,0 +1,158 @@
+{
+  "components": {
+    "headers": {
+      "RequestID": {
+        "description": "Identificador seguro de correlação da requisição",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "properties": {
+          "code": {
+            "example": "DEPENDENCY_UNAVAILABLE",
+            "type": "string"
+          },
+          "details": {
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ],
+        "type": "object"
+      },
+      "HealthcheckResponse": {
+        "properties": {
+          "service": {
+            "enum": [
+              "dnj-game-api"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "service"
+        ],
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ready"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Contrato canônico e versionado da V2. Somente operações já implementadas, testadas e liberadas entram neste documento.",
+    "title": "DNJ Game API V2",
+    "version": "2.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/healthcheck": {
+      "get": {
+        "operationId": "getHealthcheck",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthcheckResponse"
+                }
+              }
+            },
+            "description": "Processo ativo",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          }
+        },
+        "summary": "Confirma que o processo HTTP está ativo",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/readiness": {
+      "get": {
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Dependências prontas",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Uma dependência obrigatória está indisponível",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          }
+        },
+        "summary": "Confirma que a API e o PostgreSQL estão prontos",
+        "tags": [
+          "Operations"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2",
+      "description": "develop"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Operations"
+    }
+  ]
+}
