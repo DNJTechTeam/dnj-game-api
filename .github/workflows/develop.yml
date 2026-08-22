@@ -69,21 +69,21 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
         run: |
-          current=$(aws lambda get-function-configuration \
+          aws lambda get-function-configuration \
             --function-name "$FUNCTION_NAME" \
             --query 'Environment.Variables' \
-            --output json)
-          updated=$(jq -c \
+            --output json > /tmp/current-lambda-environment.json
+          jq \
             --arg host "$DB_HOST" \
             --arg port "$DB_PORT" \
             --arg user "$DB_USER" \
             --arg password "$DB_PASSWORD" \
             --arg name "$DB_NAME" \
-            '(. // {}) + {DB_HOST: $host, DB_PORT: $port, DB_USER: $user, DB_PASSWORD: $password, DB_NAME: $name}' \
-            <<<"$current")
+            '{Variables: ((. // {}) + {DB_HOST: $host, DB_PORT: $port, DB_USER: $user, DB_PASSWORD: $password, DB_NAME: $name})}' \
+            /tmp/current-lambda-environment.json > /tmp/updated-lambda-environment.json
           aws lambda update-function-configuration \
             --function-name "$FUNCTION_NAME" \
-            --environment "Variables=$updated" >/dev/null
+            --environment file:///tmp/updated-lambda-environment.json >/dev/null
           aws lambda wait function-updated --function-name "$FUNCTION_NAME"
 
       - name: Login to Amazon ECR
