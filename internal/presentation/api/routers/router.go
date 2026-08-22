@@ -36,6 +36,7 @@ func (r *Router) authProtected() []gin.HandlerFunc {
 func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterHealthcheckRoutes()
 	r.RegisterAuthRoutes()
+	r.RegisterIdentityRoutes()
 	r.RegisterSubscriptionRoutes()
 	r.RegisterGroupRoutes()
 	r.RegisterUserRoutes()

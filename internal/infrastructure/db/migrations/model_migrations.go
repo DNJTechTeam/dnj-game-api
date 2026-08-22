@@ -170,4 +170,88 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_webhook_verification_codes_email ON subscription_webhook_verification_codes (email)`).Error
 		},
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_users_for_v2_identity",
+		Description: "Add secure onboarding fields used by V2 identity",
+		Version:     "2.0.0",
+		Definition:  "users-v2-identity-expand-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`
+				ALTER TABLE users
+					ADD COLUMN IF NOT EXISTS document_hash VARCHAR(64),
+					ADD COLUMN IF NOT EXISTS document_last4 VARCHAR(4),
+					ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN NOT NULL DEFAULT FALSE
+			`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "create_user_identities_table",
+		Description: "Create external identity links for Google OIDC",
+		Version:     "2.0.0",
+		Definition:  "user-identities-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`
+				CREATE TABLE IF NOT EXISTS user_identities (
+					id BIGSERIAL PRIMARY KEY,
+					user_id BIGINT NOT NULL,
+					provider VARCHAR(32) NOT NULL,
+					subject VARCHAR(255) NOT NULL,
+					email TEXT NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					CONSTRAINT user_identities_provider_subject_key UNIQUE (provider, subject)
+				)
+			`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "create_refresh_sessions_table",
+		Description: "Create hashed rotating refresh sessions",
+		Version:     "2.0.0",
+		Definition:  "refresh-sessions-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`
+				CREATE TABLE IF NOT EXISTS refresh_sessions (
+					id VARCHAR(36) PRIMARY KEY,
+					user_id BIGINT NOT NULL,
+					family_id VARCHAR(36) NOT NULL,
+					token_hash VARCHAR(64) NOT NULL UNIQUE,
+					replaced_by_hash VARCHAR(64) NOT NULL DEFAULT '',
+					expires_at TIMESTAMPTZ NOT NULL,
+					revoked_at TIMESTAMPTZ,
+					reuse_detected_at TIMESTAMPTZ,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					last_used_at TIMESTAMPTZ NOT NULL
+				)
+			`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "create_v2_identity_indexes",
+		Description: "Create lookup indexes for V2 identity and refresh sessions",
+		Version:     "2.0.0",
+		Definition:  "v2-identity-indexes-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE UNIQUE INDEX IF NOT EXISTS users_document_hash_unique ON users (document_hash) WHERE document_hash IS NOT NULL AND document_hash <> ''`,
+				`CREATE INDEX IF NOT EXISTS user_identities_user_id_idx ON user_identities (user_id)`,
+				`CREATE INDEX IF NOT EXISTS refresh_sessions_user_id_idx ON refresh_sessions (user_id)`,
+				`CREATE INDEX IF NOT EXISTS refresh_sessions_family_id_idx ON refresh_sessions (family_id)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

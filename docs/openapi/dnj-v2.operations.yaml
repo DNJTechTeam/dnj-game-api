@@ -3,8 +3,7 @@ operations:
     method: GET
     path: /healthcheck
     statuses: ['200']
-    automatedTests:
-      - internal/presentation/api/routers/healthcheck_router_test.go
+    automatedTests: [internal/presentation/api/routers/healthcheck_router_test.go]
   - operationId: getReadiness
     method: GET
     path: /readiness
@@ -12,3 +11,40 @@ operations:
     automatedTests:
       - internal/presentation/api/routers/healthcheck_router_test.go
       - internal/presentation/api/handlers/healthcheck_handler_test.go
+  - operationId: authenticateWithGoogle
+    method: POST
+    path: /auth/google
+    statuses: ['200', '400', '401', '409', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+      - internal/infrastructure/google/id_token_verifier_test.go
+  - operationId: refreshIdentitySession
+    method: POST
+    path: /auth/refresh
+    statuses: ['200', '401', '403', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: logoutIdentitySession
+    method: POST
+    path: /auth/logout
+    statuses: ['200', '403', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: getCurrentIdentitySession
+    method: GET
+    path: /auth/session
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/infrastructure/api/middlewares/auth_middlewares_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: completeIdentityOnboarding
+    method: PATCH
+    path: /auth/onboarding
+    statuses: ['200', '400', '401', '404', '409', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go

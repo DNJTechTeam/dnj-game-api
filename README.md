@@ -71,8 +71,10 @@ See `.env.example` for the full list with comments. Key ones:
 - `SERVER_RUNNER` — `default` (local HTTP server) or `lambda` (AWS Lambda).
 - `SERVER_ENVIRONMENT` — `localhost` | `development` | `production` | `test`.
 - `JWT_IDENTITY_SECRET` — signs the identity JWT.
+- `GOOGLE_CLIENT_ID` — audience accepted for Google ID tokens.
+- `DOCUMENT_HMAC_SECRET` — hashes CPF values stored by V2 onboarding.
 - `CORS_ALLOWED_ORIGINS` — comma-separated allowed origins.
-- `DB_*` — PostgreSQL connection.
+- `DB_*` — PostgreSQL or CockroachDB connection through the PostgreSQL protocol.
 
 ## The Lambda runner
 

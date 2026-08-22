@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	identityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/entities"
+	refreshEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +13,26 @@ import (
 
 func TestMapTaskToEntity_NilInput(t *testing.T) {
 	assert.Nil(t, MapTaskToEntity(nil))
+}
+
+func TestGoogleIdentityMappers(t *testing.T) {
+	now := time.Now()
+	model := &models.GoogleIdentity{ID: 1, UserID: 2, Provider: "google", Subject: "sub", Email: "a@example.com", CreatedAt: now, UpdatedAt: now}
+	entity := MapGoogleIdentityToEntity(model)
+	assert.Equal(t, model.Subject, entity.Subject)
+	assert.Equal(t, model.Email, MapEntityToGoogleIdentity(entity).Email)
+	assert.Nil(t, MapGoogleIdentityToEntity(nil))
+	assert.Nil(t, MapEntityToGoogleIdentity((*identityEntities.GoogleIdentity)(nil)))
+}
+
+func TestRefreshSessionMappers(t *testing.T) {
+	now := time.Now()
+	model := &models.RefreshSession{ID: "id", UserID: 2, FamilyID: "family", TokenHash: "hash", ExpiresAt: now, CreatedAt: now, LastUsedAt: now}
+	entity := MapRefreshSessionToEntity(model)
+	assert.Equal(t, model.FamilyID, entity.FamilyID)
+	assert.Equal(t, model.TokenHash, MapEntityToRefreshSession(entity).TokenHash)
+	assert.Nil(t, MapRefreshSessionToEntity(nil))
+	assert.Nil(t, MapEntityToRefreshSession((*refreshEntities.RefreshSession)(nil)))
 }
 
 func TestMapTaskEntityToModel_NilInput(t *testing.T) {

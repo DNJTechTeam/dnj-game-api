@@ -55,6 +55,17 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*entiti
 	return mappers.MapUserToEntity(user), nil
 }
 
+func (r *UserRepository) FindByDocumentHash(ctx context.Context, documentHash string) (*entities.User, error) {
+	user, err := r.BaseRepository.FindOneBy(ctx, map[string]interface{}{"document_hash": documentHash})
+	if errors.Is(err, appErrors.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return mappers.MapUserToEntity(user), nil
+}
+
 func (r *UserRepository) Update(ctx context.Context, user *entities.User) (*entities.User, error) {
 	userModel := mappers.MapEntityToUser(user)
 	err := r.BaseRepository.Update(ctx, userModel)

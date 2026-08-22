@@ -11,15 +11,18 @@ func MapUserToEntity(user *models.User) *entities.User {
 	}
 
 	return &entities.User{
-		ID:          user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		MobilePhone: user.MobilePhone,
-		Document:    user.Document,
-		Role:        entities.UserRole(user.Role),
-		GroupID:     user.GroupID,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+		ID:                 user.ID,
+		Email:              user.Email,
+		Name:               user.Name,
+		MobilePhone:        user.MobilePhone,
+		Document:           user.Document,
+		DocumentHash:       user.DocumentHash,
+		DocumentLast4:      user.DocumentLast4,
+		Role:               entities.UserRole(user.Role),
+		GroupID:            user.GroupID,
+		OnboardingComplete: user.OnboardingComplete,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 }
 
@@ -29,14 +32,17 @@ func MapEntityToUser(user *entities.User) *models.User {
 	}
 
 	return &models.User{
-		ID:          user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		MobilePhone: user.MobilePhone,
-		Document:    user.Document,
-		Role:        string(user.Role),
-		GroupID:     user.GroupID,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+		ID:                 user.ID,
+		Email:              user.Email,
+		Name:               user.Name,
+		MobilePhone:        user.MobilePhone,
+		Document:           user.Document,
+		DocumentHash:       user.DocumentHash,
+		DocumentLast4:      user.DocumentLast4,
+		Role:               string(user.Role),
+		GroupID:            user.GroupID,
+		OnboardingComplete: user.OnboardingComplete,
+		CreatedAt:          user.CreatedAt,
+		UpdatedAt:          user.UpdatedAt,
 	}
 }

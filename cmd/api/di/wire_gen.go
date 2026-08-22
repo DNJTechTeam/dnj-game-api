@@ -34,6 +34,13 @@ func InitializeServer() *api.API {
 	authHandler := &handlers.AuthHandler{
 		AuthService: authServiceInterface,
 	}
+	googleIdentityRepositoryInterface := repositories.ProvideGoogleIdentityRepository(gormDB)
+	refreshSessionRepositoryInterface := repositories.ProvideRefreshSessionRepository(gormDB)
+	googleIDTokenVerifierInterface := services.ProvideGoogleIDTokenVerifier()
+	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface)
+	identityHandler := &handlers.IdentityHandler{
+		IdentityService: identityServiceInterface,
+	}
 	subscriptionWebhookRepositoryInterface := repositories.ProvideSubscriptionWebhookRepository(gormDB)
 	webhookPayloadTranslatorInterface := services.ProvideWebhookPayloadTranslator()
 	subscriptionWebhookServiceInterface := services.ProvideSubscriptionWebhookService(baseService, subscriptionWebhookRepositoryInterface, subscriptionWebhookVerificationCodeRepositoryInterface, groupRepositoryInterface, webhookPayloadTranslatorInterface)
@@ -56,6 +63,7 @@ func InitializeServer() *api.API {
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
+		IdentityHandler:            identityHandler,
 		SubscriptionWebhookHandler: subscriptionWebhookHandler,
 		GroupHandler:               groupHandler,
 		UserHandler:                userHandler,

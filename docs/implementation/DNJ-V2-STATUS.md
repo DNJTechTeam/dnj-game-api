@@ -1,6 +1,6 @@
 # DNJ V2 — Status executivo e matriz de atendimento
 
-Atualizado em: 2026-08-21
+Atualizado em: 2026-08-22
 
 Branch de execução: `develop`
 
@@ -42,8 +42,8 @@ automatizado e evidência no ambiente `develop`.
 
 | Iteração | Capacidade | Operações V2 planejadas | Persistência principal | Estado |
 |---|---|---|---|---|
-| 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada; deploy bloqueado pela capacidade do DB |
-| 2 | Identidade e Google | troca Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions, challenges | Próxima |
+| 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
+| 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Implementada; validação e deploy em andamento |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Pendente |
 | 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
@@ -79,19 +79,47 @@ Commit de implementação: `2314d06`
 | Banco indisponível | cold start HTTP funciona; health 200 e readiness 503 correlacionado |
 | Publicação documental | script validado com V1 em `/develop/` e V2 em `/develop/v2/` |
 
-## Bloqueio externo de develop
+## Enabler de banco de develop resolvido
 
-- Run: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32538460606>
-- Gates concluídos no runner: build, vet, race, cobertura, migrations em
-  Testcontainers e contratos OpenAPI.
-- Falha antes de alterar banco/Lambda/docs: o cluster PostgreSQL respondeu
-  `SQLSTATE 53300` informando que atingiu o limite mensal de Request Units e
-  está desabilitado.
-- Estado remoto confirmado: Lambda V1 retorna 502 e a documentação V2 ainda
-  retorna 404; portanto não há falso registro de entrega.
-- Enabler obrigatório: aumentar/restaurar a capacidade do cluster de `develop`
-  ou apontar os secrets `DB_*` do environment para um PostgreSQL saudável e
-  compatível. Não resetar o banco existente.
-- Depois do enabler: disparar novamente `develop.yml` no commit mais recente,
-  acompanhar até sucesso, validar migrations/checksums e executar smoke de
-  health, readiness, request ID e OpenAPI publicada antes de iniciar Iteração 2.
+- Falha original: run
+  <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32538460606>,
+  `SQLSTATE 53300` por limite mensal de Request Units.
+- O banco configurado foi substituído/restaurado como CockroachDB saudável,
+  sem reset nem bypass de migrations.
+- Compatibilidade direta aplicada: lock transacional por linha com
+  `SELECT ... FOR UPDATE`; nenhuma função PostgreSQL específica ou detecção de
+  engine foi adicionada.
+- Commit do enabler: `0b229a2`.
+- Deploy verde: run
+  <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32542284797>.
+- Migrations e checksums: concluídos pelo workflow; replay local real também
+  verde em CockroachDB `v25.2.19`, com 10 migrations e 0 checksum ausente.
+- URLs validadas:
+  - API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>
+  - OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>
+- Smokes do commit `0b229a2`: `GET /healthcheck` 200, `X-Request-ID` gerado e
+  preservado, UI e JSON OpenAPI 200/3.0.3. O readiness retornou 503 naquela
+  medição; a configuração de runtime da Lambda é gerenciada externamente e não
+  foi alterada pelo workflow.
+
+## Evidência local da Iteração 2
+
+| Controle | Evidência em 2026-08-22 |
+|---|---|
+| Gate agregado | `make validate`: build, vet, race, cobertura, migrations e OpenAPI verdes |
+| Banco primário de teste | PostgreSQL 16 real via Testcontainers |
+| Compatibilidade CockroachDB | migrations aplicadas e repetidas em `v25.2.19`; 10 checksums presentes |
+| Cobertura crítica | mappers/repositories 96,8% ≥ 90% |
+| Google sem rede em teste | verifier isolado; issuer e `email_verified` testados; assinatura/audience/expiração delegados ao verificador oficial |
+| Linking seguro | subject primeiro, email verificado exato, conflitos 409 e índices únicos concorrentes |
+| Sessão | access 15 min; refresh 30 dias com hash, rotação, reuse familiar e logout testados |
+| HTTP e cookies | handlers reais, `HttpOnly`/`Secure`/`SameSite`, CSRF double-submit e erros publicados testados |
+| Contrato | OpenAPI 3.0.3 v2.1.0 e manifesto operação→testes consistentes |
+
+Enablers explícitos fora deste backend:
+
+- O ambiente precisa fornecer `GOOGLE_CLIENT_ID` e `DOCUMENT_HMAC_SECRET`.
+- O frontend ainda precisa integrar o SDK Google e consumir este contrato; o
+  repositório frontend não foi alterado.
+- A remoção de `users.document` é a etapa contract posterior à migração total
+  dos consumidores V1; até lá o campo legado é preservado sem perda de dados.

@@ -20,6 +20,8 @@ func InitializeServer() *api.API {
 		db.ProvideTransactionManager,
 
 		repositories.ProvideUserRepository,
+		repositories.ProvideGoogleIdentityRepository,
+		repositories.ProvideRefreshSessionRepository,
 		repositories.ProvideTaskRepository,
 		repositories.ProvideGroupRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
@@ -27,6 +29,8 @@ func InitializeServer() *api.API {
 
 		services.ProvideBaseService,
 		services.ProvideJwtService,
+		services.ProvideGoogleIDTokenVerifier,
+		services.ProvideIdentityService,
 		services.ProvideEmailService,
 		services.ProvideWebhookPayloadTranslator,
 		services.ProvideTaskService,
@@ -40,6 +44,7 @@ func InitializeServer() *api.API {
 
 		wire.Struct(new(handlers.HealthcheckHandler), "*"),
 		wire.Struct(new(handlers.AuthHandler), "*"),
+		wire.Struct(new(handlers.IdentityHandler), "*"),
 		wire.Struct(new(handlers.SubscriptionWebhookHandler), "*"),
 		wire.Struct(new(handlers.GroupHandler), "*"),
 		wire.Struct(new(handlers.UserHandler), "*"),

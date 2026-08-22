@@ -5,6 +5,7 @@ package handlers
 type Handlers struct {
 	HealthcheckHandler         *HealthcheckHandler
 	AuthHandler                *AuthHandler
+	IdentityHandler            *IdentityHandler
 	SubscriptionWebhookHandler *SubscriptionWebhookHandler
 	GroupHandler               *GroupHandler
 	UserHandler                *UserHandler

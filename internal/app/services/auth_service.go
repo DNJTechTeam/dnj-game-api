@@ -10,9 +10,9 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	userInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
-	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 )
 
 // errLookupFailed is the single generic error returned when the informed
@@ -33,10 +33,10 @@ var errInvalidVerificationCode = appErrors.NewError("Código de verificação in
 type AuthService struct {
 	*BaseService
 	verificationCodeRepository svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
-	userRepository              userInterfaces.UserRepositoryInterface
-	groupRepository              groupInterfaces.GroupRepositoryInterface
-	jwtService                   interfaces.JwtServiceInterface
-	emailService                 interfaces.EmailServiceInterface
+	userRepository             userInterfaces.UserRepositoryInterface
+	groupRepository            groupInterfaces.GroupRepositoryInterface
+	jwtService                 interfaces.JwtServiceInterface
+	emailService               interfaces.EmailServiceInterface
 }
 
 func NewAuthService(
@@ -48,12 +48,12 @@ func NewAuthService(
 	emailService interfaces.EmailServiceInterface,
 ) interfaces.AuthServiceInterface {
 	return &AuthService{
-		BaseService:                 baseService,
-		verificationCodeRepository:  verificationCodeRepository,
-		userRepository:              userRepository,
-		groupRepository:             groupRepository,
-		jwtService:                  jwtService,
-		emailService:                emailService,
+		BaseService:                baseService,
+		verificationCodeRepository: verificationCodeRepository,
+		userRepository:             userRepository,
+		groupRepository:            groupRepository,
+		jwtService:                 jwtService,
+		emailService:               emailService,
 	}
 }
 

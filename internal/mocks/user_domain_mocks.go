@@ -163,6 +163,74 @@ func (_c *MockUserRepositoryInterface_ExistsByID_Call) RunAndReturn(run func(ctx
 	return _c
 }
 
+// FindByDocumentHash provides a mock function for the type MockUserRepositoryInterface
+func (_mock *MockUserRepositoryInterface) FindByDocumentHash(ctx context.Context, documentHash string) (*entities.User, error) {
+	ret := _mock.Called(ctx, documentHash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByDocumentHash")
+	}
+
+	var r0 *entities.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.User, error)); ok {
+		return returnFunc(ctx, documentHash)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.User); ok {
+		r0 = returnFunc(ctx, documentHash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, documentHash)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepositoryInterface_FindByDocumentHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByDocumentHash'
+type MockUserRepositoryInterface_FindByDocumentHash_Call struct {
+	*mock.Call
+}
+
+// FindByDocumentHash is a helper method to define mock.On call
+//   - ctx context.Context
+//   - documentHash string
+func (_e *MockUserRepositoryInterface_Expecter) FindByDocumentHash(ctx interface{}, documentHash interface{}) *MockUserRepositoryInterface_FindByDocumentHash_Call {
+	return &MockUserRepositoryInterface_FindByDocumentHash_Call{Call: _e.mock.On("FindByDocumentHash", ctx, documentHash)}
+}
+
+func (_c *MockUserRepositoryInterface_FindByDocumentHash_Call) Run(run func(ctx context.Context, documentHash string)) *MockUserRepositoryInterface_FindByDocumentHash_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_FindByDocumentHash_Call) Return(user *entities.User, err error) *MockUserRepositoryInterface_FindByDocumentHash_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_FindByDocumentHash_Call) RunAndReturn(run func(ctx context.Context, documentHash string) (*entities.User, error)) *MockUserRepositoryInterface_FindByDocumentHash_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindByEmail provides a mock function for the type MockUserRepositoryInterface
 func (_mock *MockUserRepositoryInterface) FindByEmail(ctx context.Context, email string) (*entities.User, error) {
 	ret := _mock.Called(ctx, email)

@@ -9,6 +9,8 @@ import (
 
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -29,6 +31,8 @@ type TestSuiteType struct {
 	GroupRepository               groupInterfaces.GroupRepositoryInterface
 	SubscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
 	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
+	GoogleIdentityRepository      identityInterfaces.GoogleIdentityRepositoryInterface
+	RefreshSessionRepository      refreshInterfaces.RefreshSessionRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -44,6 +48,8 @@ func initializeTestSuite() {
 	TestSuite.GroupRepository = repositories.NewGroupRepository(TestSuite.DbConn)
 	TestSuite.SubscriptionWebhookRepository = repositories.NewSubscriptionWebhookRepository(TestSuite.DbConn)
 	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
+	TestSuite.GoogleIdentityRepository = repositories.NewGoogleIdentityRepository(TestSuite.DbConn)
+	TestSuite.RefreshSessionRepository = repositories.NewRefreshSessionRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {
@@ -66,6 +72,8 @@ func (ts *TestSuiteType) DefaultSetup(t *testing.T) {
 	t.Setenv("SERVER_ENVIRONMENT", string(common.EnvironmentTest))
 	t.Setenv("GIN_MODE", "debug")
 	t.Setenv("JWT_IDENTITY_SECRET", "testIdentitySecret")
+	t.Setenv("GOOGLE_CLIENT_ID", "test-google-client")
+	t.Setenv("DOCUMENT_HMAC_SECRET", "test-document-hmac-secret")
 	t.Setenv("SUBSCRIPTION_WEBHOOK_SECRET", "testWebhookSecret")
 	t.Setenv("FRONTEND_URL", "https://app.example.com")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")

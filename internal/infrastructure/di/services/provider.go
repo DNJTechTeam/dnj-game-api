@@ -5,11 +5,14 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/services"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
 	uInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
 	emailServicePkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/email"
+	googlePkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/google"
 	webhookPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/webhook"
 )
 
@@ -23,6 +26,22 @@ func ProvideJwtService(baseService *services.BaseService) appInterfaces.JwtServi
 
 func ProvideEmailService() appInterfaces.EmailServiceInterface {
 	return emailServicePkg.NewEmailService()
+}
+
+func ProvideGoogleIDTokenVerifier() appInterfaces.GoogleIDTokenVerifierInterface {
+	return googlePkg.NewIDTokenVerifier()
+}
+
+func ProvideIdentityService(
+	baseService *services.BaseService,
+	userRepository uInterfaces.UserRepositoryInterface,
+	groupRepository groupInterfaces.GroupRepositoryInterface,
+	identityRepository identityInterfaces.GoogleIdentityRepositoryInterface,
+	refreshRepository refreshInterfaces.RefreshSessionRepositoryInterface,
+	jwtService appInterfaces.JwtServiceInterface,
+	googleVerifier appInterfaces.GoogleIDTokenVerifierInterface,
+) appInterfaces.IdentityServiceInterface {
+	return services.NewIdentityService(baseService, userRepository, groupRepository, identityRepository, refreshRepository, jwtService, googleVerifier)
 }
 
 func ProvideWebhookPayloadTranslator() appInterfaces.WebhookPayloadTranslatorInterface {

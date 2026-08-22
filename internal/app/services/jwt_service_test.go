@@ -57,9 +57,11 @@ func TestGenerateIdentityToken(t *testing.T) {
 			claims, ok := parsedToken.Claims.(*auth.IdentityClaims)
 			require.True(t, ok)
 			assert.Equal(t, testCase.expectedUserID, claims.UserID)
+			assert.Equal(t, "dnj-game-api", claims.Issuer)
+			assert.Contains(t, claims.Audience, "dnj-v2")
 
 			require.NotNil(t, claims.ExpiresAt)
-			assert.WithinDuration(t, time.Now().Add(time.Hour*24), claims.ExpiresAt.Time, 5*time.Second)
+			assert.WithinDuration(t, time.Now().Add(AccessTokenTTL), claims.ExpiresAt.Time, 5*time.Second)
 		})
 	}
 }

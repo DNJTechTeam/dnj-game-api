@@ -1,15 +1,14 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.0.0
-  description: >-
-    Contrato canônico e versionado da V2. Somente operações já implementadas,
-    testadas e liberadas entram neste documento.
+  version: 2.1.0
+  description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
     description: Desenvolvimento local
 tags:
   - name: Operations
+  - name: Identity
 paths:
   /healthcheck:
     get:
@@ -20,70 +19,278 @@ paths:
         '200':
           description: Processo ativo
           headers:
-            X-Request-ID:
-              $ref: '#/components/headers/RequestID'
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/HealthcheckResponse'
+              schema: {$ref: '#/components/schemas/HealthcheckResponse'}
   /readiness:
     get:
       tags: [Operations]
       operationId: getReadiness
-      summary: Confirma que a API e o PostgreSQL estão prontos
+      summary: Confirma que a API e o banco estão prontos
       responses:
         '200':
           description: Dependências prontas
           headers:
-            X-Request-ID:
-              $ref: '#/components/headers/RequestID'
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ReadinessResponse'
-        '503':
-          description: Uma dependência obrigatória está indisponível
+              schema: {$ref: '#/components/schemas/ReadinessResponse'}
+        '503': {$ref: '#/components/responses/DependencyUnavailable'}
+  /auth/google:
+    post:
+      tags: [Identity]
+      operationId: authenticateWithGoogle
+      summary: Valida um ID token Google e inicia uma sessão
+      description: >-
+        Valida assinatura, issuer, audience, expiração e email_verified. Uma
+        conta nova permanece incompleta até receber CPF, telefone e grupo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/GoogleAuthRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentitySession'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/refresh:
+    post:
+      tags: [Identity]
+      operationId: refreshIdentitySession
+      summary: Rotaciona o refresh token e renova a sessão
+      description: >-
+        Requer os cookies refresh_token e csrf_token e o mesmo valor CSRF no
+        header. Reuso de refresh token revoga toda a família.
+      parameters:
+        - {$ref: '#/components/parameters/CSRFHeader'}
+      security:
+        - refreshCookie: []
+          csrfCookie: []
+      responses:
+        '200': {$ref: '#/components/responses/IdentitySession'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/logout:
+    post:
+      tags: [Identity]
+      operationId: logoutIdentitySession
+      summary: Revoga a família da sessão atual e remove os cookies
+      parameters:
+        - {$ref: '#/components/parameters/CSRFHeader'}
+      security:
+        - refreshCookie: []
+          csrfCookie: []
+      responses:
+        '200':
+          description: Sessão revogada
           headers:
-            X-Request-ID:
-              $ref: '#/components/headers/RequestID'
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            Set-Cookie: {$ref: '#/components/headers/SessionCookies'}
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+              schema: {$ref: '#/components/schemas/LogoutResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/session:
+    get:
+      tags: [Identity]
+      operationId: getCurrentIdentitySession
+      summary: Retorna o usuário e o estado atual do onboarding
+      security:
+        - bearerAuth: []
+        - identityCookie: []
+      responses:
+        '200':
+          description: Sessão atual
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CurrentSessionResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/onboarding:
+    patch:
+      tags: [Identity]
+      operationId: completeIdentityOnboarding
+      summary: Completa CPF, telefone e grupo do perfil autenticado
+      security:
+        - bearerAuth: []
+        - identityCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CompleteOnboardingRequest'}
+      responses:
+        '200':
+          description: Perfil completo
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CurrentSessionResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
 components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+    identityCookie: {type: apiKey, in: cookie, name: identity_token}
+    refreshCookie: {type: apiKey, in: cookie, name: refresh_token}
+    csrfCookie: {type: apiKey, in: cookie, name: csrf_token}
   headers:
     RequestID:
       description: Identificador seguro de correlação da requisição
-      schema:
-        type: string
+      schema: {type: string}
+    SessionCookies:
+      description: >-
+        identity_token e refresh_token são HttpOnly; csrf_token é legível pelo
+        cliente. Em ambiente publicado todos são Secure e SameSite=None.
+      schema: {type: string}
+  parameters:
+    CSRFHeader:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: {type: string, minLength: 32}
+  responses:
+    IdentitySession:
+      description: Sessão criada ou renovada
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+        Set-Cookie: {$ref: '#/components/headers/SessionCookies'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/IdentitySessionResponse'}
+    BadRequest:
+      description: Requisição inválida
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: Credencial ausente, inválida, expirada ou reutilizada
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: Proteção CSRF rejeitou a requisição
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Recurso relacionado não encontrado
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: Vínculo de identidade ou CPF conflitante
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    InternalError:
+      description: Erro interno sem detalhes sensíveis
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    DependencyUnavailable:
+      description: Dependência obrigatória indisponível
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
   schemas:
     HealthcheckResponse:
       type: object
       required: [status, service]
       properties:
-        status:
-          type: string
-          enum: [ok]
-        service:
-          type: string
-          enum: [dnj-game-api]
+        status: {type: string, enum: [ok]}
+        service: {type: string, enum: [dnj-game-api]}
     ReadinessResponse:
       type: object
       required: [status]
       properties:
-        status:
-          type: string
-          enum: [ready]
+        status: {type: string, enum: [ready]}
+    GoogleAuthRequest:
+      type: object
+      additionalProperties: false
+      required: [idToken]
+      properties:
+        idToken: {type: string, minLength: 1}
+    CompleteOnboardingRequest:
+      type: object
+      additionalProperties: false
+      required: [document, mobilePhone, groupId]
+      properties:
+        document: {type: string, example: '52998224725'}
+        mobilePhone: {type: string, example: '5541999990000'}
+        groupId: {type: string, pattern: '^[1-9][0-9]*$', example: '12'}
+    IdentitySessionResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn, csrfToken, onboardingRequired, user]
+      properties:
+        accessToken: {type: string, description: JWT HS256 válido por 900 segundos}
+        tokenType: {type: string, enum: [Bearer]}
+        expiresIn: {type: integer, format: int64, enum: [900]}
+        csrfToken: {type: string, description: Mesmo valor do cookie csrf_token}
+        onboardingRequired: {type: boolean}
+        user: {$ref: '#/components/schemas/IdentityUser'}
+    CurrentSessionResponse:
+      type: object
+      required: [onboardingRequired, user]
+      properties:
+        onboardingRequired: {type: boolean}
+        user: {$ref: '#/components/schemas/IdentityUser'}
+    IdentityUser:
+      type: object
+      required: [id, email, name, mobilePhone, documentMasked, role, group, onboardingComplete]
+      properties:
+        id: {type: string}
+        email: {type: string, format: email}
+        name: {type: string}
+        mobilePhone: {type: string}
+        documentMasked: {type: string, description: CPF integral nunca é retornado pela V2}
+        role: {type: string, enum: [ADMIN, EVENT_MANAGER, DEFAULT]}
+        group:
+          nullable: true
+          allOf:
+            - {$ref: '#/components/schemas/GroupSummary'}
+        onboardingComplete: {type: boolean}
+    GroupSummary:
+      type: object
+      required: [id, groupName]
+      properties:
+        id: {type: string}
+        groupName: {type: string}
+    LogoutResponse:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [logged_out]}
     Error:
       type: object
       required: [code, message, requestId]
       properties:
-        code:
-          type: string
-          example: DEPENDENCY_UNAVAILABLE
-        message:
-          type: string
-        details:
-          nullable: true
-        requestId:
-          type: string
+        code: {type: string, example: UNAUTHENTICATED}
+        message: {type: string}
+        details: {nullable: true}
+        requestId: {type: string}
