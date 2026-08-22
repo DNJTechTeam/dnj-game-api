@@ -70,8 +70,21 @@ func (r *MigrationRegistry) Migrations() []Migration {
 }
 
 func (r *MigrationRegistry) EnsureTrackerTable() error {
-	if err := r.db.AutoMigrate(&MigrationRecord{}); err != nil {
-		return fmt.Errorf("failed to create or migrate migration tracker table: %w", err)
+	migrator := r.db.Migrator()
+	if !migrator.HasTable(&MigrationRecord{}) {
+		if err := migrator.CreateTable(&MigrationRecord{}); err != nil {
+			return fmt.Errorf("failed to create migration tracker table: %w", err)
+		}
+		return nil
+	}
+
+	if !migrator.HasColumn(&MigrationRecord{}, "checksum") {
+		if err := r.db.Exec(`
+			ALTER TABLE schema_migrations
+			ADD COLUMN IF NOT EXISTS checksum VARCHAR(64) NOT NULL DEFAULT ''
+		`).Error; err != nil {
+			return fmt.Errorf("failed to add migration checksum column: %w", err)
+		}
 	}
 	return nil
 }
