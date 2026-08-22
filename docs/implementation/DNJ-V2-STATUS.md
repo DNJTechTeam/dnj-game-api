@@ -43,7 +43,7 @@ automatizado e evidência no ambiente `develop`.
 | Iteração | Capacidade | Operações V2 planejadas | Persistência principal | Estado |
 |---|---|---|---|---|
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
-| 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Backend publicado; smoke Google bloqueado pela variável externa ausente |
+| 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Pendente |
 | 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
@@ -116,9 +116,10 @@ Commit de implementação: `2314d06`
 | HTTP e cookies | handlers reais, `HttpOnly`/`Secure`/`SameSite`, CSRF double-submit e erros publicados testados |
 | Contrato | OpenAPI 3.0.3 v2.1.0 e manifesto operação→testes consistentes |
 
-Enablers explícitos fora deste backend:
+Dependências externas e etapas posteriores:
 
-- O ambiente precisa fornecer `GOOGLE_CLIENT_ID` e `DOCUMENT_HMAC_SECRET`.
+- `GOOGLE_CLIENT_ID` e `DOCUMENT_HMAC_SECRET` foram configurados no runtime de
+  `develop` e validados pelo smoke final.
 - O frontend ainda precisa integrar o SDK Google e consumir este contrato; o
   repositório frontend não foi alterado.
 - A remoção de `users.document` é a etapa contract posterior à migração total
@@ -128,6 +129,8 @@ Enablers explícitos fora deste backend:
 
 - Commit: `6cc61ac`.
 - Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32599410466>.
+- Revalidação do deploy após versionar o status: run
+  <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32599712886>, verde.
 - API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
 - OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
 
@@ -137,15 +140,12 @@ Enablers explícitos fora deste backend:
 | `GET /healthcheck` | 200 `ok` |
 | `GET /readiness` | 200 `ready` |
 | `X-Request-ID` gerado | 200 com id seguro retornado |
-| `X-Request-ID` preservado | `smoke-develop-6cc61ac` retornado sem alteração |
+| `X-Request-ID` preservado | `smoke-env-iteration-2` retornado sem alteração |
 | UI OpenAPI | 200 |
 | JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.1.0 e 7 paths |
 | `GET /auth/session` sem token | 401 `UNAUTHENTICATED` com `requestId` |
 | `POST /auth/refresh` sem CSRF | 403 `CSRF_INVALID` com `requestId` |
-| `POST /auth/google` com token inválido | 500 `INTERNAL_ERROR`: `GOOGLE_CLIENT_ID` vazio no runtime |
+| `POST /auth/google` com token inválido | 401 `INVALID_GOOGLE_TOKEN` com `requestId` |
 
-Bloqueio externo objetivo: adicionar `GOOGLE_CLIENT_ID` à configuração já
-existente da Lambda `develop`, com o OAuth client id usado pelo frontend, sem
-substituir as demais variáveis. Depois, repetir o último smoke; um token malformado
-deve retornar 401 `INVALID_GOOGLE_TOKEN`. Confirmar também a presença de
-`DOCUMENT_HMAC_SECRET` antes do smoke autenticado de conclusão de onboarding.
+O enabler externo de ambiente foi resolvido em 2026-08-22. Não há bloqueio de
+backend pendente para iniciar a Iteração 3.
