@@ -7,5 +7,5 @@ import (
 )
 
 func ProvideDB() *gorm.DB {
-	return db.Init()
+	return db.InitAPI()
 }

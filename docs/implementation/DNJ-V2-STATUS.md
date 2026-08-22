@@ -42,7 +42,7 @@ automatizado e evidência no ambiente `develop`.
 
 | Iteração | Capacidade | Operações V2 planejadas | Persistência principal | Estado |
 |---|---|---|---|---|
-| 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Concluída localmente; aguardando deploy |
+| 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada; deploy bloqueado pela capacidade do DB |
 | 2 | Identidade e Google | troca Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions, challenges | Próxima |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Pendente |
 | 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
@@ -76,9 +76,22 @@ Commit de implementação: `2314d06`
 | Cobertura crítica de mappers/repositories | 100% ≥ gate 90% |
 | Infra local | PostgreSQL 55432 e MinIO 59000/59001 saudáveis via Compose |
 | Smoke HTTP local | health 200, readiness 200, request ID gerado/preservado e logs JSON |
+| Banco indisponível | cold start HTTP funciona; health 200 e readiness 503 correlacionado |
 | Publicação documental | script validado com V1 em `/develop/` e V2 em `/develop/v2/` |
 
-Após o push, registrar aqui o commit, URLs publicadas, run do GitHub Actions e
-resultado dos smokes. Se um segredo/ambiente impedir o smoke, registrar a
-evidência do bloqueio e transformar a primeira ação da próxima sessão em
-enabler operacional.
+## Bloqueio externo de develop
+
+- Run: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32538460606>
+- Gates concluídos no runner: build, vet, race, cobertura, migrations em
+  Testcontainers e contratos OpenAPI.
+- Falha antes de alterar banco/Lambda/docs: o cluster PostgreSQL respondeu
+  `SQLSTATE 53300` informando que atingiu o limite mensal de Request Units e
+  está desabilitado.
+- Estado remoto confirmado: Lambda V1 retorna 502 e a documentação V2 ainda
+  retorna 404; portanto não há falso registro de entrega.
+- Enabler obrigatório: aumentar/restaurar a capacidade do cluster de `develop`
+  ou apontar os secrets `DB_*` do environment para um PostgreSQL saudável e
+  compatível. Não resetar o banco existente.
+- Depois do enabler: disparar novamente `develop.yml` no commit mais recente,
+  acompanhar até sucesso, validar migrations/checksums e executar smoke de
+  health, readiness, request ID e OpenAPI publicada antes de iniciar Iteração 2.
