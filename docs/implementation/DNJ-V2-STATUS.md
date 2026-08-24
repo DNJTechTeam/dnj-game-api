@@ -370,3 +370,29 @@ inventada ou inserida fora de contrato para fabricar o smoke.
 O frontend permaneceu somente leitura. O roadmap e todos os artefatos obrigatórios
 da Iteração 10 continuam preservados na seção “Entrega obrigatória da Iteração
 10 para o frontend”.
+
+## Deploy e smokes remotos da Iteração 5
+
+- Commit de implementação: `ddcf50a`.
+- Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32754142688>,
+  incluindo race sob `TZ=UTC`, gates de cobertura, migrations, deploy Lambda e Pages.
+- API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
+- OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
+
+| Smoke em 2026-08-24 | Resultado |
+|---|---|
+| `GET /schedule?view=home` | 200, `{items:[],generatedAt}` e `generatedAt` UTC serializado com `Z` |
+| `GET /activities?page=1` | 200, `{data:[],pagination}` com página, limite e `hasNextPage` determinísticos |
+| `GET /schedule?view=full` | 400 `INVALID_REQUEST`, confirmando allowlist de `view` |
+| `GET /activities/{UUID inexistente}` | 404 `NOT_FOUND`, sem distinguir inexistente de invisível |
+| `GET /users/me/favorites?page=1` sem autenticação | 401 `UNAUTHENTICATED` |
+| `PUT /users/me/favorites/{activityId}` sem autenticação, chave UUID válida | 401 `UNAUTHENTICATED`, sem efeito nem enumeração |
+| `DELETE /users/me/favorites/{activityId}` sem autenticação, chave UUID válida | 401 `UNAUTHENTICATED`, sem efeito nem enumeração |
+| UI OpenAPI | 200 |
+| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.4.0, servidor de develop e os cinco paths que expõem as seis operações da Iteração 5 |
+
+O ambiente de develop continua sem Activities publicadas nem credencial de
+participante criada artificialmente. Os resultados autenticados, mutações,
+idempotência, concorrência, isolamento e ausência de auditoria indevida são
+cobertos pelo HTTP/PostgreSQL real e pelos gates do deploy, sem adicionar seed
+de produção para fabricar smoke mutante.
