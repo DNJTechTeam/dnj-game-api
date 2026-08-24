@@ -47,7 +47,7 @@ automatizado e evidência no ambiente `develop`.
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
-| 4 | Configuração da instalação | `GET /spaces`; iniciar/pausar Activities atribuídas | spaces, activities, assignments, auditoria | Implementada localmente; enabler administrativo pendente |
+| 4 | Configuração da instalação | `GET /spaces`; iniciar/pausar Activities atribuídas | spaces, activities, assignments, auditoria | Backend publicado; enabler administrativo pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
@@ -231,6 +231,8 @@ antigos de staff/configuração. Nenhum arquivo do frontend foi alterado.
 
 - Commit de implementação: `80f5ca7`.
 - Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32727711442>.
+- Revalidação do commit documental: run
+  <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32728720693>, verde.
 - API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
 - OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
 
