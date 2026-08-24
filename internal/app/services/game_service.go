@@ -315,7 +315,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			status = http.StatusOK
 		} else if errors.Is(existingErr, appErrors.ErrNotFound) {
 			participationID := uuid.NewString()
-			participation = &gameEntities.Participation{ID: participationID, UserID: user.ID, ActivityID: qr.ActivityID, ActivityRunID: qr.ActivityRunID, QRCodeID: qr.ID, CheckedInAt: now, Status: gameEntities.ParticipationStatusActive, CanShareMoment: false, CheckInPoints: 0, CreatedAt: now}
+			participation = &gameEntities.Participation{ID: participationID, UserID: user.ID, ActivityID: qr.ActivityID, ActivityRunID: qr.ActivityRunID, QRCodeID: qr.ID, CheckedInAt: now, Status: gameEntities.ParticipationStatusActive, CanShareMoment: qr.AllowsMoment, CheckInPoints: 0, CreatedAt: now}
 			participant := &gameEntities.RunParticipant{ID: uuid.NewString(), ActivityRunID: qr.ActivityRunID, UserID: user.ID, ParticipationID: participationID, CheckedInAt: now, CreatedAt: now}
 			if createErr := s.games.CreateParticipation(txCtx, participation, participant); createErr != nil {
 				return appErrors.InternalError

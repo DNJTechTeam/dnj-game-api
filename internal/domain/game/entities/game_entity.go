@@ -115,6 +115,7 @@ type QRCode struct {
 	ID            string
 	ActivityID    string
 	ActivityRunID string
+	AllowsMoment  bool
 	TokenHash     string
 	ExpiresAt     time.Time
 	Status        QRCodeStatus

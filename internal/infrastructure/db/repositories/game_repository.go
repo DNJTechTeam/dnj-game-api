@@ -281,13 +281,16 @@ func (r *GameRepository) CreateQR(ctx context.Context, qr *gameEntities.QRCode) 
 }
 
 func (r *GameRepository) FindQRByTokenHashForUpdate(ctx context.Context, tokenHash string, generatedAt time.Time) (*gameEntities.QRCode, error) {
-	var row models.ActivityRunQRCode
-	query := r.getDB(ctx).Model(&models.ActivityRunQRCode{}).Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_run_qr_codes"}}).Joins("JOIN activity_runs ON activity_runs.id = activity_run_qr_codes.activity_run_id").Joins("JOIN activities ON activities.id = activity_run_qr_codes.activity_id").Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind = ?", tokenHash, string(activityEntities.KindCompetitive))
+	var row struct {
+		models.ActivityRunQRCode
+		AllowsMoment bool `gorm:"column:allows_moment"`
+	}
+	query := r.getDB(ctx).Model(&models.ActivityRunQRCode{}).Select("activity_run_qr_codes.*, activities.allows_moment AS allows_moment").Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_run_qr_codes"}}).Joins("JOIN activity_runs ON activity_runs.id = activity_run_qr_codes.activity_run_id").Joins("JOIN activities ON activities.id = activity_run_qr_codes.activity_id").Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind = ?", tokenHash, string(activityEntities.KindCompetitive))
 	query = publiclyVisibleActivities(query, generatedAt)
 	if err := query.Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
-	return &gameEntities.QRCode{ID: row.ID, ActivityID: row.ActivityID, ActivityRunID: row.ActivityRunID, TokenHash: row.TokenHash, ExpiresAt: row.ExpiresAt, Status: gameEntities.QRCodeStatus(row.Status), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}, nil
+	return &gameEntities.QRCode{ID: row.ID, ActivityID: row.ActivityID, ActivityRunID: row.ActivityRunID, AllowsMoment: row.AllowsMoment, TokenHash: row.TokenHash, ExpiresAt: row.ExpiresAt, Status: gameEntities.QRCodeStatus(row.Status), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}, nil
 }
 
 func (r *GameRepository) FindParticipantOperation(ctx context.Context, actorUserID uint64, key string) (*favoriteEntities.ParticipantOperation, error) {
