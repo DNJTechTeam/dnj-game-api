@@ -49,7 +49,7 @@ automatizado e evidência no ambiente `develop`.
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
-| 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Implementada e validada localmente; deploy em andamento |
+| 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Concluída e publicada em develop |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
 | 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
@@ -420,6 +420,28 @@ de produção para fabricar smoke mutante.
 | Contrato/handoff | OpenAPI 3.0.3 `2.5.0`, 16 operações, manifesto operação→testes, `docs/games-runs-scoring.md` e `docs/game-frontend-handoff.md`. |
 | Frontend | Clone consultado somente em leitura; nenhum arquivo, commit ou push produzido. Handoff registra rotas, grafos, orçamento, polling e perfis futuros de carga. |
 
-Validações locais concluídas. Restam registrar commit, workflow verde e smokes
-remotos somente leitura. As Iterações 7–10 e os artefatos obrigatórios do
-handoff final permanecem preservados no roadmap.
+## Publicação da Iteração 6 em develop
+
+- Commit de implementação: `b0775c5` (`feat: implement iteration 6 games and rankings`).
+- Workflow `develop.yml`: run `32778480015` verde em 5m17s, incluindo race,
+  coberturas, contrato, migrations no banco, imagem, Lambda e GitHub Pages.
+- Migrations aplicadas sem reset: `expand_iteration6_games_runs_scoring`,
+  `backfill_iteration6_games_runs_scoring` e
+  `contract_iteration6_games_runs_scoring`, todas com checksum registrado.
+- Smokes somente leitura após o deploy:
+
+| Operação publicada | Resultado |
+|---|---|
+| `GET /healthcheck` | 200, serviço `ok` |
+| `GET /readiness` | 200, banco `ready` |
+| `GET /games?page=1` | 200, `data=[]`, paginação estável |
+| `GET /rankings?scope=individual&page=1` | 200, `data=[]`, `generatedAt` UTC com `Z` |
+| `GET /rankings?scope=groups&page=1` | 200, `data=[]`, `generatedAt` UTC com `Z` |
+| `GET /games/00000000-0000-4000-8000-000000000000` | 404 `NOT_FOUND` sem enumeração |
+| Overview, run/participação atual e overview gerencial sem autenticação | 401 `UNAUTHENTICATED` |
+| UI OpenAPI | 200 |
+| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.5.0, servidor de develop e 16 paths da Iteração 6 |
+
+O ambiente permaneceu sem Activities, usuários, pontos, QR ou runs artificiais;
+nenhum smoke mutante foi executado. As Iterações 7–10 e os artefatos
+obrigatórios do handoff final permanecem preservados no roadmap.
