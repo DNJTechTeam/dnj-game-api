@@ -141,7 +141,7 @@ gerenciais. Rebaixar gestor com assignment retorna
 malformados, ausentes ou cruzados são resolvidos contra as tabelas
 correspondentes, nunca confiados a partir do cliente.
 
-## Enablers finais do frontend das Iterações 2–4
+## Handoff incremental do frontend das Iterações 2–5
 
 Nenhum arquivo do frontend foi alterado. O handoff deve ser integrado nesta
 ordem para não misturar contratos antigos de homologação:
@@ -158,6 +158,15 @@ ordem para não misturar contratos antigos de homologação:
    preservando-o somente durante retries. Tratar `startsAt`/`endsAt` como
    instantes UTC no transporte e formatá-los para o fuso local atual somente na
    apresentação; seleções locais devem ser convertidas para UTC antes do envio.
+4. Iteração 5: trocar o consumidor atual de `/schedule` pela base explícita
+   `/v2`, criar módulos públicos para `/v2/activities` e
+   `/v2/users/me/favorites`, cancelar requests ao desmontar, deduplicar
+   re-render/reconexão e preservar o mesmo UUID em retries de favorito. O mapa
+   completo de arquivos, requests, orçamentos, backlog e carga futura está em
+   `docs/agenda-content.md`.
 
-Agenda, QR, participações, runs, jogos, Moments e anúncios permanecem nas
-iterações posteriores e não devem ser simulados por esses endpoints.
+Agenda, conteúdo público e favoritos foram implementados na Iteração 5 e estão
+documentados em `docs/agenda-content.md`, incluindo o handoff incremental das
+Iterações 2–5 e os grafos de requests. QR, participações, runs, jogos, Moments,
+mídia, ranking, anúncios e notificações permanecem nas iterações posteriores e
+não devem ser simulados por esses endpoints.

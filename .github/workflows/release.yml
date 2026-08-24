@@ -46,7 +46,7 @@ jobs:
         run: go vet ./...
 
       - name: Run tests with coverage
-        run: make test-cover-check test-admin-cover-check
+        run: make test-cover-check test-admin-cover-check test-iteration5-cover-check
 
       - name: Run migrations idempotency test
         run: make test-migrations

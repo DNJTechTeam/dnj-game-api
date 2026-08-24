@@ -529,6 +529,80 @@ func (_c *MockActivityRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(r
 	return _c
 }
 
+// FindPublicByID provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) FindPublicByID(ctx context.Context, activityID string, generatedAt time.Time) (*entities.PublicActivity, error) {
+	ret := _mock.Called(ctx, activityID, generatedAt)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindPublicByID")
+	}
+
+	var r0 *entities.PublicActivity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) (*entities.PublicActivity, error)); ok {
+		return returnFunc(ctx, activityID, generatedAt)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) *entities.PublicActivity); ok {
+		r0 = returnFunc(ctx, activityID, generatedAt)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.PublicActivity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Time) error); ok {
+		r1 = returnFunc(ctx, activityID, generatedAt)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_FindPublicByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindPublicByID'
+type MockActivityRepositoryInterface_FindPublicByID_Call struct {
+	*mock.Call
+}
+
+// FindPublicByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - generatedAt time.Time
+func (_e *MockActivityRepositoryInterface_Expecter) FindPublicByID(ctx interface{}, activityID interface{}, generatedAt interface{}) *MockActivityRepositoryInterface_FindPublicByID_Call {
+	return &MockActivityRepositoryInterface_FindPublicByID_Call{Call: _e.mock.On("FindPublicByID", ctx, activityID, generatedAt)}
+}
+
+func (_c *MockActivityRepositoryInterface_FindPublicByID_Call) Run(run func(ctx context.Context, activityID string, generatedAt time.Time)) *MockActivityRepositoryInterface_FindPublicByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindPublicByID_Call) Return(publicActivity *entities.PublicActivity, err error) *MockActivityRepositoryInterface_FindPublicByID_Call {
+	_c.Call.Return(publicActivity, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindPublicByID_Call) RunAndReturn(run func(ctx context.Context, activityID string, generatedAt time.Time) (*entities.PublicActivity, error)) *MockActivityRepositoryInterface_FindPublicByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function for the type MockActivityRepositoryInterface
 func (_mock *MockActivityRepositoryInterface) List(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Activity], error) {
 	ret := _mock.Called(ctx, page)
@@ -667,6 +741,166 @@ func (_c *MockActivityRepositoryInterface_ListManagers_Call) Return(paginatedRes
 }
 
 func (_c *MockActivityRepositoryInterface_ListManagers_Call) RunAndReturn(run func(ctx context.Context, activityID string, page uint64) (*messages.PaginatedResponse[entities0.User], error)) *MockActivityRepositoryInterface_ListManagers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListPublic provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) ListPublic(ctx context.Context, kind *entities.Kind, spaceID *string, generatedAt time.Time, page uint64) (*messages.PaginatedResponse[entities.PublicActivity], error) {
+	ret := _mock.Called(ctx, kind, spaceID, generatedAt, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPublic")
+	}
+
+	var r0 *messages.PaginatedResponse[entities.PublicActivity]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Kind, *string, time.Time, uint64) (*messages.PaginatedResponse[entities.PublicActivity], error)); ok {
+		return returnFunc(ctx, kind, spaceID, generatedAt, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Kind, *string, time.Time, uint64) *messages.PaginatedResponse[entities.PublicActivity]); ok {
+		r0 = returnFunc(ctx, kind, spaceID, generatedAt, page)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PaginatedResponse[entities.PublicActivity])
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.Kind, *string, time.Time, uint64) error); ok {
+		r1 = returnFunc(ctx, kind, spaceID, generatedAt, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_ListPublic_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPublic'
+type MockActivityRepositoryInterface_ListPublic_Call struct {
+	*mock.Call
+}
+
+// ListPublic is a helper method to define mock.On call
+//   - ctx context.Context
+//   - kind *entities.Kind
+//   - spaceID *string
+//   - generatedAt time.Time
+//   - page uint64
+func (_e *MockActivityRepositoryInterface_Expecter) ListPublic(ctx interface{}, kind interface{}, spaceID interface{}, generatedAt interface{}, page interface{}) *MockActivityRepositoryInterface_ListPublic_Call {
+	return &MockActivityRepositoryInterface_ListPublic_Call{Call: _e.mock.On("ListPublic", ctx, kind, spaceID, generatedAt, page)}
+}
+
+func (_c *MockActivityRepositoryInterface_ListPublic_Call) Run(run func(ctx context.Context, kind *entities.Kind, spaceID *string, generatedAt time.Time, page uint64)) *MockActivityRepositoryInterface_ListPublic_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.Kind
+		if args[1] != nil {
+			arg1 = args[1].(*entities.Kind)
+		}
+		var arg2 *string
+		if args[2] != nil {
+			arg2 = args[2].(*string)
+		}
+		var arg3 time.Time
+		if args[3] != nil {
+			arg3 = args[3].(time.Time)
+		}
+		var arg4 uint64
+		if args[4] != nil {
+			arg4 = args[4].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListPublic_Call) Return(paginatedResponse *messages.PaginatedResponse[entities.PublicActivity], err error) *MockActivityRepositoryInterface_ListPublic_Call {
+	_c.Call.Return(paginatedResponse, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListPublic_Call) RunAndReturn(run func(ctx context.Context, kind *entities.Kind, spaceID *string, generatedAt time.Time, page uint64) (*messages.PaginatedResponse[entities.PublicActivity], error)) *MockActivityRepositoryInterface_ListPublic_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListSchedule provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) ListSchedule(ctx context.Context, sectorSlug string, limit int) ([]entities.PublicActivity, error) {
+	ret := _mock.Called(ctx, sectorSlug, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListSchedule")
+	}
+
+	var r0 []entities.PublicActivity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int) ([]entities.PublicActivity, error)); ok {
+		return returnFunc(ctx, sectorSlug, limit)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int) []entities.PublicActivity); ok {
+		r0 = returnFunc(ctx, sectorSlug, limit)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entities.PublicActivity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+		r1 = returnFunc(ctx, sectorSlug, limit)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_ListSchedule_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSchedule'
+type MockActivityRepositoryInterface_ListSchedule_Call struct {
+	*mock.Call
+}
+
+// ListSchedule is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sectorSlug string
+//   - limit int
+func (_e *MockActivityRepositoryInterface_Expecter) ListSchedule(ctx interface{}, sectorSlug interface{}, limit interface{}) *MockActivityRepositoryInterface_ListSchedule_Call {
+	return &MockActivityRepositoryInterface_ListSchedule_Call{Call: _e.mock.On("ListSchedule", ctx, sectorSlug, limit)}
+}
+
+func (_c *MockActivityRepositoryInterface_ListSchedule_Call) Run(run func(ctx context.Context, sectorSlug string, limit int)) *MockActivityRepositoryInterface_ListSchedule_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListSchedule_Call) Return(publicActivitys []entities.PublicActivity, err error) *MockActivityRepositoryInterface_ListSchedule_Call {
+	_c.Call.Return(publicActivitys, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListSchedule_Call) RunAndReturn(run func(ctx context.Context, sectorSlug string, limit int) ([]entities.PublicActivity, error)) *MockActivityRepositoryInterface_ListSchedule_Call {
 	_c.Call.Return(run)
 	return _c
 }

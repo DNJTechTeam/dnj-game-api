@@ -48,7 +48,7 @@ automatizado e evidência no ambiente `develop`.
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
-| 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
+| 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Implementada localmente; publicação em develop pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
@@ -300,8 +300,8 @@ Nenhum arquivo do frontend foi alterado.
 | Auditoria | Toda escrita bem-sucedida, inclusive no-op com chave nova, grava ator, ação, entidade e metadados mínimos sem PII, corpo, mapa, descrição, token ou segredo. |
 | HTTP real entre camadas | Uma suíte atravessa middleware, handlers, services, repositories e PostgreSQL real nas 11 rotas, incluindo 401, 403, strict JSON e resultado original após alteração posterior. |
 | Concorrência | Oito retries simultâneos do mesmo assignment produzem um único row, um único resultado idempotente e um único audit. |
-| Cobertura do service | 91,4% (403/441 statements), gate permanente `make test-admin-cover-check` com mínimo 90%. |
-| Cobertura da fatia entre camadas | 92,1% (608/660 statements) em service, handlers, mappers e métodos de repositories da fatia, também bloqueada em 90%. |
+| Cobertura do service | 91,4% (403/441 statements), gate permanente `make test-admin-cover-check` com mínimo 91,4%. |
+| Cobertura da fatia entre camadas | 92,1% (608/660 statements) em service, handlers, mappers e métodos de repositories da fatia, bloqueada em 92,1%. |
 | Migrations PostgreSQL | Clean install, replay direto duplo, upgrade preservando rows da Iteração 4, quatro runners, checksum e constraints verdes; três migrations adicionais expand/backfill/contract. |
 | Migrations CockroachDB | `v25.2.19`: clean install e replay com 19 migrations/0 checksum ausente; upgrade exato desde `9e33526` preservou User, Space, Activity, assignment e audit, realizou backfill de `entity_reference` e repetiu sem reset ou bypass; `events=0` e `event_id=0`. |
 | Enforcement no CI | Os workflows de PR, develop, release e production executam `make test-admin-cover-check`; tanto o service quanto a fatia integrada precisam manter no mínimo 90%. |
@@ -348,3 +348,25 @@ credencial de gestor atribuída para um smoke mutante seguro. Sucesso,
 idempotência, concorrência, isolamento e auditoria das transições são cobertos
 por HTTP real e PostgreSQL real no gate/deploy; nenhuma configuração remota foi
 inventada ou inserida fora de contrato para fabricar o smoke.
+
+## Evidência local da Iteração 5
+
+| Controle | Evidência em 2026-08-24 |
+|---|---|
+| Agenda | Contrato público `{items,generatedAt}`, DTO estrito, filtro por slug de Space, ordem determinística, limite completo 100 e home com todos os simultaneamente live + três próximas. |
+| Relógio/estados | Clock injetável e testes para `15m+1ns`, 15m exatos, início exato draft/active, durante, pausa, término exato, depois e completed. |
+| Conteúdo público | Envelope paginado, ordem `startsAt NULLS LAST,name,id`, filtros estritos, mesma visibilidade em lista/detalhe e 404 uniforme. |
+| Favoritos | `user_favorites(user_id,activity_id)` único; `participant_operations` sem PII/corpos; PUT/DELETE 204, retry original, reutilização cruzada 409 e nenhuma auditoria privilegiada. |
+| Banco como fonte | Usuário, onboarding, papel atual, Activity, visibilidade e favorito são relidos no PostgreSQL; role alterado não depende do JWT e usuário removido recebe 401. |
+| Concorrência | Mesma chave produz um efeito/operação; chaves distintas não duplicam favorito; DELETE ausente e Activity arquivada depois do favorito permanecem seguros. |
+| UTC | Respostas serializam `Z`; offsets administrativos preservam instante; testes e race são executados sob `TZ=UTC`. |
+| HTTP real | Suíte atravessa middleware, handler, service, repository e PostgreSQL nas seis rotas, incluindo queries estritas e autorização. |
+| Migrations | Três migrations expand/backfill/contract, clean install/replay e upgrade preservando dados da Iteração 4, sem `events`/`event_id`. |
+| CockroachDB | `v25.2.19`: clean install e upgrade exato desde `ef20d63`, seguidos de replay sem reset/bypass; 22 migrations, 0 checksum ausente, User/Space/Activity preservados, 2 tabelas novas e 0 coluna `event_id`. |
+| Cobertura | Services da Iteração 5: 97,4% (150/154); fatia integrada: 96,0% (316/329). Ambos possuem gate permanente de 90% em `make validate` e nos quatro workflows. |
+| Contrato/handoff | OpenAPI 3.0.3 `2.4.0`, manifesto operação→testes e `docs/agenda-content.md` com arquivos atuais, rotas, grafos, orçamento, backlog e perfis futuros de carga. |
+| Validação | `make validate` verde: Wire, build, vet, race sob `TZ=UTC`, cobertura agregada 93,1%, código mantido 78,9%, gates especializados, PostgreSQL real, migrations e OpenAPI. |
+
+O frontend permaneceu somente leitura. O roadmap e todos os artefatos obrigatórios
+da Iteração 10 continuam preservados na seção “Entrega obrigatória da Iteração
+10 para o frontend”.

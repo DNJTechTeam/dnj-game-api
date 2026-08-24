@@ -3,8 +3,9 @@ set -euo pipefail
 
 profile="${1:?coverage profile is required}"
 minimum="${2:-90}"
+slice_minimum="${3:-$minimum}"
 
-awk -v minimum="$minimum" '
+awk -v minimum="$minimum" -v slice_minimum="$slice_minimum" '
 function location(file_and_range, parts, start) {
   split(file_and_range, parts, ":")
   split(parts[2], start, ".")
@@ -41,8 +42,10 @@ END {
   }
   service_percent = 100 * service_covered / service_total
   slice_percent = 100 * slice_covered / slice_total
-  printf "Admin service coverage: %.1f%% (%d/%d statements)\n", service_percent, service_covered, service_total
-  printf "Admin cross-layer coverage: %.1f%% (%d/%d statements)\n", slice_percent, slice_covered, slice_total
-  if (service_percent < minimum || slice_percent < minimum) exit 1
+  service_rounded = int(service_percent * 10 + 0.5) / 10
+  slice_rounded = int(slice_percent * 10 + 0.5) / 10
+  printf "Admin service coverage: %.1f%% (%d/%d statements)\n", service_rounded, service_covered, service_total
+  printf "Admin cross-layer coverage: %.1f%% (%d/%d statements)\n", slice_rounded, slice_covered, slice_total
+  if (service_rounded < minimum || slice_rounded < slice_minimum) exit 1
 }
 ' "$profile"

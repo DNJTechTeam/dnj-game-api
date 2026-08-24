@@ -80,12 +80,13 @@
         }
       },
       "Page": {
+        "description": "Página 1-indexada; 0 é aceito como alias da primeira página.",
         "in": "query",
         "name": "page",
         "required": false,
         "schema": {
           "default": 1,
-          "minimum": 1,
+          "minimum": 0,
           "type": "integer"
         }
       },
@@ -1087,6 +1088,25 @@
         ],
         "type": "object"
       },
+      "PaginatedPublicActivities": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicActivity"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
       "PaginatedSpaces": {
         "additionalProperties": false,
         "properties": {
@@ -1126,6 +1146,118 @@
         ],
         "type": "object"
       },
+      "PublicActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "space": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "space",
+          "slug",
+          "name",
+          "description",
+          "kind",
+          "startsAt",
+          "endsAt",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment",
+          "state"
+        ],
+        "type": "object"
+      },
+      "PublicSpace": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "status": {
@@ -1137,6 +1269,84 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "ScheduleItem": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Instante UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sector": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "Instante UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "description": "Prioridade: ended; live; upcoming quando 0 \u003c startsAt-generatedAt \u003c= 15 minutos; scheduled nos demais casos, inclusive pausa.",
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "startsAt",
+          "endsAt",
+          "sector",
+          "state"
+        ],
+        "type": "object"
+      },
+      "ScheduleResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "generatedAt": {
+            "description": "Relógio do servidor em UTC RFC 3339 com Z.",
+            "example": "2026-10-18T14:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "generatedAt"
         ],
         "type": "object"
       },
@@ -1341,10 +1551,107 @@
   "info": {
     "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.3.1"
+    "version": "2.4.0"
   },
   "openapi": "3.0.3",
   "paths": {
+    "/activities": {
+      "get": {
+        "description": "Inclui schedule futuro em draft e Activities active, paused ou completed; exclui archived e drafts não-schedule. Ordenação fixa por startsAt NULLS LAST,name,id. Parâmetros não publicados são rejeitados.",
+        "operationId": "listPublicActivities",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "enum": [
+                "schedule",
+                "checkpoint",
+                "challenge",
+                "competitive",
+                "live"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID de um Space persistido.",
+            "in": "query",
+            "name": "spaceId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPublicActivities"
+                }
+              }
+            },
+            "description": "Página pública de Activities"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista Activities publicamente visíveis",
+        "tags": [
+          "Activities"
+        ]
+      }
+    },
+    "/activities/{activityId}": {
+      "get": {
+        "description": "Activity inexistente, arquivada ou invisível retorna o mesmo NOT_FOUND sem metadados administrativos.",
+        "operationId": "getPublicActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicActivity"
+                }
+              }
+            },
+            "description": "Activity pública"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Retorna uma Activity publicamente visível",
+        "tags": [
+          "Activities"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ]
+    },
     "/admin/activities": {
       "get": {
         "description": "Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.",
@@ -2749,6 +3056,57 @@
         ]
       }
     },
+    "/schedule": {
+      "get": {
+        "description": "Considera somente Activities schedule não arquivadas com janela válida. Sem view retorna no máximo 100 itens em ordem startsAt,name,id. view=home retorna todas as simultaneamente live e depois até três próximas. O instante generatedAt é capturado uma vez por request e serializado em UTC.",
+        "operationId": "getSchedule",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "home"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Slug persistido do Space; sector é apenas o nome compatível do DTO.",
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            },
+            "description": "Agenda pública"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista a agenda pública com estado temporal derivado no servidor",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
     "/spaces": {
       "get": {
         "description": "Retorna o array consumido pelo mapa do frontend, em ordem name,id. A paginação fica nos headers para preservar compatibilidade direta.",
@@ -2875,6 +3233,134 @@
         ]
       }
     },
+    "/users/me/favorites": {
+      "get": {
+        "description": "Usuário e onboarding são revalidados no banco em cada request; a ordenação é startsAt NULLS LAST,name,id.",
+        "operationId": "listCurrentUserFavorites",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPublicActivities"
+                }
+              }
+            },
+            "description": "Página de Activities favoritas visíveis"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista somente favoritos que continuam publicamente visíveis",
+        "tags": [
+          "Favorites"
+        ]
+      }
+    },
+    "/users/me/favorites/{activityId}": {
+      "delete": {
+        "description": "Retorna 204 para favorito existente, ausente e Activity UUID inexistente; não consulta a visibilidade da Activity.",
+        "operationId": "deleteCurrentUserFavorite",
+        "responses": {
+          "204": {
+            "description": "Favorito removido",
+            "já ausente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Remove um favorito de forma idempotente e sem enumerar Activity",
+        "tags": [
+          "Favorites"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "put": {
+        "description": "Não cria duplicata nem operation_audit. Retry da mesma chave e intenção retorna o 204 original mesmo após mudança posterior da Activity; reutilização cruzada retorna IDEMPOTENCY_KEY_REUSED.",
+        "operationId": "putCurrentUserFavorite",
+        "responses": {
+          "204": {
+            "description": "Favorito criado",
+            "já existente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Favorita idempotentemente uma Activity publicamente visível",
+        "tags": [
+          "Favorites"
+        ]
+      }
+    },
     "/users/me/group": {
       "patch": {
         "operationId": "updateCurrentUserGroup",
@@ -2987,6 +3473,15 @@
     },
     {
       "name": "Spaces"
+    },
+    {
+      "name": "Schedule"
+    },
+    {
+      "name": "Activities"
+    },
+    {
+      "name": "Favorites"
     },
     {
       "name": "Activity operations"

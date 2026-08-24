@@ -6,6 +6,7 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
@@ -32,6 +33,14 @@ func ProvideSpaceService(spaceRepository spaceInterfaces.SpaceRepositoryInterfac
 
 func ProvideActivityService(baseService *services.BaseService, activityRepository activityInterfaces.ActivityRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.ActivityServiceInterface {
 	return services.NewActivityService(baseService, activityRepository, auditRepository, userRepository)
+}
+
+func ProvideContentService(activityRepository activityInterfaces.ActivityRepositoryInterface, spaceRepository spaceInterfaces.SpaceRepositoryInterface) appInterfaces.ContentServiceInterface {
+	return services.NewContentService(activityRepository, spaceRepository)
+}
+
+func ProvideFavoriteService(baseService *services.BaseService, favoriteRepository favoriteInterfaces.FavoriteRepositoryInterface, activityRepository activityInterfaces.ActivityRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.FavoriteServiceInterface {
+	return services.NewFavoriteService(baseService, favoriteRepository, activityRepository, userRepository)
 }
 
 func ProvideBaseService(transactionManager commonInterfaces.TransactionManagerInterface) *services.BaseService {

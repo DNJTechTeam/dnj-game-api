@@ -1,6 +1,10 @@
 package entities
 
-import "time"
+import (
+	"time"
+
+	spaceEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/space/entities"
+)
 
 type Kind string
 
@@ -45,4 +49,11 @@ type ManagerAssignment struct {
 	ActivityID string
 	UserID     uint64
 	CreatedAt  time.Time
+}
+
+// PublicActivity is the public projection of an Activity with its optional
+// persisted Space. It deliberately carries no assignments or audit metadata.
+type PublicActivity struct {
+	Activity Activity
+	Space    *spaceEntities.Space
 }

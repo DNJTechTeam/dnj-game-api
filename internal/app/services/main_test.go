@@ -10,6 +10,7 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
@@ -45,6 +46,7 @@ type TestSuiteType struct {
 	ActivityRepository            activityInterfaces.ActivityRepositoryInterface
 	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
 	AdminOperationRepository      adminInterfaces.AdminOperationRepositoryInterface
+	FavoriteRepository            favoriteInterfaces.FavoriteRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -68,6 +70,7 @@ func initializeTestSuite() {
 	TestSuite.ActivityRepository = repositories.NewActivityRepository(TestSuite.DbConn)
 	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)
 	TestSuite.AdminOperationRepository = repositories.NewAdminOperationRepository(TestSuite.DbConn)
+	TestSuite.FavoriteRepository = repositories.NewFavoriteRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {

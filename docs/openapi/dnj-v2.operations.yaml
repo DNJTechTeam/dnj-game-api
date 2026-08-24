@@ -142,6 +142,47 @@ operations:
       - internal/infrastructure/db/repositories/iteration4_repository_test.go
       - internal/presentation/api/handlers/iteration4_handler_test.go
       - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: getSchedule
+    method: GET
+    path: /schedule
+    statuses: ['200', '400', '500']
+    automatedTests: &iteration5ContentTests
+      - internal/app/services/iteration5_service_test.go
+      - internal/app/services/iteration5_error_service_test.go
+      - internal/app/services/iteration5_http_integration_test.go
+      - internal/presentation/api/handlers/iteration5_handler_test.go
+      - internal/presentation/api/routers/iteration5_router_test.go
+  - operationId: listPublicActivities
+    method: GET
+    path: /activities
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration5ContentTests
+  - operationId: getPublicActivity
+    method: GET
+    path: /activities/{activityId}
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration5ContentTests
+  - operationId: listCurrentUserFavorites
+    method: GET
+    path: /users/me/favorites
+    statuses: ['200', '400', '401', '409', '500']
+    automatedTests: &iteration5FavoriteTests
+      - internal/app/services/iteration5_service_test.go
+      - internal/app/services/iteration5_error_service_test.go
+      - internal/app/services/iteration5_http_integration_test.go
+      - internal/infrastructure/db/migrations/migrations_integration_test.go
+      - internal/presentation/api/handlers/iteration5_handler_test.go
+      - internal/presentation/api/routers/iteration5_router_test.go
+  - operationId: putCurrentUserFavorite
+    method: PUT
+    path: /users/me/favorites/{activityId}
+    statuses: ['204', '400', '401', '404', '409', '500']
+    automatedTests: *iteration5FavoriteTests
+  - operationId: deleteCurrentUserFavorite
+    method: DELETE
+    path: /users/me/favorites/{activityId}
+    statuses: ['204', '400', '401', '409', '500']
+    automatedTests: *iteration5FavoriteTests
   - operationId: startActivity
     method: POST
     path: /manager/activities/{activityId}/start

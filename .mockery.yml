@@ -38,6 +38,11 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: activity_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: favorite_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces:
     config:
       all: true

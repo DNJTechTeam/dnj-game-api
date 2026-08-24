@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.3.1
+  version: 2.4.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -13,6 +13,9 @@ tags:
   - name: Groups
   - name: Group invites
   - name: Spaces
+  - name: Schedule
+  - name: Activities
+  - name: Favorites
   - name: Activity operations
   - name: Installation administration
 paths:
@@ -329,6 +332,99 @@ paths:
             application/json:
               schema: {type: array, items: {$ref: '#/components/schemas/Space'}}
         '500': {$ref: '#/components/responses/InternalError'}
+  /schedule:
+    get:
+      tags: [Schedule]
+      operationId: getSchedule
+      summary: Lista a agenda pública com estado temporal derivado no servidor
+      description: >-
+        Considera somente Activities schedule não arquivadas com janela válida.
+        Sem view retorna no máximo 100 itens em ordem startsAt,name,id. view=home
+        retorna todas as simultaneamente live e depois até três próximas. O
+        instante generatedAt é capturado uma vez por request e serializado em UTC.
+      parameters:
+        - {name: view, in: query, required: false, schema: {type: string, enum: [home]}}
+        - {name: sector, in: query, required: false, schema: {type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}, description: Slug persistido do Space; sector é apenas o nome compatível do DTO.}
+      responses:
+        '200': {description: Agenda pública, content: {application/json: {schema: {$ref: '#/components/schemas/ScheduleResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /activities:
+    get:
+      tags: [Activities]
+      operationId: listPublicActivities
+      summary: Lista Activities publicamente visíveis
+      description: >-
+        Inclui schedule futuro em draft e Activities active, paused ou completed;
+        exclui archived e drafts não-schedule. Ordenação fixa por startsAt NULLS
+        LAST,name,id. Parâmetros não publicados são rejeitados.
+      parameters:
+        - {name: kind, in: query, required: false, schema: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}}
+        - {name: spaceId, in: query, required: false, schema: {type: string, format: uuid}, description: UUID de um Space persistido.}
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200': {description: Página pública de Activities, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedPublicActivities'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /activities/{activityId}:
+    parameters: [{$ref: '#/components/parameters/ActivityID'}]
+    get:
+      tags: [Activities]
+      operationId: getPublicActivity
+      summary: Retorna uma Activity publicamente visível
+      description: Activity inexistente, arquivada ou invisível retorna o mesmo NOT_FOUND sem metadados administrativos.
+      responses:
+        '200': {description: Activity pública, content: {application/json: {schema: {$ref: '#/components/schemas/PublicActivity'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /users/me/favorites:
+    get:
+      tags: [Favorites]
+      operationId: listCurrentUserFavorites
+      summary: Lista somente favoritos que continuam publicamente visíveis
+      description: Usuário e onboarding são revalidados no banco em cada request; a ordenação é startsAt NULLS LAST,name,id.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página de Activities favoritas visíveis, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedPublicActivities'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /users/me/favorites/{activityId}:
+    parameters:
+      - {$ref: '#/components/parameters/ActivityID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    put:
+      tags: [Favorites]
+      operationId: putCurrentUserFavorite
+      summary: Favorita idempotentemente uma Activity publicamente visível
+      description: >-
+        Não cria duplicata nem operation_audit. Retry da mesma chave e intenção
+        retorna o 204 original mesmo após mudança posterior da Activity; reutilização
+        cruzada retorna IDEMPOTENCY_KEY_REUSED.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '204': {description: Favorito criado, já existente ou retry concluído}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    delete:
+      tags: [Favorites]
+      operationId: deleteCurrentUserFavorite
+      summary: Remove um favorito de forma idempotente e sem enumerar Activity
+      description: Retorna 204 para favorito existente, ausente e Activity UUID inexistente; não consulta a visibilidade da Activity.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '204': {description: Favorito removido, já ausente ou retry concluído}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /admin/spaces:
     get:
       tags: [Installation administration]
@@ -573,7 +669,8 @@ components:
       name: page
       in: query
       required: false
-      schema: {type: integer, minimum: 1, default: 1}
+      description: Página 1-indexada; 0 é aceito como alias da primeira página.
+      schema: {type: integer, minimum: 0, default: 1}
     GroupID:
       name: groupId
       in: path
@@ -838,6 +935,58 @@ components:
         name: {type: string}
         slug: {type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
         mapReference: {type: string, nullable: true}
+    PublicSpace:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        slug: {type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+    ScheduleItem:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, startsAt, endsAt, sector, state]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        description: {type: string, nullable: true}
+        startsAt: {type: string, format: date-time, description: Instante UTC RFC 3339 com Z., example: '2026-10-18T15:00:00Z'}
+        endsAt: {type: string, format: date-time, description: Instante UTC RFC 3339 com Z., example: '2026-10-18T16:00:00Z'}
+        sector: {nullable: true, allOf: [{$ref: '#/components/schemas/PublicSpace'}]}
+        state: {type: string, enum: [ended, live, upcoming, scheduled], description: 'Prioridade: ended; live; upcoming quando 0 < startsAt-generatedAt <= 15 minutos; scheduled nos demais casos, inclusive pausa.'}
+    ScheduleResponse:
+      type: object
+      additionalProperties: false
+      required: [items, generatedAt]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/ScheduleItem'}}
+        generatedAt: {type: string, format: date-time, description: Relógio do servidor em UTC RFC 3339 com Z., example: '2026-10-18T14:45:00Z'}
+    PublicActivity:
+      type: object
+      additionalProperties: false
+      required: [id, space, slug, name, description, kind, startsAt, endsAt, checkInPoints, momentPoints, cooldownSeconds, allowsMoment, state]
+      properties:
+        id: {type: string, format: uuid}
+        space: {nullable: true, allOf: [{$ref: '#/components/schemas/PublicSpace'}]}
+        slug: {type: string}
+        name: {type: string}
+        description: {type: string, nullable: true}
+        kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
+        startsAt: {type: string, format: date-time, nullable: true, description: Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.}
+        endsAt: {type: string, format: date-time, nullable: true, description: Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.}
+        checkInPoints: {type: integer, minimum: 0}
+        momentPoints: {type: integer, minimum: 0}
+        cooldownSeconds: {type: integer, minimum: 0}
+        allowsMoment: {type: boolean}
+        state: {type: string, nullable: true, enum: [ended, live, upcoming, scheduled]}
+    PaginatedPublicActivities:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/PublicActivity'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
     CreateAdminSpaceRequest:
       type: object
       additionalProperties: false

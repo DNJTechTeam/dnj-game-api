@@ -84,6 +84,15 @@ func InitializeServer() *api.API {
 	adminInstallationHandler := &handlers.AdminInstallationHandler{
 		AdminInstallationService: adminInstallationServiceInterface,
 	}
+	contentServiceInterface := services.ProvideContentService(activityRepositoryInterface, spaceRepositoryInterface)
+	contentHandler := &handlers.ContentHandler{
+		ContentService: contentServiceInterface,
+	}
+	favoriteRepositoryInterface := repositories.ProvideFavoriteRepository(gormDB)
+	favoriteServiceInterface := services.ProvideFavoriteService(baseService, favoriteRepositoryInterface, activityRepositoryInterface, userRepositoryInterface)
+	favoriteHandler := &handlers.FavoriteHandler{
+		FavoriteService: favoriteServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
@@ -96,6 +105,8 @@ func InitializeServer() *api.API {
 		TaskHandler:                taskHandler,
 		InstallationHandler:        installationHandler,
 		AdminInstallationHandler:   adminInstallationHandler,
+		ContentHandler:             contentHandler,
+		FavoriteHandler:            favoriteHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

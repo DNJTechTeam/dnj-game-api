@@ -304,3 +304,56 @@ func TestMigrations_AdminEnablerUpgradesIteration4RowsAndReplays(t *testing.T) {
 	assert.False(t, migrator.HasTable("events"))
 	assert.False(t, migrator.HasColumn("activities", "event_id"))
 }
+
+func TestMigrations_Iteration5UpgradePreservesIteration4AndParticipantConstraints(t *testing.T) {
+	// given
+	resetSchema(t)
+	registered := registeredMigrations()
+	for _, migration := range registered {
+		if migration.Name == "expand_iteration5_agenda_content" {
+			break
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name)
+	}
+	var userID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email, name, role, onboarding_complete, created_at, updated_at)
+		VALUES ('iteration5-upgrade@example.com', 'Iteration 5 Upgrade', 'DEFAULT', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&userID).Error)
+	activityID := "99999999-9999-4999-8999-999999999999"
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES (?, 'iteration5-upgrade', 'Iteration 5 Upgrade', 'live', 'active', 0, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, activityID).Error)
+
+	// when
+	for _, migration := range registered {
+		if migration.Name != "expand_iteration5_agenda_content" && migration.Name != "backfill_iteration5_agenda_content" && migration.Name != "contract_iteration5_agenda_content" {
+			continue
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" first replay")
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" second replay")
+	}
+	insertFavoriteErr := migrationSuite.DbConn.Exec(`INSERT INTO user_favorites (user_id, activity_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)`, userID, activityID).Error
+	duplicateFavoriteErr := migrationSuite.DbConn.Exec(`INSERT INTO user_favorites (user_id, activity_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)`, userID, activityID).Error
+	key := uuid.NewString()
+	insertOperationErr := migrationSuite.DbConn.Exec(`INSERT INTO participant_operations (id, actor_user_id, idempotency_key, operation, activity_id, intent_hash, http_status, created_at) VALUES (?, ?, ?, 'favorite.delete', ?, ?, 204, CURRENT_TIMESTAMP)`, uuid.NewString(), userID, key, uuid.NewString(), "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").Error
+	duplicateOperationErr := migrationSuite.DbConn.Exec(`INSERT INTO participant_operations (id, actor_user_id, idempotency_key, operation, activity_id, intent_hash, http_status, created_at) VALUES (?, ?, ?, 'favorite.delete', ?, ?, 204, CURRENT_TIMESTAMP)`, uuid.NewString(), userID, key, uuid.NewString(), "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789").Error
+	badStatusErr := migrationSuite.DbConn.Exec(`INSERT INTO participant_operations (id, actor_user_id, idempotency_key, operation, activity_id, intent_hash, http_status, created_at) VALUES (?, ?, ?, 'favorite.put', ?, ?, 200, CURRENT_TIMESTAMP)`, uuid.NewString(), userID, uuid.NewString(), activityID, "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210").Error
+	var preserved int64
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Where("id = ?", activityID).Count(&preserved).Error)
+	migrator := migrationSuite.DbConn.Migrator()
+
+	// then
+	require.NoError(t, insertFavoriteErr)
+	require.Error(t, duplicateFavoriteErr)
+	require.NoError(t, insertOperationErr)
+	require.Error(t, duplicateOperationErr)
+	require.Error(t, badStatusErr)
+	assert.Equal(t, int64(1), preserved)
+	assert.True(t, migrator.HasTable("user_favorites"))
+	assert.True(t, migrator.HasTable("participant_operations"))
+	assert.False(t, migrator.HasColumn("user_favorites", "event_id"))
+	assert.False(t, migrator.HasColumn("participant_operations", "event_id"))
+}

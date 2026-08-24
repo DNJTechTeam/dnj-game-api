@@ -601,4 +601,112 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_iteration5_agenda_content",
+		Description: "Create participant favorites and body-free idempotency storage",
+		Version:     "2.4.0",
+		Definition:  "iteration5-agenda-content-expand-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE TABLE IF NOT EXISTS user_favorites (
+					user_id BIGINT,
+					activity_id UUID,
+					created_at TIMESTAMPTZ
+				)`,
+				`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS user_id BIGINT`,
+				`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS activity_id UUID`,
+				`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+				`CREATE TABLE IF NOT EXISTS participant_operations (
+					id UUID PRIMARY KEY,
+					actor_user_id BIGINT,
+					idempotency_key UUID,
+					operation VARCHAR(80),
+					activity_id UUID,
+					intent_hash VARCHAR(64),
+					http_status INTEGER,
+					created_at TIMESTAMPTZ
+				)`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS actor_user_id BIGINT`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS idempotency_key UUID`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS operation VARCHAR(80)`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS activity_id UUID`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS intent_hash VARCHAR(64)`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS http_status INTEGER`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_iteration5_agenda_content",
+		Description: "Backfill safe timestamps for pre-existing participant rows",
+		Version:     "2.4.0",
+		Definition:  "iteration5-agenda-content-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`UPDATE user_favorites SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+				`UPDATE participant_operations SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_iteration5_agenda_content",
+		Description: "Enforce participant idempotency, visibility lookup and favorite uniqueness",
+		Version:     "2.4.0",
+		Definition:  "iteration5-agenda-content-contract-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`ALTER TABLE user_favorites ALTER COLUMN user_id SET NOT NULL`,
+				`ALTER TABLE user_favorites ALTER COLUMN activity_id SET NOT NULL`,
+				`ALTER TABLE user_favorites ALTER COLUMN created_at SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN actor_user_id SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN idempotency_key SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN operation SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN activity_id SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN intent_hash SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN http_status SET NOT NULL`,
+				`ALTER TABLE participant_operations ALTER COLUMN created_at SET NOT NULL`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS user_favorites_user_activity_unique ON user_favorites (user_id, activity_id)`,
+				`CREATE INDEX IF NOT EXISTS user_favorites_activity_user_idx ON user_favorites (activity_id, user_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS participant_operations_actor_key_unique ON participant_operations (actor_user_id, idempotency_key)`,
+				`CREATE INDEX IF NOT EXISTS participant_operations_activity_created_idx ON participant_operations (activity_id, created_at, id)`,
+				`CREATE INDEX IF NOT EXISTS activities_public_list_idx ON activities (starts_at, name, id)`,
+				`CREATE INDEX IF NOT EXISTS activities_public_kind_space_idx ON activities (kind, space_id, starts_at, name, id)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			constraints := []struct{ table, name, definition string }{
+				{"user_favorites", "user_favorites_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"user_favorites", "user_favorites_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"participant_operations", "participant_operations_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"participant_operations", "participant_operations_status_check", `CHECK (http_status = 204)`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

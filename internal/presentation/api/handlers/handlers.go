@@ -14,4 +14,6 @@ type Handlers struct {
 	TaskHandler                *TaskHandler
 	InstallationHandler        *InstallationHandler
 	AdminInstallationHandler   *AdminInstallationHandler
+	ContentHandler             *ContentHandler
+	FavoriteHandler            *FavoriteHandler
 }
