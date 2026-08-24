@@ -53,12 +53,50 @@ automatizado e evidência no ambiente `develop`.
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
 | 9 | Operação e carga | observabilidade final, segurança, soak/spike/stress em develop | métricas e relatórios, sem novo domínio | Pendente |
-| 10 | Handoff final | OpenAPI publicado, guia, exemplos e checklist de release | documentação versionada | Pendente |
+| 10 | Handoff final | OpenAPI publicado, página única de integração do frontend, manifesto, exemplos e checklist de release | documentação versionada e artefato publicado pelo CI | Pendente |
 
 Os nomes e formatos exatos das operações das iterações 2–8 serão fechados a
 partir das regras do frontend e dos handoffs antes de entrar no OpenAPI. Uma
 lacuna encontrada vira um enabler documentado e testado; não vira suposição
 silenciosa.
+
+### Entrega obrigatória da Iteração 10 para o frontend
+
+A última iteração deve consolidar os handoffs incrementais em um único pacote,
+sem exigir que a equipe do frontend reconstrua decisões a partir do histórico:
+
+- fonte canônica versionada em `docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md`;
+- manifesto legível por máquina em
+  `docs/handoff/dnj-v2-frontend-integration.json`, validado contra o OpenAPI e o
+  manifesto operação→testes;
+- página HTML publicada em `/develop/frontend-integration/`, com link visível na
+  página principal da documentação V2;
+- artefato do workflow contendo a página, o Markdown, o manifesto, o OpenAPI
+  3.0.3 e exemplos executáveis.
+
+O conteúdo deve reunir, por tela e fluxo do frontend: ordem de rollout das
+Iterações 2–8, configuração de ambiente, autenticação/refresh/CSRF, permissões,
+operações e DTOs, paginação, idempotência, códigos de erro, estados vazios e de
+retry, UTC no transporte e fuso local na apresentação, substituições das rotas
+V1/Supabase, remoção segura de aliases, exemplos de chamadas e respostas,
+matriz tela→operação→status→teste e checklist de aceite/rollback. A geração deve
+falhar no CI se a página ou o manifesto divergirem do OpenAPI publicado.
+
+O material precisa ser pragmático e utilizável sem permissão de escrita no
+repositório do frontend. Para cada fluxo, deve informar: arquivos/módulos atuais
+afetados, rota antiga→rota V2, pré-requisitos, sequência de implementação,
+snippet TypeScript copiável, estados de UI esperados, testes que o frontend deve
+criar e critério objetivo de pronto. Deve incluir helpers de referência para
+cliente autenticado, refresh/CSRF, UUID de idempotência e conversão
+UTC↔fuso-local sem timezone fixo. A página deve abrir com um checklist ordenado
+"faça isto" e separar claramente trabalho obrigatório, limpeza posterior e
+itens fora de escopo.
+
+Critério de aceite: uma pessoa com acesso somente ao artefato publicado deve
+conseguir migrar o frontend, validar cada fluxo e executar o rollback sem ler o
+histórico das iterações nem consultar o código interno da API. O clone local do
+frontend permanece fonte de descoberta somente leitura; a Iteração 10 não
+depende de commit ou push nele.
 
 ## Evidência da Iteração 1
 
