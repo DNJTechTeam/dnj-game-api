@@ -88,6 +88,24 @@
           "minimum": 1,
           "type": "integer"
         }
+      },
+      "SpaceID": {
+        "in": "path",
+        "name": "spaceId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "UserID": {
+        "in": "path",
+        "name": "userId",
+        "required": true,
+        "schema": {
+          "pattern": "^[1-9][0-9]*$",
+          "type": "string"
+        }
       }
     },
     "requestBodies": {
@@ -249,6 +267,165 @@
         ],
         "type": "object"
       },
+      "AdminActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "completed",
+              "archived"
+            ],
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "spaceId",
+          "slug",
+          "name",
+          "description",
+          "kind",
+          "status",
+          "startsAt",
+          "endsAt",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment"
+        ],
+        "type": "object"
+      },
+      "AdminManagerAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "activityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userId": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "activityId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "AdminStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboardingComplete": {
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "EVENT_MANAGER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "onboardingComplete"
+        ],
+        "type": "object"
+      },
+      "AdminUserRole": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "DEFAULT",
+              "EVENT_MANAGER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role"
+        ],
+        "type": "object"
+      },
       "CompleteOnboardingRequest": {
         "additionalProperties": false,
         "properties": {
@@ -284,6 +461,117 @@
         },
         "required": [
           "code"
+        ],
+        "type": "object"
+      },
+      "CreateAdminActivityRequest": {
+        "additionalProperties": false,
+        "example": {
+          "allowsMoment": true,
+          "checkInPoints": 10,
+          "cooldownSeconds": 60,
+          "description": "Registre um momento no local.",
+          "endsAt": "2026-08-24T19:00:00Z",
+          "kind": "challenge",
+          "momentPoints": 20,
+          "name": "Desafio Foto",
+          "slug": "desafio-foto",
+          "spaceId": "11111111-1111-4111-8111-111111111111",
+          "startsAt": "2026-08-24T18:00:00Z"
+        },
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "kind",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment"
+        ],
+        "type": "object"
+      },
+      "CreateAdminSpaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mapReference": {
+            "example": "map:capela",
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "example": "Capela",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "example": "capela",
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
         ],
         "type": "object"
       },
@@ -721,6 +1009,44 @@
         ],
         "type": "object"
       },
+      "PaginatedAdminActivities": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdminActivity"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedAdminStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdminStaff"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
       "PaginatedGroupInvites": {
         "properties": {
           "data": {
@@ -744,6 +1070,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/GroupMember"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedSpaces": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Space"
             },
             "type": "array"
           },
@@ -817,6 +1162,121 @@
         ],
         "type": "object"
       },
+      "UpdateAdminActivityRequest": {
+        "additionalProperties": false,
+        "example": {
+          "status": "archived"
+        },
+        "minProperties": 1,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "Única transição administrativa; start e pause não são aceitos aqui.",
+            "enum": [
+              "archived"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateAdminSpaceRequest": {
+        "additionalProperties": false,
+        "example": {
+          "mapReference": null,
+          "name": "Capela Central"
+        },
+        "minProperties": 1,
+        "properties": {
+          "mapReference": {
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateAdminUserRoleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "DEFAULT",
+              "EVENT_MANAGER"
+            ],
+            "example": "EVENT_MANAGER",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
       "UpdateCurrentGroupRequest": {
         "additionalProperties": false,
         "properties": {
@@ -875,10 +1335,347 @@
   "info": {
     "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.3.0"
+    "version": "2.3.1"
   },
   "openapi": "3.0.3",
   "paths": {
+    "/admin/activities": {
+      "get": {
+        "description": "Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.",
+        "operationId": "listAdminActivities",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminActivities"
+                }
+              }
+            },
+            "description": "Página de Activities"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista a configuração completa de Activities",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "post": {
+        "description": "status, eventId, papel, assignment e demais campos não publicados são rejeitados.",
+        "operationId": "createAdminActivity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminActivity"
+                }
+              }
+            },
+            "description": "Activity draft criada ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria uma Activity sempre em draft",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/activities/{activityId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ],
+      "patch": {
+        "description": "status aceita somente archived. active não pode ser arquivada sem pause; start e pause permanecem exclusivamente nas operações gerenciais.",
+        "operationId": "updateAdminActivity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminActivity"
+                }
+              }
+            },
+            "description": "Activity atualizada",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Reconfigura uma Activity ou faz a transição validada para archived",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/activities/{activityId}/managers": {
+      "get": {
+        "operationId": "listAdminActivityManagers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminStaff"
+                }
+              }
+            },
+            "description": "Página determinística de gestores atribuídos"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista gestores atribuídos à Activity",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ]
+    },
+    "/admin/activities/{activityId}/managers/{userId}": {
+      "delete": {
+        "operationId": "removeAdminActivityManager",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Assignment removido",
+            "já ausente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Remove assignment de forma idempotente",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/UserID"
+        }
+      ],
+      "put": {
+        "description": "Usuário, onboarding, papel, Activity e assignment são validados exclusivamente no banco.",
+        "operationId": "assignAdminActivityManager",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminManagerAssignment"
+                }
+              }
+            },
+            "description": "Assignment criado",
+            "já existente ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Atribui gestor elegível de forma idempotente",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
     "/admin/groups/{groupId}/invites": {
       "get": {
         "operationId": "listGroupInvites",
@@ -1064,6 +1861,305 @@
         "summary": "Revoga o convite anterior e cria outro atomicamente",
         "tags": [
           "Group invites"
+        ]
+      }
+    },
+    "/admin/spaces": {
+      "get": {
+        "description": "Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.",
+        "operationId": "listAdminSpaces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSpaces"
+                }
+              }
+            },
+            "description": "Página de Spaces"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista Spaces para configuração administrativa",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "post": {
+        "description": "Retry da mesma intenção retorna o 201 e o corpo originais sem novo efeito ou audit.",
+        "operationId": "createAdminSpace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Space"
+                }
+              }
+            },
+            "description": "Space criado ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria um Space sem aceitar campos de escopo ou papel",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/spaces/{spaceId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SpaceID"
+        }
+      ],
+      "patch": {
+        "operationId": "updateAdminSpace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Space"
+                }
+              }
+            },
+            "description": "Space atualizado",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Altera estritamente slug, name ou mapReference",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/staff": {
+      "get": {
+        "operationId": "listAdminStaff",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "EVENT_MANAGER"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminStaff"
+                }
+              }
+            },
+            "description": "Página determinística de gestores"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista usuários com papel EVENT_MANAGER",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/users/{userId}/role": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UserID"
+        }
+      ],
+      "patch": {
+        "description": "ADMIN nunca pode ser concedido ou removido; gestor com assignments ativos retorna MANAGER_HAS_ASSIGNMENTS.",
+        "operationId": "updateAdminUserRole",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserRole"
+                }
+              }
+            },
+            "description": "Papel resultante",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Alterna exclusivamente DEFAULT e EVENT_MANAGER",
+        "tags": [
+          "Installation administration"
         ]
       }
     },
@@ -1888,6 +2984,9 @@
     },
     {
       "name": "Activity operations"
+    },
+    {
+      "name": "Installation administration"
     }
   ]
 }

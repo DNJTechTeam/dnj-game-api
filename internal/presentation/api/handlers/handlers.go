@@ -13,4 +13,5 @@ type Handlers struct {
 	UserHandler                *UserHandler
 	TaskHandler                *TaskHandler
 	InstallationHandler        *InstallationHandler
+	AdminInstallationHandler   *AdminInstallationHandler
 }

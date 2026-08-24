@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.3.0
+  version: 2.3.1
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -14,6 +14,7 @@ tags:
   - name: Group invites
   - name: Spaces
   - name: Activity operations
+  - name: Installation administration
 paths:
   /healthcheck:
     get:
@@ -328,6 +329,181 @@ paths:
             application/json:
               schema: {type: array, items: {$ref: '#/components/schemas/Space'}}
         '500': {$ref: '#/components/responses/InternalError'}
+  /admin/spaces:
+    get:
+      tags: [Installation administration]
+      operationId: listAdminSpaces
+      summary: Lista Spaces para configuração administrativa
+      description: Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página de Spaces, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedSpaces'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Installation administration]
+      operationId: createAdminSpace
+      summary: Cria um Space sem aceitar campos de escopo ou papel
+      description: Retry da mesma intenção retorna o 201 e o corpo originais sem novo efeito ou audit.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateAdminSpaceRequest'}}}}
+      responses:
+        '201': {description: Space criado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/Space'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/spaces/{spaceId}:
+    parameters: [{$ref: '#/components/parameters/SpaceID'}]
+    patch:
+      tags: [Installation administration]
+      operationId: updateAdminSpace
+      summary: Altera estritamente slug, name ou mapReference
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateAdminSpaceRequest'}}}}
+      responses:
+        '200': {description: Space atualizado, no-op auditado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/Space'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/activities:
+    get:
+      tags: [Installation administration]
+      operationId: listAdminActivities
+      summary: Lista a configuração completa de Activities
+      description: Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página de Activities, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedAdminActivities'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Installation administration]
+      operationId: createAdminActivity
+      summary: Cria uma Activity sempre em draft
+      description: status, eventId, papel, assignment e demais campos não publicados são rejeitados.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateAdminActivityRequest'}}}}
+      responses:
+        '201': {description: Activity draft criada ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminActivity'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/activities/{activityId}:
+    parameters: [{$ref: '#/components/parameters/ActivityID'}]
+    patch:
+      tags: [Installation administration]
+      operationId: updateAdminActivity
+      summary: Reconfigura uma Activity ou faz a transição validada para archived
+      description: >-
+        status aceita somente archived. active não pode ser arquivada sem pause;
+        start e pause permanecem exclusivamente nas operações gerenciais.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateAdminActivityRequest'}}}}
+      responses:
+        '200': {description: Activity atualizada, no-op auditado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminActivity'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/staff:
+    get:
+      tags: [Installation administration]
+      operationId: listAdminStaff
+      summary: Lista usuários com papel EVENT_MANAGER
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - {name: role, in: query, required: true, schema: {type: string, enum: [EVENT_MANAGER]}}
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200': {description: Página determinística de gestores, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedAdminStaff'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/users/{userId}/role:
+    parameters: [{$ref: '#/components/parameters/UserID'}]
+    patch:
+      tags: [Installation administration]
+      operationId: updateAdminUserRole
+      summary: Alterna exclusivamente DEFAULT e EVENT_MANAGER
+      description: ADMIN nunca pode ser concedido ou removido; gestor com assignments ativos retorna MANAGER_HAS_ASSIGNMENTS.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateAdminUserRoleRequest'}}}}
+      responses:
+        '200': {description: Papel resultante, no-op auditado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminUserRole'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/activities/{activityId}/managers:
+    parameters: [{$ref: '#/components/parameters/ActivityID'}]
+    get:
+      tags: [Installation administration]
+      operationId: listAdminActivityManagers
+      summary: Lista gestores atribuídos à Activity
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Página determinística de gestores atribuídos, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedAdminStaff'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/activities/{activityId}/managers/{userId}:
+    parameters: [{$ref: '#/components/parameters/ActivityID'}, {$ref: '#/components/parameters/UserID'}]
+    put:
+      tags: [Installation administration]
+      operationId: assignAdminActivityManager
+      summary: Atribui gestor elegível de forma idempotente
+      description: Usuário, onboarding, papel, Activity e assignment são validados exclusivamente no banco.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      responses:
+        '200': {description: Assignment criado, já existente ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminManagerAssignment'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    delete:
+      tags: [Installation administration]
+      operationId: removeAdminActivityManager
+      summary: Remove assignment de forma idempotente
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      responses:
+        '204': {description: Assignment removido, já ausente ou retry concluído}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /manager/activities/{activityId}/start:
     parameters:
       - {$ref: '#/components/parameters/ActivityID'}
@@ -413,6 +589,16 @@ components:
       in: path
       required: true
       schema: {type: string, format: uuid}
+    SpaceID:
+      name: spaceId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    UserID:
+      name: userId
+      in: path
+      required: true
+      schema: {type: string, pattern: '^[1-9][0-9]*$'}
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -652,6 +838,137 @@ components:
         name: {type: string}
         slug: {type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
         mapReference: {type: string, nullable: true}
+    CreateAdminSpaceRequest:
+      type: object
+      additionalProperties: false
+      required: [slug, name]
+      properties:
+        slug: {type: string, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$', example: capela}
+        name: {type: string, minLength: 1, maxLength: 200, example: Capela}
+        mapReference: {type: string, maxLength: 1000, nullable: true, example: 'map:capela'}
+    UpdateAdminSpaceRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        slug: {type: string, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+        name: {type: string, minLength: 1, maxLength: 200}
+        mapReference: {type: string, maxLength: 1000, nullable: true}
+      example: {name: Capela Central, mapReference: null}
+    PaginatedSpaces:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Space'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    AdminActivity:
+      type: object
+      additionalProperties: false
+      required: [id, spaceId, slug, name, description, kind, status, startsAt, endsAt, checkInPoints, momentPoints, cooldownSeconds, allowsMoment]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        spaceId: {type: string, format: uuid, nullable: true}
+        slug: {type: string, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+        name: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string, maxLength: 4000, nullable: true}
+        kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
+        status: {type: string, enum: [draft, active, paused, completed, archived], readOnly: true}
+        startsAt: {type: string, format: date-time, nullable: true}
+        endsAt: {type: string, format: date-time, nullable: true}
+        checkInPoints: {type: integer, minimum: 0}
+        momentPoints: {type: integer, minimum: 0}
+        cooldownSeconds: {type: integer, minimum: 0}
+        allowsMoment: {type: boolean}
+    CreateAdminActivityRequest:
+      type: object
+      additionalProperties: false
+      required: [slug, name, kind, checkInPoints, momentPoints, cooldownSeconds, allowsMoment]
+      properties:
+        spaceId: {type: string, format: uuid, nullable: true}
+        slug: {type: string, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+        name: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string, maxLength: 4000, nullable: true}
+        kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
+        startsAt: {type: string, format: date-time, nullable: true}
+        endsAt: {type: string, format: date-time, nullable: true}
+        checkInPoints: {type: integer, minimum: 0}
+        momentPoints: {type: integer, minimum: 0}
+        cooldownSeconds: {type: integer, minimum: 0}
+        allowsMoment: {type: boolean}
+      example:
+        spaceId: 11111111-1111-4111-8111-111111111111
+        slug: desafio-foto
+        name: Desafio Foto
+        description: Registre um momento no local.
+        kind: challenge
+        startsAt: '2026-08-24T18:00:00Z'
+        endsAt: '2026-08-24T19:00:00Z'
+        checkInPoints: 10
+        momentPoints: 20
+        cooldownSeconds: 60
+        allowsMoment: true
+    UpdateAdminActivityRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        spaceId: {type: string, format: uuid, nullable: true}
+        slug: {type: string, maxLength: 120, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+        name: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string, maxLength: 4000, nullable: true}
+        kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
+        startsAt: {type: string, format: date-time, nullable: true}
+        endsAt: {type: string, format: date-time, nullable: true}
+        checkInPoints: {type: integer, minimum: 0}
+        momentPoints: {type: integer, minimum: 0}
+        cooldownSeconds: {type: integer, minimum: 0}
+        allowsMoment: {type: boolean}
+        status: {type: string, enum: [archived], description: Única transição administrativa; start e pause não são aceitos aqui.}
+      example: {status: archived}
+    PaginatedAdminActivities:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/AdminActivity'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    AdminStaff:
+      type: object
+      additionalProperties: false
+      required: [id, name, role, onboardingComplete]
+      properties:
+        id: {type: string, pattern: '^[1-9][0-9]*$'}
+        name: {type: string}
+        role: {type: string, enum: [EVENT_MANAGER]}
+        onboardingComplete: {type: boolean}
+    PaginatedAdminStaff:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/AdminStaff'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    UpdateAdminUserRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role: {type: string, enum: [DEFAULT, EVENT_MANAGER], example: EVENT_MANAGER}
+    AdminUserRole:
+      type: object
+      additionalProperties: false
+      required: [id, role]
+      properties:
+        id: {type: string, pattern: '^[1-9][0-9]*$'}
+        role: {type: string, enum: [DEFAULT, EVENT_MANAGER]}
+    AdminManagerAssignment:
+      type: object
+      additionalProperties: false
+      required: [activityId, userId]
+      properties:
+        activityId: {type: string, format: uuid}
+        userId: {type: string, pattern: '^[1-9][0-9]*$'}
     ActivityState:
       type: object
       additionalProperties: false

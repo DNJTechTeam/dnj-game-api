@@ -39,6 +39,142 @@ func (_m *MockSpaceRepositoryInterface) EXPECT() *MockSpaceRepositoryInterface_E
 	return &MockSpaceRepositoryInterface_Expecter{mock: &_m.Mock}
 }
 
+// Create provides a mock function for the type MockSpaceRepositoryInterface
+func (_mock *MockSpaceRepositoryInterface) Create(ctx context.Context, space *entities.Space) (*entities.Space, error) {
+	ret := _mock.Called(ctx, space)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
+	var r0 *entities.Space
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Space) (*entities.Space, error)); ok {
+		return returnFunc(ctx, space)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Space) *entities.Space); ok {
+		r0 = returnFunc(ctx, space)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Space)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.Space) error); ok {
+		r1 = returnFunc(ctx, space)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpaceRepositoryInterface_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockSpaceRepositoryInterface_Create_Call struct {
+	*mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - ctx context.Context
+//   - space *entities.Space
+func (_e *MockSpaceRepositoryInterface_Expecter) Create(ctx interface{}, space interface{}) *MockSpaceRepositoryInterface_Create_Call {
+	return &MockSpaceRepositoryInterface_Create_Call{Call: _e.mock.On("Create", ctx, space)}
+}
+
+func (_c *MockSpaceRepositoryInterface_Create_Call) Run(run func(ctx context.Context, space *entities.Space)) *MockSpaceRepositoryInterface_Create_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.Space
+		if args[1] != nil {
+			arg1 = args[1].(*entities.Space)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_Create_Call) Return(space1 *entities.Space, err error) *MockSpaceRepositoryInterface_Create_Call {
+	_c.Call.Return(space1, err)
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_Create_Call) RunAndReturn(run func(ctx context.Context, space *entities.Space) (*entities.Space, error)) *MockSpaceRepositoryInterface_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindByIDForUpdate provides a mock function for the type MockSpaceRepositoryInterface
+func (_mock *MockSpaceRepositoryInterface) FindByIDForUpdate(ctx context.Context, id string) (*entities.Space, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByIDForUpdate")
+	}
+
+	var r0 *entities.Space
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.Space, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.Space); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Space)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpaceRepositoryInterface_FindByIDForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByIDForUpdate'
+type MockSpaceRepositoryInterface_FindByIDForUpdate_Call struct {
+	*mock.Call
+}
+
+// FindByIDForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+func (_e *MockSpaceRepositoryInterface_Expecter) FindByIDForUpdate(ctx interface{}, id interface{}) *MockSpaceRepositoryInterface_FindByIDForUpdate_Call {
+	return &MockSpaceRepositoryInterface_FindByIDForUpdate_Call{Call: _e.mock.On("FindByIDForUpdate", ctx, id)}
+}
+
+func (_c *MockSpaceRepositoryInterface_FindByIDForUpdate_Call) Run(run func(ctx context.Context, id string)) *MockSpaceRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_FindByIDForUpdate_Call) Return(space *entities.Space, err error) *MockSpaceRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(space, err)
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(run func(ctx context.Context, id string) (*entities.Space, error)) *MockSpaceRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function for the type MockSpaceRepositoryInterface
 func (_mock *MockSpaceRepositoryInterface) List(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Space], error) {
 	ret := _mock.Called(ctx, page)
@@ -103,6 +239,74 @@ func (_c *MockSpaceRepositoryInterface_List_Call) Return(paginatedResponse *mess
 }
 
 func (_c *MockSpaceRepositoryInterface_List_Call) RunAndReturn(run func(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Space], error)) *MockSpaceRepositoryInterface_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Update provides a mock function for the type MockSpaceRepositoryInterface
+func (_mock *MockSpaceRepositoryInterface) Update(ctx context.Context, space *entities.Space) (*entities.Space, error) {
+	ret := _mock.Called(ctx, space)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 *entities.Space
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Space) (*entities.Space, error)); ok {
+		return returnFunc(ctx, space)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Space) *entities.Space); ok {
+		r0 = returnFunc(ctx, space)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Space)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.Space) error); ok {
+		r1 = returnFunc(ctx, space)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpaceRepositoryInterface_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockSpaceRepositoryInterface_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - space *entities.Space
+func (_e *MockSpaceRepositoryInterface_Expecter) Update(ctx interface{}, space interface{}) *MockSpaceRepositoryInterface_Update_Call {
+	return &MockSpaceRepositoryInterface_Update_Call{Call: _e.mock.On("Update", ctx, space)}
+}
+
+func (_c *MockSpaceRepositoryInterface_Update_Call) Run(run func(ctx context.Context, space *entities.Space)) *MockSpaceRepositoryInterface_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.Space
+		if args[1] != nil {
+			arg1 = args[1].(*entities.Space)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_Update_Call) Return(space1 *entities.Space, err error) *MockSpaceRepositoryInterface_Update_Call {
+	_c.Call.Return(space1, err)
+	return _c
+}
+
+func (_c *MockSpaceRepositoryInterface_Update_Call) RunAndReturn(run func(ctx context.Context, space *entities.Space) (*entities.Space, error)) *MockSpaceRepositoryInterface_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

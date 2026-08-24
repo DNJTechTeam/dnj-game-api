@@ -43,6 +43,7 @@ func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterUserRoutes()
 	r.RegisterTaskRoutes()
 	r.RegisterInstallationRoutes()
+	r.RegisterAdminInstallationRoutes()
 
 	return r.engine
 }

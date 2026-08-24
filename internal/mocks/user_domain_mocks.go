@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -435,6 +436,80 @@ func (_c *MockUserRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(run f
 	return _c
 }
 
+// ListByRole provides a mock function for the type MockUserRepositoryInterface
+func (_mock *MockUserRepositoryInterface) ListByRole(ctx context.Context, role entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error) {
+	ret := _mock.Called(ctx, role, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListByRole")
+	}
+
+	var r0 *messages.PaginatedResponse[entities.User]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, entities.UserRole, uint64) (*messages.PaginatedResponse[entities.User], error)); ok {
+		return returnFunc(ctx, role, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, entities.UserRole, uint64) *messages.PaginatedResponse[entities.User]); ok {
+		r0 = returnFunc(ctx, role, page)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PaginatedResponse[entities.User])
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, entities.UserRole, uint64) error); ok {
+		r1 = returnFunc(ctx, role, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepositoryInterface_ListByRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListByRole'
+type MockUserRepositoryInterface_ListByRole_Call struct {
+	*mock.Call
+}
+
+// ListByRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - role entities.UserRole
+//   - page uint64
+func (_e *MockUserRepositoryInterface_Expecter) ListByRole(ctx interface{}, role interface{}, page interface{}) *MockUserRepositoryInterface_ListByRole_Call {
+	return &MockUserRepositoryInterface_ListByRole_Call{Call: _e.mock.On("ListByRole", ctx, role, page)}
+}
+
+func (_c *MockUserRepositoryInterface_ListByRole_Call) Run(run func(ctx context.Context, role entities.UserRole, page uint64)) *MockUserRepositoryInterface_ListByRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 entities.UserRole
+		if args[1] != nil {
+			arg1 = args[1].(entities.UserRole)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_ListByRole_Call) Return(paginatedResponse *messages.PaginatedResponse[entities.User], err error) *MockUserRepositoryInterface_ListByRole_Call {
+	_c.Call.Return(paginatedResponse, err)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_ListByRole_Call) RunAndReturn(run func(ctx context.Context, role entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error)) *MockUserRepositoryInterface_ListByRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RankPosition provides a mock function for the type MockUserRepositoryInterface
 func (_mock *MockUserRepositoryInterface) RankPosition(ctx context.Context, userID uint64, points int) (int64, error) {
 	ret := _mock.Called(ctx, userID, points)
@@ -571,6 +646,69 @@ func (_c *MockUserRepositoryInterface_Update_Call) Return(user1 *entities.User, 
 }
 
 func (_c *MockUserRepositoryInterface_Update_Call) RunAndReturn(run func(ctx context.Context, user *entities.User) (*entities.User, error)) *MockUserRepositoryInterface_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateRole provides a mock function for the type MockUserRepositoryInterface
+func (_mock *MockUserRepositoryInterface) UpdateRole(ctx context.Context, userID uint64, role entities.UserRole) error {
+	ret := _mock.Called(ctx, userID, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateRole")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, entities.UserRole) error); ok {
+		r0 = returnFunc(ctx, userID, role)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepositoryInterface_UpdateRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRole'
+type MockUserRepositoryInterface_UpdateRole_Call struct {
+	*mock.Call
+}
+
+// UpdateRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+//   - role entities.UserRole
+func (_e *MockUserRepositoryInterface_Expecter) UpdateRole(ctx interface{}, userID interface{}, role interface{}) *MockUserRepositoryInterface_UpdateRole_Call {
+	return &MockUserRepositoryInterface_UpdateRole_Call{Call: _e.mock.On("UpdateRole", ctx, userID, role)}
+}
+
+func (_c *MockUserRepositoryInterface_UpdateRole_Call) Run(run func(ctx context.Context, userID uint64, role entities.UserRole)) *MockUserRepositoryInterface_UpdateRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 entities.UserRole
+		if args[2] != nil {
+			arg2 = args[2].(entities.UserRole)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_UpdateRole_Call) Return(err error) *MockUserRepositoryInterface_UpdateRole_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_UpdateRole_Call) RunAndReturn(run func(ctx context.Context, userID uint64, role entities.UserRole) error) *MockUserRepositoryInterface_UpdateRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

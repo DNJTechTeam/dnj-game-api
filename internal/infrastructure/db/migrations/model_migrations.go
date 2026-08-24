@@ -531,4 +531,74 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_iteration4_admin_enabler",
+		Description: "Add safe administrative idempotency storage and text entity references for audits",
+		Version:     "2.3.1",
+		Definition:  "iteration4-admin-enabler-expand-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS entity_reference VARCHAR(160)`,
+				`CREATE TABLE IF NOT EXISTS admin_operations (
+					id UUID PRIMARY KEY,
+					actor_user_id BIGINT NOT NULL,
+					idempotency_key UUID NOT NULL,
+					operation VARCHAR(120) NOT NULL,
+					entity_type VARCHAR(80) NOT NULL,
+					entity_ref VARCHAR(160) NOT NULL,
+					request_hash VARCHAR(64) NOT NULL,
+					http_status INTEGER NOT NULL,
+					response JSONB NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+				)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_iteration4_admin_enabler",
+		Description: "Backfill audit entity references without copying request bodies or personal data",
+		Version:     "2.3.1",
+		Definition:  "iteration4-admin-enabler-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`
+				UPDATE operation_audit
+				SET entity_reference = CAST(entity_id AS VARCHAR)
+				WHERE entity_reference IS NULL AND entity_id IS NOT NULL
+			`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_iteration4_admin_enabler",
+		Description: "Enforce administrative idempotency, deterministic listings and actor relationships",
+		Version:     "2.3.1",
+		Definition:  "iteration4-admin-enabler-contract-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE UNIQUE INDEX IF NOT EXISTS admin_operations_actor_idempotency_unique ON admin_operations (actor_user_id, idempotency_key)`,
+				`CREATE INDEX IF NOT EXISTS admin_operations_entity_created_idx ON admin_operations (entity_type, entity_ref, created_at, id)`,
+				`CREATE INDEX IF NOT EXISTS operation_audit_entity_reference_created_idx ON operation_audit (entity_type, entity_reference, created_at, id)`,
+				`CREATE INDEX IF NOT EXISTS spaces_admin_list_idx ON spaces (name, id)`,
+				`CREATE INDEX IF NOT EXISTS activities_admin_list_idx ON activities (name, id)`,
+				`CREATE INDEX IF NOT EXISTS users_admin_role_list_idx ON users (role, name, id)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return addConstraintIfMissing(db, "admin_operations", "admin_operations_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

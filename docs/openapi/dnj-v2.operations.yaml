@@ -158,3 +158,63 @@ operations:
       - internal/app/services/iteration4_service_test.go
       - internal/presentation/api/handlers/iteration4_handler_test.go
       - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: listAdminSpaces
+    method: GET
+    path: /admin/spaces
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: &adminInstallationTests
+      - internal/app/services/admin_installation_service_test.go
+      - internal/app/services/admin_installation_http_integration_test.go
+      - internal/infrastructure/db/repositories/iteration4_repository_test.go
+      - internal/presentation/api/handlers/admin_installation_handler_test.go
+      - internal/presentation/api/routers/admin_installation_router_test.go
+  - operationId: createAdminSpace
+    method: POST
+    path: /admin/spaces
+    statuses: ['201', '400', '401', '403', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminSpace
+    method: PATCH
+    path: /admin/spaces/{spaceId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminActivities
+    method: GET
+    path: /admin/activities
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: createAdminActivity
+    method: POST
+    path: /admin/activities
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminActivity
+    method: PATCH
+    path: /admin/activities/{activityId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminStaff
+    method: GET
+    path: /admin/staff
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminUserRole
+    method: PATCH
+    path: /admin/users/{userId}/role
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminActivityManagers
+    method: GET
+    path: /admin/activities/{activityId}/managers
+    statuses: ['200', '400', '401', '403', '404', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: assignAdminActivityManager
+    method: PUT
+    path: /admin/activities/{activityId}/managers/{userId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: removeAdminActivityManager
+    method: DELETE
+    path: /admin/activities/{activityId}/managers/{userId}
+    statuses: ['204', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests

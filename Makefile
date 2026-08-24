@@ -5,6 +5,8 @@ COVER_MAINTAINED_MIN ?= 55
 COVER_PROFILE ?= coverage.out
 COVER_GATE_PROFILE ?= coverage.gate.out
 COVER_MAINTAINED_PROFILE ?= coverage.maintained.out
+ADMIN_COVER_PROFILE ?= /tmp/dnj-admin-coverage.out
+ADMIN_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -14,7 +16,7 @@ OPENAPI_DIR=docs/openapi
 
 .PHONY: wire build run run-api vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race \
+        test-services test-repos test-migrations test-race test-admin-cover-check \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -88,7 +90,14 @@ test-repos:
 test-migrations:
 	go test ./internal/infrastructure/db/migrations/... -count=1 -v -timeout 180s
 
-validate: wire build vet test-race test-cover-check test-migrations openapi
+test-admin-cover-check:
+	go test ./internal/app/services ./internal/presentation/api/handlers ./internal/infrastructure/db/mappers ./internal/infrastructure/db/repositories \
+		-run 'TestAdminInstallation|TestAdminOperationMappers|TestIteration4AdminRepositories' -count=1 \
+		-coverprofile=$(ADMIN_COVER_PROFILE) \
+		-coverpkg=./internal/app/services,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
+	bash scripts/check-admin-coverage.sh $(ADMIN_COVER_PROFILE) $(ADMIN_COVER_MIN)
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:

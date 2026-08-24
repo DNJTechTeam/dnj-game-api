@@ -8,7 +8,9 @@ import (
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
+	adminEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/entities"
 	auditEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/entities"
+	spaceEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/space/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/google/uuid"
@@ -18,9 +20,89 @@ import (
 
 func setupIteration4RepositoryTest(t *testing.T) {
 	t.Helper()
-	for _, model := range []interface{ TableName() string }{&models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{}} {
+	for _, model := range []interface{ TableName() string }{&models.AdminOperation{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{}} {
 		TestSuite.TruncateTable(t, model)
 	}
+}
+
+func TestIteration4AdminRepositories_FullPersistenceSurface(t *testing.T) {
+	// given
+	setupIteration4RepositoryTest(t)
+	ctx := context.Background()
+	users := NewUserRepository(TestSuite.DbConn)
+	spaces := NewSpaceRepository(TestSuite.DbConn)
+	activities := NewActivityRepository(TestSuite.DbConn)
+	operations := NewAdminOperationRepository(TestSuite.DbConn)
+	admin, err := users.Create(ctx, &userEntities.User{Email: "repo-admin-enabler@example.com", Name: "Admin", Role: userEntities.RoleAdmin, OnboardingComplete: true})
+	require.NoError(t, err)
+	manager, err := users.Create(ctx, &userEntities.User{Email: "repo-manager-enabler@example.com", Name: "Manager", Role: userEntities.RoleEventManager, OnboardingComplete: true})
+	require.NoError(t, err)
+	now := time.Now().UTC()
+	spaceID := uuid.NewString()
+	activityID := uuid.NewString()
+
+	// when
+	createdSpace, createSpaceErr := spaces.Create(ctx, &spaceEntities.Space{ID: spaceID, Slug: "repo-space", Name: "Repo Space", CreatedAt: now, UpdatedAt: now})
+	lockedSpace, lockSpaceErr := spaces.FindByIDForUpdate(ctx, spaceID)
+	lockedSpace.Name = "Repo Space Updated"
+	updatedSpace, updateSpaceErr := spaces.Update(ctx, lockedSpace)
+	createdActivity, createActivityErr := activities.Create(ctx, &activityEntities.Activity{ID: activityID, SpaceID: &spaceID, Slug: "repo-activity", Name: "Repo Activity", Kind: activityEntities.KindLive, Status: activityEntities.StatusDraft, CreatedAt: now, UpdatedAt: now})
+	foundActivity, findActivityErr := activities.FindByID(ctx, activityID)
+	lockedActivity, lockActivityErr := activities.FindByIDForUpdate(ctx, activityID)
+	lockedActivity.Name = "Repo Activity Updated"
+	updatedActivity, updateActivityErr := activities.Update(ctx, lockedActivity)
+	listedActivities, listActivitiesErr := activities.List(ctx, 0)
+	firstAssignment, firstAssignmentErr := activities.CreateManagerAssignment(ctx, &activityEntities.ManagerAssignment{ActivityID: activityID, UserID: manager.ID, CreatedAt: now})
+	duplicateAssignment, duplicateAssignmentErr := activities.CreateManagerAssignment(ctx, &activityEntities.ManagerAssignment{ActivityID: activityID, UserID: manager.ID, CreatedAt: now})
+	listedManagers, listManagersErr := activities.ListManagers(ctx, activityID, 0)
+	assignmentCount, countErr := activities.CountManagerAssignments(ctx, manager.ID)
+	removed, removeErr := activities.DeleteManagerAssignment(ctx, activityID, manager.ID)
+	removedNoOp, removeNoOpErr := activities.DeleteManagerAssignment(ctx, activityID, manager.ID)
+	staff, staffErr := users.ListByRole(ctx, userEntities.RoleEventManager, 0)
+	roleErr := users.UpdateRole(ctx, manager.ID, userEntities.RoleDefault)
+	key := uuid.NewString()
+	operation := &adminEntities.AdminOperation{ID: uuid.NewString(), ActorUserID: admin.ID, IdempotencyKey: key, Operation: "admin.space.create", EntityType: "space", EntityRef: spaceID, RequestHash: "hash", HTTPStatus: 201, Response: json.RawMessage(`{"id":"` + spaceID + `"}`), CreatedAt: now}
+	createdOperation, createOperationErr := operations.Create(ctx, operation)
+	foundOperation, findOperationErr := operations.FindByActorAndIdempotencyKey(ctx, admin.ID, key)
+	_, missingOperationErr := operations.FindByActorAndIdempotencyKey(ctx, admin.ID, uuid.NewString())
+	duplicateOperation := *operation
+	duplicateOperation.ID = uuid.NewString()
+	_, duplicateOperationErr := operations.Create(ctx, &duplicateOperation)
+
+	// then
+	require.NoError(t, createSpaceErr)
+	require.NoError(t, lockSpaceErr)
+	require.NoError(t, updateSpaceErr)
+	require.NoError(t, createActivityErr)
+	require.NoError(t, findActivityErr)
+	require.NoError(t, lockActivityErr)
+	require.NoError(t, updateActivityErr)
+	require.NoError(t, listActivitiesErr)
+	require.NoError(t, firstAssignmentErr)
+	require.NoError(t, duplicateAssignmentErr)
+	require.NoError(t, listManagersErr)
+	require.NoError(t, countErr)
+	require.NoError(t, removeErr)
+	require.NoError(t, removeNoOpErr)
+	require.NoError(t, staffErr)
+	require.NoError(t, roleErr)
+	require.NoError(t, createOperationErr)
+	require.NoError(t, findOperationErr)
+	assert.Equal(t, createdSpace.ID, updatedSpace.ID)
+	assert.Equal(t, "Repo Space Updated", updatedSpace.Name)
+	assert.Equal(t, createdActivity.ID, foundActivity.ID)
+	assert.Equal(t, "Repo Activity Updated", updatedActivity.Name)
+	require.Len(t, listedActivities.Data, 1)
+	assert.True(t, firstAssignment)
+	assert.False(t, duplicateAssignment)
+	require.Len(t, listedManagers.Data, 1)
+	assert.Equal(t, int64(1), assignmentCount)
+	assert.True(t, removed)
+	assert.False(t, removedNoOp)
+	require.Len(t, staff.Data, 1)
+	assert.Equal(t, createdOperation.ID, foundOperation.ID)
+	assert.ErrorIs(t, missingOperationErr, appErrors.ErrNotFound)
+	assert.ErrorIs(t, duplicateOperationErr, appErrors.ErrConflict)
 }
 
 func TestSpaceRepository_List(t *testing.T) {

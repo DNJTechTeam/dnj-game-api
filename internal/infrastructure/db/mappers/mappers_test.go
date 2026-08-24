@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
+	adminEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/entities"
 	inviteEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/entities"
 	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
 	identityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/entities"
@@ -22,11 +24,15 @@ func TestIteration4Mappers(t *testing.T) {
 	assert.Equal(t, "Capela", space.Name)
 	assert.Equal(t, mapReference, *space.MapReference)
 	assert.Nil(t, MapSpaceToEntity(nil))
+	assert.Equal(t, space.ID, MapSpaceEntityToModel(space).ID)
+	assert.Nil(t, MapSpaceEntityToModel(nil))
 
 	activity := MapActivityToEntity(&models.Activity{ID: "activity-id", Slug: "radicalidade", Name: "Radicalidade", Kind: "competitive", Status: "active", CheckInPoints: 10, MomentPoints: 20, CooldownSeconds: 30, AllowsMoment: true, CreatedAt: now, UpdatedAt: now})
 	assert.Equal(t, "competitive", string(activity.Kind))
 	assert.Equal(t, 20, activity.MomentPoints)
 	assert.Nil(t, MapActivityToEntity(nil))
+	assert.Equal(t, activity.ID, MapActivityEntityToModel(activity).ID)
+	assert.Nil(t, MapActivityEntityToModel((*activityEntities.Activity)(nil)))
 
 	actorID := uint64(7)
 	entityID := "activity-id"
@@ -36,6 +42,22 @@ func TestIteration4Mappers(t *testing.T) {
 	assert.Equal(t, auditModel.IdempotencyKey, MapOperationAuditEntityToModel(audit).IdempotencyKey)
 	assert.Nil(t, MapOperationAuditToEntity(nil))
 	assert.Nil(t, MapOperationAuditEntityToModel((*auditEntities.OperationAudit)(nil)))
+}
+
+func TestAdminOperationMappers(t *testing.T) {
+	// given
+	now := time.Now().UTC()
+	model := &models.AdminOperation{ID: "11111111-1111-4111-8111-111111111111", ActorUserID: 7, IdempotencyKey: "22222222-2222-4222-8222-222222222222", Operation: "admin.space.create", EntityType: "space", EntityRef: "33333333-3333-4333-8333-333333333333", RequestHash: "hash", HTTPStatus: 201, Response: json.RawMessage(`{"id":"33333333-3333-4333-8333-333333333333"}`), CreatedAt: now}
+
+	// when
+	entity := MapAdminOperationToEntity(model)
+	back := MapAdminOperationEntityToModel(entity)
+
+	// then
+	assert.Equal(t, model.Operation, entity.Operation)
+	assert.Equal(t, model.Response, back.Response)
+	assert.Nil(t, MapAdminOperationToEntity(nil))
+	assert.Nil(t, MapAdminOperationEntityToModel((*adminEntities.AdminOperation)(nil)))
 }
 
 func TestMapTaskToEntity_NilInput(t *testing.T) {

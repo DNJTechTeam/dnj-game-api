@@ -50,7 +50,7 @@ make vet
 make test-services
 make test-repos
 make test
-make test-cover-check
+make test-cover-check test-admin-cover-check
 ```
 
 Resultados:

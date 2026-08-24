@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
@@ -43,6 +44,7 @@ type TestSuiteType struct {
 	SpaceRepository               spaceInterfaces.SpaceRepositoryInterface
 	ActivityRepository            activityInterfaces.ActivityRepositoryInterface
 	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
+	AdminOperationRepository      adminInterfaces.AdminOperationRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -65,6 +67,7 @@ func initializeTestSuite() {
 	TestSuite.SpaceRepository = repositories.NewSpaceRepository(TestSuite.DbConn)
 	TestSuite.ActivityRepository = repositories.NewActivityRepository(TestSuite.DbConn)
 	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)
+	TestSuite.AdminOperationRepository = repositories.NewAdminOperationRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {

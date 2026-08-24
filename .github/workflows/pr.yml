@@ -40,7 +40,7 @@ jobs:
           cache: true
 
       - name: Run tests with coverage
-        run: make test-cover-check
+        run: make test-cover-check test-admin-cover-check
 
   migrations-idempotency:
     name: Migrations Idempotency

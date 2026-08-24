@@ -8,7 +8,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
+	entities0 "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -37,6 +39,278 @@ type MockActivityRepositoryInterface_Expecter struct {
 
 func (_m *MockActivityRepositoryInterface) EXPECT() *MockActivityRepositoryInterface_Expecter {
 	return &MockActivityRepositoryInterface_Expecter{mock: &_m.Mock}
+}
+
+// CountManagerAssignments provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) CountManagerAssignments(ctx context.Context, userID uint64) (int64, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountManagerAssignments")
+	}
+
+	var r0 int64
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (int64, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) int64); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_CountManagerAssignments_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountManagerAssignments'
+type MockActivityRepositoryInterface_CountManagerAssignments_Call struct {
+	*mock.Call
+}
+
+// CountManagerAssignments is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+func (_e *MockActivityRepositoryInterface_Expecter) CountManagerAssignments(ctx interface{}, userID interface{}) *MockActivityRepositoryInterface_CountManagerAssignments_Call {
+	return &MockActivityRepositoryInterface_CountManagerAssignments_Call{Call: _e.mock.On("CountManagerAssignments", ctx, userID)}
+}
+
+func (_c *MockActivityRepositoryInterface_CountManagerAssignments_Call) Run(run func(ctx context.Context, userID uint64)) *MockActivityRepositoryInterface_CountManagerAssignments_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_CountManagerAssignments_Call) Return(n int64, err error) *MockActivityRepositoryInterface_CountManagerAssignments_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_CountManagerAssignments_Call) RunAndReturn(run func(ctx context.Context, userID uint64) (int64, error)) *MockActivityRepositoryInterface_CountManagerAssignments_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Create provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) Create(ctx context.Context, activity *entities.Activity) (*entities.Activity, error) {
+	ret := _mock.Called(ctx, activity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
+	var r0 *entities.Activity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Activity) (*entities.Activity, error)); ok {
+		return returnFunc(ctx, activity)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Activity) *entities.Activity); ok {
+		r0 = returnFunc(ctx, activity)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Activity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.Activity) error); ok {
+		r1 = returnFunc(ctx, activity)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockActivityRepositoryInterface_Create_Call struct {
+	*mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activity *entities.Activity
+func (_e *MockActivityRepositoryInterface_Expecter) Create(ctx interface{}, activity interface{}) *MockActivityRepositoryInterface_Create_Call {
+	return &MockActivityRepositoryInterface_Create_Call{Call: _e.mock.On("Create", ctx, activity)}
+}
+
+func (_c *MockActivityRepositoryInterface_Create_Call) Run(run func(ctx context.Context, activity *entities.Activity)) *MockActivityRepositoryInterface_Create_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.Activity
+		if args[1] != nil {
+			arg1 = args[1].(*entities.Activity)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_Create_Call) Return(activity1 *entities.Activity, err error) *MockActivityRepositoryInterface_Create_Call {
+	_c.Call.Return(activity1, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_Create_Call) RunAndReturn(run func(ctx context.Context, activity *entities.Activity) (*entities.Activity, error)) *MockActivityRepositoryInterface_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateManagerAssignment provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) CreateManagerAssignment(ctx context.Context, assignment *entities.ManagerAssignment) (bool, error) {
+	ret := _mock.Called(ctx, assignment)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateManagerAssignment")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.ManagerAssignment) (bool, error)); ok {
+		return returnFunc(ctx, assignment)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.ManagerAssignment) bool); ok {
+		r0 = returnFunc(ctx, assignment)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.ManagerAssignment) error); ok {
+		r1 = returnFunc(ctx, assignment)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_CreateManagerAssignment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateManagerAssignment'
+type MockActivityRepositoryInterface_CreateManagerAssignment_Call struct {
+	*mock.Call
+}
+
+// CreateManagerAssignment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - assignment *entities.ManagerAssignment
+func (_e *MockActivityRepositoryInterface_Expecter) CreateManagerAssignment(ctx interface{}, assignment interface{}) *MockActivityRepositoryInterface_CreateManagerAssignment_Call {
+	return &MockActivityRepositoryInterface_CreateManagerAssignment_Call{Call: _e.mock.On("CreateManagerAssignment", ctx, assignment)}
+}
+
+func (_c *MockActivityRepositoryInterface_CreateManagerAssignment_Call) Run(run func(ctx context.Context, assignment *entities.ManagerAssignment)) *MockActivityRepositoryInterface_CreateManagerAssignment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.ManagerAssignment
+		if args[1] != nil {
+			arg1 = args[1].(*entities.ManagerAssignment)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_CreateManagerAssignment_Call) Return(b bool, err error) *MockActivityRepositoryInterface_CreateManagerAssignment_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_CreateManagerAssignment_Call) RunAndReturn(run func(ctx context.Context, assignment *entities.ManagerAssignment) (bool, error)) *MockActivityRepositoryInterface_CreateManagerAssignment_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteManagerAssignment provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) DeleteManagerAssignment(ctx context.Context, activityID string, userID uint64) (bool, error) {
+	ret := _mock.Called(ctx, activityID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteManagerAssignment")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) (bool, error)); ok {
+		return returnFunc(ctx, activityID, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) bool); ok {
+		r0 = returnFunc(ctx, activityID, userID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, uint64) error); ok {
+		r1 = returnFunc(ctx, activityID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_DeleteManagerAssignment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteManagerAssignment'
+type MockActivityRepositoryInterface_DeleteManagerAssignment_Call struct {
+	*mock.Call
+}
+
+// DeleteManagerAssignment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - userID uint64
+func (_e *MockActivityRepositoryInterface_Expecter) DeleteManagerAssignment(ctx interface{}, activityID interface{}, userID interface{}) *MockActivityRepositoryInterface_DeleteManagerAssignment_Call {
+	return &MockActivityRepositoryInterface_DeleteManagerAssignment_Call{Call: _e.mock.On("DeleteManagerAssignment", ctx, activityID, userID)}
+}
+
+func (_c *MockActivityRepositoryInterface_DeleteManagerAssignment_Call) Run(run func(ctx context.Context, activityID string, userID uint64)) *MockActivityRepositoryInterface_DeleteManagerAssignment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_DeleteManagerAssignment_Call) Return(b bool, err error) *MockActivityRepositoryInterface_DeleteManagerAssignment_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_DeleteManagerAssignment_Call) RunAndReturn(run func(ctx context.Context, activityID string, userID uint64) (bool, error)) *MockActivityRepositoryInterface_DeleteManagerAssignment_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // FindAuthorizedForUpdate provides a mock function for the type MockActivityRepositoryInterface
@@ -119,6 +393,284 @@ func (_c *MockActivityRepositoryInterface_FindAuthorizedForUpdate_Call) RunAndRe
 	return _c
 }
 
+// FindByID provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) FindByID(ctx context.Context, activityID string) (*entities.Activity, error) {
+	ret := _mock.Called(ctx, activityID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByID")
+	}
+
+	var r0 *entities.Activity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.Activity, error)); ok {
+		return returnFunc(ctx, activityID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.Activity); ok {
+		r0 = returnFunc(ctx, activityID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Activity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, activityID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_FindByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByID'
+type MockActivityRepositoryInterface_FindByID_Call struct {
+	*mock.Call
+}
+
+// FindByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+func (_e *MockActivityRepositoryInterface_Expecter) FindByID(ctx interface{}, activityID interface{}) *MockActivityRepositoryInterface_FindByID_Call {
+	return &MockActivityRepositoryInterface_FindByID_Call{Call: _e.mock.On("FindByID", ctx, activityID)}
+}
+
+func (_c *MockActivityRepositoryInterface_FindByID_Call) Run(run func(ctx context.Context, activityID string)) *MockActivityRepositoryInterface_FindByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindByID_Call) Return(activity *entities.Activity, err error) *MockActivityRepositoryInterface_FindByID_Call {
+	_c.Call.Return(activity, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindByID_Call) RunAndReturn(run func(ctx context.Context, activityID string) (*entities.Activity, error)) *MockActivityRepositoryInterface_FindByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindByIDForUpdate provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) FindByIDForUpdate(ctx context.Context, activityID string) (*entities.Activity, error) {
+	ret := _mock.Called(ctx, activityID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByIDForUpdate")
+	}
+
+	var r0 *entities.Activity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.Activity, error)); ok {
+		return returnFunc(ctx, activityID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.Activity); ok {
+		r0 = returnFunc(ctx, activityID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Activity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, activityID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_FindByIDForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByIDForUpdate'
+type MockActivityRepositoryInterface_FindByIDForUpdate_Call struct {
+	*mock.Call
+}
+
+// FindByIDForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+func (_e *MockActivityRepositoryInterface_Expecter) FindByIDForUpdate(ctx interface{}, activityID interface{}) *MockActivityRepositoryInterface_FindByIDForUpdate_Call {
+	return &MockActivityRepositoryInterface_FindByIDForUpdate_Call{Call: _e.mock.On("FindByIDForUpdate", ctx, activityID)}
+}
+
+func (_c *MockActivityRepositoryInterface_FindByIDForUpdate_Call) Run(run func(ctx context.Context, activityID string)) *MockActivityRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindByIDForUpdate_Call) Return(activity *entities.Activity, err error) *MockActivityRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(activity, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(run func(ctx context.Context, activityID string) (*entities.Activity, error)) *MockActivityRepositoryInterface_FindByIDForUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// List provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) List(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Activity], error) {
+	ret := _mock.Called(ctx, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for List")
+	}
+
+	var r0 *messages.PaginatedResponse[entities.Activity]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*messages.PaginatedResponse[entities.Activity], error)); ok {
+		return returnFunc(ctx, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *messages.PaginatedResponse[entities.Activity]); ok {
+		r0 = returnFunc(ctx, page)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PaginatedResponse[entities.Activity])
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_List_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'List'
+type MockActivityRepositoryInterface_List_Call struct {
+	*mock.Call
+}
+
+// List is a helper method to define mock.On call
+//   - ctx context.Context
+//   - page uint64
+func (_e *MockActivityRepositoryInterface_Expecter) List(ctx interface{}, page interface{}) *MockActivityRepositoryInterface_List_Call {
+	return &MockActivityRepositoryInterface_List_Call{Call: _e.mock.On("List", ctx, page)}
+}
+
+func (_c *MockActivityRepositoryInterface_List_Call) Run(run func(ctx context.Context, page uint64)) *MockActivityRepositoryInterface_List_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_List_Call) Return(paginatedResponse *messages.PaginatedResponse[entities.Activity], err error) *MockActivityRepositoryInterface_List_Call {
+	_c.Call.Return(paginatedResponse, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_List_Call) RunAndReturn(run func(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Activity], error)) *MockActivityRepositoryInterface_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListManagers provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) ListManagers(ctx context.Context, activityID string, page uint64) (*messages.PaginatedResponse[entities0.User], error) {
+	ret := _mock.Called(ctx, activityID, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListManagers")
+	}
+
+	var r0 *messages.PaginatedResponse[entities0.User]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) (*messages.PaginatedResponse[entities0.User], error)); ok {
+		return returnFunc(ctx, activityID, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) *messages.PaginatedResponse[entities0.User]); ok {
+		r0 = returnFunc(ctx, activityID, page)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PaginatedResponse[entities0.User])
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, uint64) error); ok {
+		r1 = returnFunc(ctx, activityID, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_ListManagers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListManagers'
+type MockActivityRepositoryInterface_ListManagers_Call struct {
+	*mock.Call
+}
+
+// ListManagers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - page uint64
+func (_e *MockActivityRepositoryInterface_Expecter) ListManagers(ctx interface{}, activityID interface{}, page interface{}) *MockActivityRepositoryInterface_ListManagers_Call {
+	return &MockActivityRepositoryInterface_ListManagers_Call{Call: _e.mock.On("ListManagers", ctx, activityID, page)}
+}
+
+func (_c *MockActivityRepositoryInterface_ListManagers_Call) Run(run func(ctx context.Context, activityID string, page uint64)) *MockActivityRepositoryInterface_ListManagers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListManagers_Call) Return(paginatedResponse *messages.PaginatedResponse[entities0.User], err error) *MockActivityRepositoryInterface_ListManagers_Call {
+	_c.Call.Return(paginatedResponse, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListManagers_Call) RunAndReturn(run func(ctx context.Context, activityID string, page uint64) (*messages.PaginatedResponse[entities0.User], error)) *MockActivityRepositoryInterface_ListManagers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // TransitionStatus provides a mock function for the type MockActivityRepositoryInterface
 func (_mock *MockActivityRepositoryInterface) TransitionStatus(ctx context.Context, activityID string, from entities.Status, to entities.Status, updatedAt time.Time) error {
 	ret := _mock.Called(ctx, activityID, from, to, updatedAt)
@@ -190,6 +742,74 @@ func (_c *MockActivityRepositoryInterface_TransitionStatus_Call) Return(err erro
 }
 
 func (_c *MockActivityRepositoryInterface_TransitionStatus_Call) RunAndReturn(run func(ctx context.Context, activityID string, from entities.Status, to entities.Status, updatedAt time.Time) error) *MockActivityRepositoryInterface_TransitionStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Update provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) Update(ctx context.Context, activity *entities.Activity) (*entities.Activity, error) {
+	ret := _mock.Called(ctx, activity)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Update")
+	}
+
+	var r0 *entities.Activity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Activity) (*entities.Activity, error)); ok {
+		return returnFunc(ctx, activity)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.Activity) *entities.Activity); ok {
+		r0 = returnFunc(ctx, activity)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.Activity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *entities.Activity) error); ok {
+		r1 = returnFunc(ctx, activity)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityRepositoryInterface_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockActivityRepositoryInterface_Update_Call struct {
+	*mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activity *entities.Activity
+func (_e *MockActivityRepositoryInterface_Expecter) Update(ctx interface{}, activity interface{}) *MockActivityRepositoryInterface_Update_Call {
+	return &MockActivityRepositoryInterface_Update_Call{Call: _e.mock.On("Update", ctx, activity)}
+}
+
+func (_c *MockActivityRepositoryInterface_Update_Call) Run(run func(ctx context.Context, activity *entities.Activity)) *MockActivityRepositoryInterface_Update_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.Activity
+		if args[1] != nil {
+			arg1 = args[1].(*entities.Activity)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_Update_Call) Return(activity1 *entities.Activity, err error) *MockActivityRepositoryInterface_Update_Call {
+	_c.Call.Return(activity1, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_Update_Call) RunAndReturn(run func(ctx context.Context, activity *entities.Activity) (*entities.Activity, error)) *MockActivityRepositoryInterface_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

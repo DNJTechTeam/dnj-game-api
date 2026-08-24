@@ -7,6 +7,7 @@ import (
 
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/migrations"
 	testinfra "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/test"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -249,4 +250,57 @@ func TestMigrations_Iteration4ActivityConfigurationConstraints(t *testing.T) {
 	var spaceID *string
 	require.NoError(t, migrationSuite.DbConn.Table("activities").Select("space_id").Where("id = ?", validID).Scan(&spaceID).Error)
 	assert.Nil(t, spaceID)
+}
+
+func TestMigrations_AdminEnablerUpgradesIteration4RowsAndReplays(t *testing.T) {
+	// given
+	resetSchema(t)
+	registered := registeredMigrations()
+	for _, migration := range registered {
+		if migration.Name == "expand_iteration4_admin_enabler" {
+			break
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name)
+	}
+	var actorID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email, name, role, onboarding_complete, created_at, updated_at)
+		VALUES ('upgrade-admin@example.com', 'Upgrade Admin', 'ADMIN', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&actorID).Error)
+	activityID := "77777777-7777-4777-8777-777777777777"
+	auditID := "88888888-8888-4888-8888-888888888888"
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES (?, 'upgrade-activity', 'Upgrade Activity', 'live', 'draft', 0, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, activityID).Error)
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO operation_audit (id, actor_user_id, action, entity_type, entity_id, metadata, idempotency_key, created_at)
+		VALUES (?, ?, 'activity.start', 'activity', ?, CAST('{"fromStatus":"draft","toStatus":"active"}' AS JSONB), ?, CURRENT_TIMESTAMP)
+	`, auditID, actorID, activityID, uuid.NewString()).Error)
+
+	// when
+	for _, migration := range registered {
+		if migration.Name != "expand_iteration4_admin_enabler" && migration.Name != "backfill_iteration4_admin_enabler" && migration.Name != "contract_iteration4_admin_enabler" {
+			continue
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" first replay")
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" second replay")
+	}
+	var preservedActivities int64
+	var preservedAudits int64
+	var entityReference string
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Where("id = ?", activityID).Count(&preservedActivities).Error)
+	require.NoError(t, migrationSuite.DbConn.Table("operation_audit").Where("id = ?", auditID).Count(&preservedAudits).Error)
+	require.NoError(t, migrationSuite.DbConn.Table("operation_audit").Select("entity_reference").Where("id = ?", auditID).Scan(&entityReference).Error)
+	migrator := migrationSuite.DbConn.Migrator()
+
+	// then
+	assert.Equal(t, int64(1), preservedActivities)
+	assert.Equal(t, int64(1), preservedAudits)
+	assert.Equal(t, activityID, entityReference)
+	assert.True(t, migrator.HasTable("admin_operations"))
+	assert.True(t, migrator.HasColumn("operation_audit", "entity_reference"))
+	assert.False(t, migrator.HasTable("events"))
+	assert.False(t, migrator.HasColumn("activities", "event_id"))
 }

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
@@ -17,6 +18,10 @@ import (
 
 	"gorm.io/gorm"
 )
+
+func ProvideAdminOperationRepository(db *gorm.DB) adminInterfaces.AdminOperationRepositoryInterface {
+	return repositories.NewAdminOperationRepository(db)
+}
 
 func ProvideSpaceRepository(db *gorm.DB) spaceInterfaces.SpaceRepositoryInterface {
 	return repositories.NewSpaceRepository(db)

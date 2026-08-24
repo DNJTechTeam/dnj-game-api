@@ -4,6 +4,7 @@ import (
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/services"
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
@@ -20,6 +21,10 @@ import (
 	googlePkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/google"
 	webhookPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/webhook"
 )
+
+func ProvideAdminInstallationService(baseService *services.BaseService, spaceRepository spaceInterfaces.SpaceRepositoryInterface, activityRepository activityInterfaces.ActivityRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface, adminOperationRepository adminInterfaces.AdminOperationRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.AdminInstallationServiceInterface {
+	return services.NewAdminInstallationService(baseService, spaceRepository, activityRepository, auditRepository, adminOperationRepository, userRepository)
+}
 
 func ProvideSpaceService(spaceRepository spaceInterfaces.SpaceRepositoryInterface) appInterfaces.SpaceServiceInterface {
 	return services.NewSpaceService(spaceRepository)

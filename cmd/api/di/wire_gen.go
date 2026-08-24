@@ -79,6 +79,11 @@ func InitializeServer() *api.API {
 		SpaceService:    spaceServiceInterface,
 		ActivityService: activityServiceInterface,
 	}
+	adminOperationRepositoryInterface := repositories.ProvideAdminOperationRepository(gormDB)
+	adminInstallationServiceInterface := services.ProvideAdminInstallationService(baseService, spaceRepositoryInterface, activityRepositoryInterface, operationAuditRepositoryInterface, adminOperationRepositoryInterface, userRepositoryInterface)
+	adminInstallationHandler := &handlers.AdminInstallationHandler{
+		AdminInstallationService: adminInstallationServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
@@ -90,6 +95,7 @@ func InitializeServer() *api.API {
 		UserHandler:                userHandler,
 		TaskHandler:                taskHandler,
 		InstallationHandler:        installationHandler,
+		AdminInstallationHandler:   adminInstallationHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

@@ -8,6 +8,11 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
+  github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: admin_operation_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/app/interfaces:
     config:
       all: true

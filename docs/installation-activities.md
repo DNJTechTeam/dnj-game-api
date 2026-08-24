@@ -1,6 +1,6 @@
 # Instalação única, espaços, atividades e operação V2
 
-Este guia acompanha o contrato `2.3.0` em
+Este guia acompanha o contrato `2.3.1` em
 `docs/openapi/dnj-v2.openapi.yaml`. O DNJ é uma instalação de edição única:
 não existe tabela `events`, coluna `event_id`, seleção de evento ou escopo
 multi-evento.
@@ -24,18 +24,26 @@ multi-evento.
 - `operation_audit` registra ator, ação, entidade, metadados mínimos de estado e
   chave de idempotência. Não armazena email, documento, token, segredo ou corpo
   da requisição.
+- `admin_operations` preserva separadamente o status HTTP e o resultado seguro
+  original das escritas administrativas. A unicidade por ator/chave e o
+  fingerprint da intenção impedem efeitos duplicados e reutilização cruzada
+  sem transformar o audit em armazenamento de corpos.
 
 As migrations `expand_iteration4_installation_activities`,
 `backfill_iteration4_installation_activities` e
 `contract_iteration4_installation_activities` preservam as tabelas e colunas
 das Iterações 1–3. O backfill não apaga registros, e a contract adiciona checks,
-FKs e índices determinísticos. Nenhuma migration cria ou consulta `events`.
+FKs e índices determinísticos. As migrations adicionais
+`expand_iteration4_admin_enabler`, `backfill_iteration4_admin_enabler` e
+`contract_iteration4_admin_enabler` adicionam referência textual auditável,
+resultado idempotente e índices de listagem. Nenhuma migration cria ou consulta
+`events`.
 
 ## Papéis e permissões
 
 | Handoff | Papel V2 existente | Permissões nesta iteração |
 |---|---|---|
-| `admin` | `ADMIN` | Escopo global para iniciar/pausar qualquer Activity. É o único papel autorizado a ler/alterar configuração não pública, gerir papéis e atribuir/remover gestores quando o contrato administrativo for aprovado. |
+| `admin` | `ADMIN` | Escopo global para iniciar/pausar qualquer Activity e acesso exclusivo à configuração administrativa, papéis permitidos e assignments. |
 | `manager` | `EVENT_MANAGER` | Pode iniciar/pausar somente Activities explicitamente atribuídas no banco. Não altera configuração, papel ou assignments. |
 | `participant` | `DEFAULT` | Descoberta pública de espaços; nenhuma operação privilegiada. |
 
@@ -85,35 +93,56 @@ original; reutilizar a chave para outra intenção retorna
 `409 IDEMPOTENCY_KEY_REUSED`. Uma nova chave sobre estado incompatível retorna
 `409 ACTIVITY_STATE_CONFLICT`.
 
-## Enabler administrativo ainda não publicado
+## Contrato administrativo publicado
 
-Os handoffs publicam descoberta de espaços e início/pausa, mas não definem
-payloads, responses, paginação ou semântica dos endpoints administrativos de
-configuração e staff. O frontend atual usa Route Handlers de homologação
-acoplados a `events`, `experiences`, senhas administrativas e escopos antigos;
-esses contratos não podem ser copiados para a V2 de instalação única.
+Todas as rotas abaixo ficam sob `/v2`, exigem JWT de identidade e consultam o
+papel atual no banco. Somente `ADMIN` recebe acesso. As listagens usam envelope
+`{data,pagination}`, limite 20 e ordem determinística por `name,id`.
 
-A menor proposta para decisão é:
+| Operação | Corpo estrito / regra principal |
+|---|---|
+| `GET /admin/spaces?page=1` | Configuração paginada de Spaces. |
+| `POST /admin/spaces` | `slug`, `name`, `mapReference?`; retorna 201. |
+| `PATCH /admin/spaces/{spaceId}` | Um ou mais dentre `slug`, `name`, `mapReference`; `null` limpa somente `mapReference`. |
+| `GET /admin/activities?page=1` | Todos os campos persistidos e o status atual. |
+| `POST /admin/activities` | `spaceId?`, `slug`, `name`, `description?`, `kind`, `startsAt?`, `endsAt?`, `checkInPoints`, `momentPoints`, `cooldownSeconds`, `allowsMoment`; sempre cria `draft`. |
+| `PATCH /admin/activities/{activityId}` | Os mesmos campos configuráveis. `status` é uma extensão exclusiva do PATCH e aceita somente `archived`; `active` deve ser pausada antes. |
+| `GET /admin/staff?role=EVENT_MANAGER&page=1` | O único filtro de papel aceito é `EVENT_MANAGER`. |
+| `PATCH /admin/users/{userId}/role` | Aceita somente `DEFAULT` ou `EVENT_MANAGER`; não concede nem remove `ADMIN`. |
+| `GET /admin/activities/{activityId}/managers?page=1` | Lista assignments persistidos. |
+| `PUT /admin/activities/{activityId}/managers/{userId}` | Exige usuário existente, onboarding completo e papel atual `EVENT_MANAGER`; é idempotente. |
+| `DELETE /admin/activities/{activityId}/managers/{userId}` | Remove assignment; ausência já é sucesso 204 idempotente. |
 
-- `GET|POST /admin/spaces` e `PATCH /admin/spaces/{spaceId}`;
-- `GET|POST /admin/activities` e `PATCH /admin/activities/{activityId}`;
-- `GET /admin/staff?role=EVENT_MANAGER` e
-  `PATCH /admin/users/{userId}/role` limitado a `DEFAULT ↔ EVENT_MANAGER`;
-- `GET|PUT /admin/activities/{activityId}/managers` e
-  `DELETE /admin/activities/{activityId}/managers/{userId}`.
+Toda escrita exige `Idempotency-Key` UUID. O retry da mesma intenção pelo mesmo
+ator devolve o status e o resultado originais mesmo após alterações posteriores;
+a chave usada com outra operação, alvo ou payload retorna
+`409 IDEMPOTENCY_KEY_REUSED`. Uma chave nova sempre gera audit administrativo,
+inclusive em no-op. O audit contém ator, ação, tipo/referência da entidade e
+metadados mínimos, nunca nome, email, documento, telefone, mapa, descrição,
+corpo, token ou segredo.
 
-Todas seriam exclusivas de `ADMIN`, paginadas e auditadas, com UUID de
-idempotência nas escritas. Não haverá delete físico de Space/Activity nesta
-fase: Activity usa `archived`; Space referenciado só poderá ser desvinculado ou
-renomeado. Nenhuma dessas operações aparece no OpenAPI antes da aprovação e da
-respectiva implementação/teste.
+Não existe rota `DELETE` para Space ou Activity. Activity pode seguir para
+`archived` apenas pelo PATCH validado; `start` e `pause` continuam nas operações
+gerenciais. Rebaixar gestor com assignment retorna
+`409 MANAGER_HAS_ASSIGNMENTS`; primeiro remova todos os assignments. IDs
+malformados, ausentes ou cruzados são resolvidos contra as tabelas
+correspondentes, nunca confiados a partir do cliente.
 
-## Enablers do frontend para as etapas finais
+## Enablers finais do frontend das Iterações 2–4
 
-Nenhum arquivo do frontend foi alterado. O handoff final deve integrar, em
-ordem, os contratos de sessão/perfil/grupos das Iterações 2–3, trocar
-`/api/v1/spaces` por `GET /v2/spaces`, substituir os Route Handlers
-administrativos antigos depois que o enabler acima for decidido e consumir as
-operações de Activity com JWT de identidade e `Idempotency-Key`. Agenda, QR,
-participações, runs, jogos, Moments e anúncios permanecem nas iterações
-posteriores.
+Nenhum arquivo do frontend foi alterado. O handoff deve ser integrado nesta
+ordem para não misturar contratos antigos de homologação:
+
+1. Iteração 2: trocar sessão/senha administrativa por Google OIDC, access token,
+   refresh/CSRF, `GET /auth/session`, onboarding e perfil V2. A autorização é
+   revalidada no banco; o JWT permanece somente de identidade.
+2. Iteração 3: consumir `/users/me`, membership/grupo atual, paginação e convites
+   administrativos; usar `PATCH /users/me/group` e remover o alias POST após a
+   migração do consumidor.
+3. Iteração 4: trocar `/api/v1/spaces` por `GET /v2/spaces`, substituir Route
+   Handlers acoplados a `events`, `experiences`, senhas e escopos antigos pelas
+   rotas `/v2/admin`, e gerar um UUID de idempotência por intenção de escrita,
+   preservando-o somente durante retries.
+
+Agenda, QR, participações, runs, jogos, Moments e anúncios permanecem nas
+iterações posteriores e não devem ser simulados por esses endpoints.

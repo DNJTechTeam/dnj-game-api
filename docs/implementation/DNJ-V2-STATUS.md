@@ -47,7 +47,7 @@ automatizado e evidência no ambiente `develop`.
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
-| 4 | Configuração da instalação | `GET /spaces`; iniciar/pausar Activities atribuídas | spaces, activities, assignments, auditoria | Backend publicado; enabler administrativo pendente |
+| 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Enabler administrativo implementado e em validação de deploy |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
@@ -215,17 +215,41 @@ repositório frontend.
 | CockroachDB | `v25.2.19` descartável: instalação limpa e replay pelo tracker; upgrade exato de `ba6a5dc` com dados preservados; 16 migrations, 0 checksum ausente, 4 tabelas da iteração e nenhum reset/bypass |
 | Contrato | OpenAPI 3.0.3 `2.3.0`, três operações implementadas e manifesto operação→testes consistente |
 
-As operações administrativas necessárias para criar/editar Spaces e
-Activities, promover/rebaixar `EVENT_MANAGER` e atribuir/remover gestores não
-possuem contrato compatível nos handoffs. Os Route Handlers atuais do frontend
-são de homologação e dependem de `events`, `experiences`, senhas e escopos
-antigos, portanto não podem ser copiados. A menor proposta está documentada em
-`docs/installation-activities.md` e não foi publicada no OpenAPI.
+O contrato administrativo mínimo foi aprovado e implementado em 2026-08-24.
+Ele publica sob `/v2/admin` CRUD sem exclusão física para configuração de
+Spaces/Activities, listagem de `EVENT_MANAGER`, transição restrita de papel e
+assignments idempotentes. `ADMIN` continua impossível de conceder/remover pela
+API, Activity nasce `draft`, somente `archived` é aceito como transição no PATCH
+administrativo e start/pause permanecem nas operações gerenciais.
 
 Enabler preservado para as etapas finais: o frontend deve integrar em conjunto
-os contratos das Iterações 2–4, migrar `/api/v1/spaces` para `/v2/spaces` e,
-após decisão/implementação do contrato administrativo, substituir os handlers
-antigos de staff/configuração. Nenhum arquivo do frontend foi alterado.
+os contratos das Iterações 2–4, migrar `/api/v1/spaces` para `/v2/spaces` e
+substituir os handlers antigos de staff/configuração pelas rotas publicadas.
+Nenhum arquivo do frontend foi alterado.
+
+## Evidência local do enabler administrativo da Iteração 4
+
+| Controle | Evidência em 2026-08-24 |
+|---|---|
+| Autorização e banco como fonte | Todos os reads/writes administrativos revalidam ator e papel no banco; IDs de Space, Activity e User, onboarding, papel e assignment são consultados nas tabelas próprias. |
+| Mass assignment | `ParseStrictRequest` e DTOs distintos rejeitam `eventId`, `status` no POST, `ADMIN`, start/pause simulados e qualquer campo fora do contrato. |
+| Papel e assignments | Somente `DEFAULT ↔ EVENT_MANAGER`; `MANAGER_HAS_ASSIGNMENTS` bloqueia rebaixamento; PUT/DELETE são idempotentes e assignment exige onboarding completo. |
+| Idempotência | `admin_operations` guarda fingerprint e resultado seguro original; retry não repete efeito/audit e reutilização cruzada retorna `IDEMPOTENCY_KEY_REUSED`. |
+| Auditoria | Toda escrita bem-sucedida, inclusive no-op com chave nova, grava ator, ação, entidade e metadados mínimos sem PII, corpo, mapa, descrição, token ou segredo. |
+| HTTP real entre camadas | Uma suíte atravessa middleware, handlers, services, repositories e PostgreSQL real nas 11 rotas, incluindo 401, 403, strict JSON e resultado original após alteração posterior. |
+| Concorrência | Oito retries simultâneos do mesmo assignment produzem um único row, um único resultado idempotente e um único audit. |
+| Cobertura do service | 91,3% (399/437 statements), gate permanente `make test-admin-cover-check` com mínimo 90%. |
+| Cobertura da fatia entre camadas | 92,1% (604/656 statements) em service, handlers, mappers e métodos de repositories da fatia, também bloqueada em 90%. |
+| Migrations PostgreSQL | Clean install, replay direto duplo, upgrade preservando rows da Iteração 4, quatro runners, checksum e constraints verdes; três migrations adicionais expand/backfill/contract. |
+| Migrations CockroachDB | `v25.2.19`: clean install e replay com 19 migrations/0 checksum ausente; upgrade exato desde `9e33526` preservou User, Space, Activity, assignment e audit, realizou backfill de `entity_reference` e repetiu sem reset ou bypass; `events=0` e `event_id=0`. |
+| Enforcement no CI | Os workflows de PR, develop, release e production executam `make test-admin-cover-check`; tanto o service quanto a fatia integrada precisam manter no mínimo 90%. |
+| Contrato | OpenAPI 3.0.3 `2.3.1`, 11 novas operações, exemplos e manifesto operação→testes consistentes. |
+
+Enablers finais do frontend, sem alteração deste repositório: Iteração 2 exige
+Google/sessão/refresh/onboarding/perfil V2; Iteração 3 exige membership, grupos,
+paginação e convites; Iteração 4 exige `/v2/spaces`, `/v2/admin`, JWT de
+identidade e um UUID de idempotência estável por intenção. Agenda, QR,
+participações, runs, jogos, Moments e anúncios permanecem fora deste enabler.
 
 ## Deploy e smokes remotos da Iteração 4
 

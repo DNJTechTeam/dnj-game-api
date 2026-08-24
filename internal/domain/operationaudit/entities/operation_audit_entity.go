@@ -6,12 +6,13 @@ import (
 )
 
 type OperationAudit struct {
-	ID             string
-	ActorUserID    *uint64
-	Action         string
-	EntityType     string
-	EntityID       *string
-	Metadata       json.RawMessage
-	IdempotencyKey string
-	CreatedAt      time.Time
+	ID              string
+	ActorUserID     *uint64
+	Action          string
+	EntityType      string
+	EntityID        *string
+	EntityReference *string
+	Metadata        json.RawMessage
+	IdempotencyKey  string
+	CreatedAt       time.Time
 }
