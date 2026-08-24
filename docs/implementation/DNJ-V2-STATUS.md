@@ -226,3 +226,26 @@ Enabler preservado para as etapas finais: o frontend deve integrar em conjunto
 os contratos das Iterações 2–4, migrar `/api/v1/spaces` para `/v2/spaces` e,
 após decisão/implementação do contrato administrativo, substituir os handlers
 antigos de staff/configuração. Nenhum arquivo do frontend foi alterado.
+
+## Deploy e smokes remotos da Iteração 4
+
+- Commit de implementação: `80f5ca7`.
+- Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32727711442>.
+- API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
+- OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
+
+| Smoke em 2026-08-24 | Resultado |
+|---|---|
+| Migrations/checksums CockroachDB | etapa do workflow verde, sem reset, edição de migration aplicada ou bypass de checksum |
+| `GET /healthcheck` | 200 `ok`, com `X-Request-ID` |
+| `GET /readiness` | 200 `ready`, com `X-Request-ID` |
+| `GET /spaces?page=1` | 200 `[]`; `X-Page: 1`, `X-Limit: 20`, `X-Has-Next-Page: false` e `X-Request-ID` |
+| `POST /manager/activities/{id}/start` sem token | 401 `UNAUTHENTICATED` com `requestId`, confirmando registro e proteção da rota sem enumerar Activity |
+| UI OpenAPI | 200 |
+| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.3.0 e 19 paths; inclui `/spaces` e start/pause |
+
+O ambiente de develop não possui Space/Activity administrativa publicada nem
+credencial de gestor atribuída para um smoke mutante seguro. Sucesso,
+idempotência, concorrência, isolamento e auditoria das transições são cobertos
+por HTTP real e PostgreSQL real no gate/deploy; nenhuma configuração remota foi
+inventada ou inserida fora de contrato para fabricar o smoke.
