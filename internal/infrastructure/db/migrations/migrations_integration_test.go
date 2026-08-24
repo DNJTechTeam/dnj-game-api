@@ -357,3 +357,73 @@ func TestMigrations_Iteration5UpgradePreservesIteration4AndParticipantConstraint
 	assert.False(t, migrator.HasColumn("user_favorites", "event_id"))
 	assert.False(t, migrator.HasColumn("participant_operations", "event_id"))
 }
+
+func TestMigrations_Iteration6UpgradePreservesPriorDataAndEnforcesGameInvariants(t *testing.T) {
+	// given
+	resetSchema(t)
+	registered := registeredMigrations()
+	for _, migration := range registered {
+		if migration.Name == "expand_iteration6_games_runs_scoring" {
+			break
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name)
+	}
+	var managerID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email, name, role, points, onboarding_complete, created_at, updated_at)
+		VALUES ('iteration6-manager@example.com', 'Iteration 6 Manager', 'EVENT_MANAGER', 0, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&managerID).Error)
+	var participantID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email, name, role, points, onboarding_complete, created_at, updated_at)
+		VALUES ('iteration6-participant@example.com', 'Iteration 6 Participant', 'DEFAULT', 37, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&participantID).Error)
+	activityID := uuid.NewString()
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES (?, 'iteration6-game', 'Iteration 6 Game', 'competitive', 'active', 0, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, activityID).Error)
+
+	// when
+	for _, migration := range registered {
+		if migration.Name != "expand_iteration6_games_runs_scoring" && migration.Name != "backfill_iteration6_games_runs_scoring" && migration.Name != "contract_iteration6_games_runs_scoring" {
+			continue
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" first replay")
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" second replay")
+	}
+	runID := uuid.NewString()
+	insertRunErr := migrationSuite.DbConn.Exec(`INSERT INTO activity_runs (id, activity_id, started_by, status, point_rules, created_at, updated_at) VALUES (?, ?, ?, 'draft', CAST('{"first":50,"second":30,"third":20,"participation":10}' AS JSONB), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, runID, activityID, managerID).Error
+	duplicateOpenErr := migrationSuite.DbConn.Exec(`INSERT INTO activity_runs (id, activity_id, started_by, status, point_rules, created_at, updated_at) VALUES (?, ?, ?, 'active', CAST('{"first":50,"second":30,"third":20,"participation":10}' AS JSONB), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, uuid.NewString(), activityID, managerID).Error
+	negativeBalanceErr := migrationSuite.DbConn.Exec(`UPDATE users SET points = -1 WHERE id = ?`, participantID).Error
+	terminalWithoutEndErr := migrationSuite.DbConn.Exec(`UPDATE activity_runs SET status = 'completed' WHERE id = ?`, runID).Error
+	pointMutationErr := migrationSuite.DbConn.Exec(`UPDATE point_entries SET delta = delta + 1 WHERE user_id = ?`, participantID).Error
+	pointDeleteErr := migrationSuite.DbConn.Exec(`DELETE FROM point_entries WHERE user_id = ?`, participantID).Error
+	var legacyEntries int64
+	require.NoError(t, migrationSuite.DbConn.Table("point_entries").Where("user_id = ? AND origin = 'legacy_balance' AND delta = 37", participantID).Count(&legacyEntries).Error)
+	var ledgerTotal int64
+	require.NoError(t, migrationSuite.DbConn.Table("point_entries").Where("user_id = ?", participantID).Select("COALESCE(SUM(delta), 0)").Scan(&ledgerTotal).Error)
+	var preserved int64
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Where("id = ?", activityID).Count(&preserved).Error)
+	migrator := migrationSuite.DbConn.Migrator()
+
+	// then
+	require.NoError(t, insertRunErr)
+	require.Error(t, duplicateOpenErr)
+	require.Error(t, negativeBalanceErr)
+	require.Error(t, terminalWithoutEndErr)
+	require.Error(t, pointMutationErr)
+	require.Error(t, pointDeleteErr)
+	assert.Equal(t, int64(1), legacyEntries)
+	assert.Equal(t, int64(37), ledgerTotal)
+	assert.Equal(t, int64(1), preserved)
+	for _, table := range []string{"activity_runs", "activity_run_qr_codes", "participations", "activity_run_participants", "point_entries", "manager_operations"} {
+		assert.True(t, migrator.HasTable(table), table)
+		assert.False(t, migrator.HasColumn(table, "event_id"), table)
+	}
+	assert.True(t, migrator.HasColumn("participant_operations", "result_ref"))
+	assert.True(t, migrator.HasColumn("participant_operations", "result_points"))
+	assert.False(t, migrator.HasTable("events"))
+}

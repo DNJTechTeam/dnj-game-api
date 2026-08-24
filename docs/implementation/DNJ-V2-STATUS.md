@@ -49,7 +49,7 @@ automatizado e evidência no ambiente `develop`.
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
-| 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
+| 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Implementada e validada localmente; deploy em andamento |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
 | 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
@@ -398,3 +398,28 @@ participante criada artificialmente. Os resultados autenticados, mutações,
 idempotência, concorrência, isolamento e ausência de auditoria indevida são
 cobertos pelo HTTP/PostgreSQL real e pelos gates do deploy, sem adicionar seed
 de produção para fabricar smoke mutante.
+
+## Evidência local da Iteração 6
+
+| Controle | Evidência em 2026-08-24 |
+|---|---|
+| Catálogo | Game é apenas projeção de Activity competitive; mesma visibilidade da Iteração 5, exclusão de draft/archived/invisível, envelope paginado e ordem `startsAt NULLS LAST,name,id`. |
+| Runs | Estados draft/active/paused/results/completed/cancelled, transições condicionais, uma run aberta por Activity, relógio injetável e timestamps UTC. |
+| QR/participação | Um QR ativo por run draft, 45 minutos, HMAC/hash em repouso, rotação imediata, scan único sem pontos/audit e 409/410 sem enumeração. |
+| Autorização | Usuário/papel/onboarding e assignment relidos no banco; `ADMIN` global, `EVENT_MANAGER` atribuído e `DEFAULT` participante; recursos fora do escopo não enumeráveis. |
+| Resultados/pontos | Snapshot 50/30/20/10; conjunto completo; locks estáveis; ledger e saldo na mesma transação; unicidade impede prêmio duplicado; cancelamento não pontua. |
+| Ledger | `point_entries` append-only por trigger; FKs `RESTRICT`; backfill `legacy_balance` preserva saldos anteriores; auditoria testável compara `SUM(delta)` com `users.points`. |
+| Ranking | Usuários DEFAULT com onboarding, grupos inclusive vazios, ordem determinística, posição ordinal, overview 30/10/50 e nenhuma PII/reason interno. |
+| HTTP real | `TestIteration6HTTP_MiddlewareHandlerServiceRepositoryAndDatabase` atravessa middleware→handler→service→repository→PostgreSQL nas 16 rotas e nos fluxos completo/cancelado. |
+| Concorrência/rollback | Testes cobrem mesma chave, scans simultâneos, criação concorrente, operações incompatíveis, finalização única e rollback integral. |
+| Cobertura | Services: 90,1% (549/609); fatia integrada: 90,4% (923/1021), gates permanentes mínimos de 90% em `make validate` e quatro workflows. |
+| Gate agregado | `make validate` verde: Wire, build, vet, race sob `TZ=UTC`, cobertura, migrations PostgreSQL reais, testes HTTP reais, OpenAPI e todos os gates permanentes das Iterações 1–6. |
+| Migrations PostgreSQL | PostgreSQL 16: instalação limpa, upgrade exato desde `f6b1cb4` e replay direto verdes, com 25 checksums íntegros. User, Space, Activity, assignment, favorite e audit anteriores permaneceram intactos; o saldo legado de 37 pontos foi conciliado no ledger e o trigger append-only rejeitou UPDATE. |
+| Migrations CockroachDB | CockroachDB v25.2.19: instalação limpa, upgrade exato desde `f6b1cb4` e replay sem reset verdes, também com 25 checksums íntegros, os mesmos dados preservados e as mesmas verificações de ledger/append-only. |
+| Esquema | Seis tabelas da Iteração 6 presentes; nenhuma tabela `games`/`events`, coluna `event_id` ou cascata destrutiva introduzida. |
+| Contrato/handoff | OpenAPI 3.0.3 `2.5.0`, 16 operações, manifesto operação→testes, `docs/games-runs-scoring.md` e `docs/game-frontend-handoff.md`. |
+| Frontend | Clone consultado somente em leitura; nenhum arquivo, commit ou push produzido. Handoff registra rotas, grafos, orçamento, polling e perfis futuros de carga. |
+
+Validações locais concluídas. Restam registrar commit, workflow verde e smokes
+remotos somente leitura. As Iterações 7–10 e os artefatos obrigatórios do
+handoff final permanecem preservados no roadmap.

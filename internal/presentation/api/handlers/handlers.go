@@ -16,4 +16,5 @@ type Handlers struct {
 	AdminInstallationHandler   *AdminInstallationHandler
 	ContentHandler             *ContentHandler
 	FavoriteHandler            *FavoriteHandler
+	GameHandler                *GameHandler
 }

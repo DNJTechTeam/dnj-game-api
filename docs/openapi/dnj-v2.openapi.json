@@ -51,6 +51,15 @@
           "type": "string"
         }
       },
+      "GameID": {
+        "in": "path",
+        "name": "gameId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
       "GroupID": {
         "in": "path",
         "name": "groupId",
@@ -88,6 +97,15 @@
           "default": 1,
           "minimum": 0,
           "type": "integer"
+        }
+      },
+      "RunID": {
+        "in": "path",
+        "name": "runId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
         }
       },
       "SpaceID": {
@@ -176,6 +194,21 @@
           }
         },
         "description": "Proteção CSRF ou autorização rejeitou a requisição",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Gone": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Recurso temporal expirado",
         "headers": {
           "X-Request-ID": {
             "$ref": "#/components/headers/RequestID"
@@ -580,6 +613,19 @@
         ],
         "type": "object"
       },
+      "CreateManagerRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gameId"
+        ],
+        "type": "object"
+      },
       "CurrentGroup": {
         "properties": {
           "group": {
@@ -723,6 +769,155 @@
           "code",
           "message",
           "requestId"
+        ],
+        "type": "object"
+      },
+      "FinalizeManagerRunResultsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RunResultRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "type": "object"
+      },
+      "Game": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "space": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "space",
+          "slug",
+          "name",
+          "description",
+          "startsAt",
+          "endsAt",
+          "allowsMoment",
+          "state"
+        ],
+        "type": "object"
+      },
+      "GameCurrent": {
+        "additionalProperties": false,
+        "properties": {
+          "groupId": {
+            "nullable": true,
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "groupRankPosition": {
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rankPosition": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "groupId",
+          "rankPosition",
+          "groupRankPosition",
+          "points"
+        ],
+        "type": "object"
+      },
+      "GameOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/GameCurrent"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupRanking"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "individual": {
+            "items": {
+              "$ref": "#/components/schemas/IndividualRanking"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "pointEntries": {
+            "items": {
+              "$ref": "#/components/schemas/PointEntry"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "individual",
+          "groups",
+          "pointEntries",
+          "current"
         ],
         "type": "object"
       },
@@ -873,6 +1068,65 @@
         ],
         "type": "object"
       },
+      "GroupRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "members": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "position": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "members",
+          "points",
+          "position"
+        ],
+        "type": "object"
+      },
+      "GroupRankingPage": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GroupRanking"
+            },
+            "type": "array"
+          },
+          "generatedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "generatedAt"
+        ],
+        "type": "object"
+      },
       "GroupSummary": {
         "properties": {
           "groupName": {
@@ -1000,6 +1254,65 @@
         ],
         "type": "object"
       },
+      "IndividualRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "groupName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "position": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "groupName",
+          "points",
+          "position"
+        ],
+        "type": "object"
+      },
+      "IndividualRankingPage": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IndividualRanking"
+            },
+            "type": "array"
+          },
+          "generatedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "generatedAt"
+        ],
+        "type": "object"
+      },
       "LogoutResponse": {
         "properties": {
           "status": {
@@ -1011,6 +1324,222 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "ManagerDashboardRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "gameId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "gameName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/RunParticipant"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "checkin",
+              "running",
+              "paused",
+              "results"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "gameId",
+          "gameName",
+          "status",
+          "startedAt",
+          "endedAt",
+          "participants"
+        ],
+        "type": "object"
+      },
+      "ManagerGame": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "$ref": "#/components/schemas/PointRules"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "points"
+        ],
+        "type": "object"
+      },
+      "ManagerGameOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "$ref": "#/components/schemas/ManagerGameOverviewActions"
+          },
+          "scope": {
+            "enum": [
+              "actions"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "ManagerGameOverviewActions": {
+        "additionalProperties": false,
+        "properties": {
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/ManagerGame"
+            },
+            "type": "array"
+          },
+          "run": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ManagerDashboardRun"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "games",
+          "run"
+        ],
+        "type": "object"
+      },
+      "ManagerQR": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "qrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "qrToken": {
+            "description": "Segredo opaco exibido somente nesta resposta; não registrar em logs.",
+            "minLength": 43,
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId",
+          "qrId",
+          "qrToken",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "ManagerRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "game": {
+            "$ref": "#/components/schemas/RunGame"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "description": "Ordenados por checkedInAt e userId.",
+            "items": {
+              "$ref": "#/components/schemas/RunParticipant"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "results",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "game",
+          "status",
+          "startedAt",
+          "endedAt",
+          "participants"
+        ],
+        "type": "object"
+      },
+      "NamedGameReference": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
         ],
         "type": "object"
       },
@@ -1039,6 +1568,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/AdminStaff"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedGames": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Game"
             },
             "type": "array"
           },
@@ -1143,6 +1691,222 @@
           "currentPage",
           "hasNextPage",
           "limit"
+        ],
+        "type": "object"
+      },
+      "ParticipantRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "gameName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "type": "string"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "results",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "gameName",
+          "startedAt",
+          "endedAt"
+        ],
+        "type": "object"
+      },
+      "ParticipantRunEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/ParticipantRun"
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "type": "object"
+      },
+      "Participation": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "$ref": "#/components/schemas/NamedGameReference"
+          },
+          "canShareMoment": {
+            "description": "Elegibilidade preservada para a Iteração 7; esta operação não cria Moment.",
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "description": "Scan não concede pontos.",
+            "enum": [
+              0
+            ],
+            "type": "integer"
+          },
+          "checkedInAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "newTotalPoints": {
+            "description": "Presente no scan/retry; omitido na leitura atual.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "place": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NamedGameReference"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "active",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "activity",
+          "place",
+          "checkedInAt",
+          "status",
+          "canShareMoment",
+          "checkInPoints"
+        ],
+        "type": "object"
+      },
+      "ParticipationEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "participation": {
+            "$ref": "#/components/schemas/Participation"
+          }
+        },
+        "required": [
+          "participation"
+        ],
+        "type": "object"
+      },
+      "PointEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "icon": {
+            "enum": [
+              "trophy",
+              "medal",
+              "game",
+              "points"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "example": "1º lugar em jogo",
+            "type": "string"
+          },
+          "points": {
+            "example": 50,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "points",
+          "icon",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "PointRules": {
+        "additionalProperties": false,
+        "properties": {
+          "first": {
+            "enum": [
+              50
+            ],
+            "type": "integer"
+          },
+          "participation": {
+            "enum": [
+              10
+            ],
+            "type": "integer"
+          },
+          "second": {
+            "enum": [
+              30
+            ],
+            "type": "integer"
+          },
+          "third": {
+            "enum": [
+              20
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first",
+          "second",
+          "third",
+          "participation"
         ],
         "type": "object"
       },
@@ -1269,6 +2033,86 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "RunGame": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RunParticipant": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedInAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Nome de exibição; nenhum dado de contato é retornado.",
+            "type": "string"
+          },
+          "pointsAwarded": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "checkedInAt",
+          "result",
+          "pointsAwarded"
+        ],
+        "type": "object"
+      },
+      "RunResultRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "participantId",
+          "result"
         ],
         "type": "object"
       },
@@ -1523,6 +2367,19 @@
           }
         },
         "type": "object"
+      },
+      "ValidateGameQRRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "qrToken": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "qrToken"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1551,7 +2408,7 @@
   "info": {
     "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.4.0"
+    "version": "2.5.0"
   },
   "openapi": "3.0.3",
   "paths": {
@@ -1651,6 +2508,65 @@
           "$ref": "#/components/parameters/ActivityID"
         }
       ]
+    },
+    "/activity-runs/current": {
+      "get": {
+        "description": "Sem runId escolhe deterministicamente a participação aberta mais recente. Com runId, inclusive terminal, só retorna a run se o usuário participa; ausência, UUID inválido, inexistente ou run alheia usa 204.",
+        "operationId": "getCurrentActivityRun",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "runId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantRunEnvelope"
+                }
+              }
+            },
+            "description": "Run do próprio participante"
+          },
+          "204": {
+            "description": "Nenhuma run relevante para este usuário"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna a run relevante do participante atual",
+        "tags": [
+          "Game participation"
+        ]
+      }
     },
     "/admin/activities": {
       "get": {
@@ -2693,6 +3609,120 @@
         ]
       }
     },
+    "/game/overview": {
+      "get": {
+        "description": "Exige usuário DEFAULT existente e onboarding completo. Retorna até 30 pessoas, 10 grupos e os 50 lançamentos próprios mais recentes. Não expõe o reason interno do ledger.",
+        "operationId": "getGameOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameOverview"
+                }
+              }
+            },
+            "description": "Overview do usuário atual"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna rankings, extrato próprio e posição atual",
+        "tags": [
+          "Rankings"
+        ]
+      }
+    },
+    "/games": {
+      "get": {
+        "description": "Game é somente a projeção pública de Activity kind=competitive. Exclui draft, archived e Activities não visíveis; ordena por startsAt NULLS LAST, name, id e rejeita query desconhecida ou repetida.",
+        "operationId": "listGames",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGames"
+                }
+              }
+            },
+            "description": "Catálogo paginado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista Activities competitivas visíveis como jogos",
+        "tags": [
+          "Games"
+        ]
+      }
+    },
+    "/games/{gameId}": {
+      "get": {
+        "description": "Inexistente, invisível, draft ou archived retorna o mesmo 404 NOT_FOUND.",
+        "operationId": "getGame",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Game"
+                }
+              }
+            },
+            "description": "Jogo visível"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Retorna a projeção pública de um jogo",
+        "tags": [
+          "Games"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GameID"
+        }
+      ]
+    },
     "/groups": {
       "get": {
         "operationId": "listGroups",
@@ -3024,6 +4054,685 @@
         "summary": "Inicia uma atividade em draft ou retoma uma atividade pausada",
         "tags": [
           "Activity operations"
+        ]
+      }
+    },
+    "/manager/game-overview": {
+      "get": {
+        "description": "ADMIN possui escopo global. EVENT_MANAGER vê somente Activities com assignment persistido. Papel e assignment são confirmados no banco.",
+        "operationId": "getManagerGameOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerGameOverview"
+                }
+              }
+            },
+            "description": "Dashboard compatível com o consumidor existente"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna catálogo gerenciável e no máximo uma run aberta",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs": {
+      "post": {
+        "description": "Corpo estrito {gameId}. Regras 50/30/20/10 são snapshot do servidor. Impede duas runs abertas na mesma Activity. Retry da mesma intenção devolve o resultado original e não duplica audit.",
+        "operationId": "createManagerRun",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManagerRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Run draft criada ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria uma run draft para uma Activity competitive gerenciável",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}": {
+      "get": {
+        "description": "Recurso inexistente e fora do assignment retornam o mesmo 404.",
+        "operationId": "getManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Run gerenciável sem dados de contato"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna estado e participantes da run no escopo atual",
+        "tags": [
+          "Game management"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        }
+      ]
+    },
+    "/manager/runs/{runId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; cancelled é terminal e endedAt vem do servidor.",
+        "operationId": "cancelManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cancela uma run aberta sem conceder pontos",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; estados incompatíveis retornam 409.",
+        "operationId": "pauseManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona active para paused",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/qr": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido.",
+        "operationId": "rotateManagerRunQR",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerQR"
+                }
+              }
+            },
+            "description": "Token novo ou token original reconstituído no retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria ou rotaciona o único QR ativo da run draft",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/results": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Corpo estrito com exatamente todos os participantes. first, second e third aceitam no máximo um usuário. Locks são ordenados; ledger, users.points, estado completed e audit formam uma única transação.",
+        "operationId": "finalizeManagerRunResults",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeManagerRunResultsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Valida resultados completos, premia atomicamente e conclui a run",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; estados incompatíveis retornam 409.",
+        "operationId": "resumeManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona paused para active sem reescrever startedAt",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. startedAt é definido pelo servidor uma única vez.",
+        "operationId": "startManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona draft para active e fixa startedAt",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/participations/current": {
+      "get": {
+        "operationId": "getCurrentParticipation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Participação atual"
+          },
+          "204": {
+            "description": "Nenhuma participação aberta"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna a participação aberta do usuário atual",
+        "tags": [
+          "Game participation"
+        ]
+      }
+    },
+    "/qr/validate": {
+      "post": {
+        "description": "Aceita estritamente qrToken no corpo e Idempotency-Key no header. Não concede pontos nem cria audit privilegiado. QR inválido, revogado ou invisível retorna QR_UNAVAILABLE sem enumerar recurso; QR no instante exato de expiração retorna QR_EXPIRED.",
+        "operationId": "validateGameQR",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateGameQRRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Usuário já participava; intenção registrada"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Participação criada"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Valida QR e registra a entrada idempotente na run",
+        "tags": [
+          "Game participation"
+        ]
+      }
+    },
+    "/rankings": {
+      "get": {
+        "description": "Público. scope é obrigatório e aceita somente individual ou groups. Posição é ordinal; empates preservam a ordem determinística por pontos DESC, nome e id. Query desconhecida ou repetida é inválida.",
+        "operationId": "listRankings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": true,
+            "schema": {
+              "enum": [
+                "individual",
+                "groups"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/IndividualRankingPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GroupRankingPage"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Ranking persistido no escopo solicitado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista ranking individual ou de grupos",
+        "tags": [
+          "Rankings"
         ]
       }
     },
@@ -3485,6 +5194,18 @@
     },
     {
       "name": "Activity operations"
+    },
+    {
+      "name": "Games"
+    },
+    {
+      "name": "Rankings"
+    },
+    {
+      "name": "Game participation"
+    },
+    {
+      "name": "Game management"
     },
     {
       "name": "Installation administration"

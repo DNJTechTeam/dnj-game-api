@@ -259,3 +259,91 @@ operations:
     path: /admin/activities/{activityId}/managers/{userId}
     statuses: ['204', '400', '401', '403', '404', '409', '500']
     automatedTests: *adminInstallationTests
+  - operationId: listGames
+    method: GET
+    path: /games
+    statuses: ['200', '400', '500']
+    automatedTests: &iteration6Tests
+      - internal/app/services/iteration6_service_test.go
+      - internal/app/services/iteration6_service_error_test.go
+      - internal/app/services/iteration6_http_integration_test.go
+      - internal/app/mappers/iteration6_game_mapper_test.go
+      - internal/infrastructure/db/migrations/migrations_integration_test.go
+      - internal/infrastructure/db/repositories/iteration6_game_repository_test.go
+      - internal/presentation/api/handlers/iteration6_handler_test.go
+      - internal/presentation/api/routers/iteration6_router_test.go
+  - operationId: getGame
+    method: GET
+    path: /games/{gameId}
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration6Tests
+  - operationId: listRankings
+    method: GET
+    path: /rankings
+    statuses: ['200', '400', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getGameOverview
+    method: GET
+    path: /game/overview
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getCurrentActivityRun
+    method: GET
+    path: /activity-runs/current
+    statuses: ['200', '204', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getCurrentParticipation
+    method: GET
+    path: /participations/current
+    statuses: ['200', '204', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: validateGameQR
+    method: POST
+    path: /qr/validate
+    statuses: ['200', '201', '400', '401', '403', '409', '410', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getManagerGameOverview
+    method: GET
+    path: /manager/game-overview
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getManagerRun
+    method: GET
+    path: /manager/runs/{runId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: createManagerRun
+    method: POST
+    path: /manager/runs
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: rotateManagerRunQR
+    method: POST
+    path: /manager/runs/{runId}/qr
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: startManagerRun
+    method: POST
+    path: /manager/runs/{runId}/start
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: pauseManagerRun
+    method: POST
+    path: /manager/runs/{runId}/pause
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: resumeManagerRun
+    method: POST
+    path: /manager/runs/{runId}/resume
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: finalizeManagerRunResults
+    method: POST
+    path: /manager/runs/{runId}/results
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: cancelManagerRun
+    method: POST
+    path: /manager/runs/{runId}/cancel
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests

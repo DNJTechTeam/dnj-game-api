@@ -29,6 +29,7 @@ func InitializeServer() *api.API {
 		repositories.ProvideSpaceRepository,
 		repositories.ProvideActivityRepository,
 		repositories.ProvideFavoriteRepository,
+		repositories.ProvideGameRepository,
 		repositories.ProvideOperationAuditRepository,
 		repositories.ProvideAdminOperationRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
@@ -51,6 +52,7 @@ func InitializeServer() *api.API {
 		services.ProvideActivityService,
 		services.ProvideContentService,
 		services.ProvideFavoriteService,
+		services.ProvideGameService,
 		services.ProvideAdminInstallationService,
 
 		diApi.ProvideEngine,
@@ -69,6 +71,7 @@ func InitializeServer() *api.API {
 		wire.Struct(new(handlers.AdminInstallationHandler), "*"),
 		wire.Struct(new(handlers.ContentHandler), "*"),
 		wire.Struct(new(handlers.FavoriteHandler), "*"),
+		wire.Struct(new(handlers.GameHandler), "*"),
 		wire.Struct(new(handlers.Handlers), "*"),
 		wire.Struct(new(api.API), "*"),
 	)

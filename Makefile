@@ -9,8 +9,11 @@ ADMIN_COVER_PROFILE ?= /tmp/dnj-admin-coverage.out
 ADMIN_SERVICE_COVER_MIN ?= 91.4
 ADMIN_SLICE_COVER_MIN ?= 92.1
 ITERATION5_COVER_PROFILE ?= /tmp/dnj-iteration5-coverage.out
-ITERATION5_SERVICE_COVER_MIN ?= 90
-ITERATION5_SLICE_COVER_MIN ?= 90
+ITERATION5_SERVICE_COVER_MIN ?= 97.4
+ITERATION5_SLICE_COVER_MIN ?= 96.0
+ITERATION6_COVER_PROFILE ?= /tmp/dnj-iteration6-coverage.out
+ITERATION6_SERVICE_COVER_MIN ?= 90
+ITERATION6_SLICE_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -20,7 +23,7 @@ OPENAPI_DIR=docs/openapi
 
 .PHONY: wire build run run-api vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check \
+        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -108,7 +111,14 @@ test-iteration5-cover-check:
 		-coverpkg=./internal/app/services,./internal/app/mappers,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
 	bash scripts/check-iteration5-coverage.sh $(ITERATION5_COVER_PROFILE) $(ITERATION5_SERVICE_COVER_MIN) $(ITERATION5_SLICE_COVER_MIN)
 
-validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-migrations openapi
+test-iteration6-cover-check:
+	go test ./internal/app/services ./internal/app/mappers ./internal/presentation/api/handlers ./internal/infrastructure/db/mappers ./internal/infrastructure/db/repositories \
+		-run 'TestIteration6' -count=1 \
+		-coverprofile=$(ITERATION6_COVER_PROFILE) \
+		-coverpkg=./internal/app/services,./internal/app/mappers,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
+	bash scripts/check-iteration6-coverage.sh $(ITERATION6_COVER_PROFILE) $(ITERATION6_SERVICE_COVER_MIN) $(ITERATION6_SLICE_COVER_MIN)
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.4.0
+  version: 2.5.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -17,6 +17,10 @@ tags:
   - name: Activities
   - name: Favorites
   - name: Activity operations
+  - name: Games
+  - name: Rankings
+  - name: Game participation
+  - name: Game management
   - name: Installation administration
 paths:
   /healthcheck:
@@ -641,6 +645,270 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /games:
+    get:
+      tags: [Games]
+      operationId: listGames
+      summary: Lista Activities competitivas visíveis como jogos
+      description: >-
+        Game é somente a projeção pública de Activity kind=competitive. Exclui
+        draft, archived e Activities não visíveis; ordena por startsAt NULLS
+        LAST, name, id e rejeita query desconhecida ou repetida.
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200': {description: Catálogo paginado, content: {application/json: {schema: {$ref: '#/components/schemas/PaginatedGames'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /games/{gameId}:
+    parameters: [{$ref: '#/components/parameters/GameID'}]
+    get:
+      tags: [Games]
+      operationId: getGame
+      summary: Retorna a projeção pública de um jogo
+      description: Inexistente, invisível, draft ou archived retorna o mesmo 404 NOT_FOUND.
+      responses:
+        '200': {description: Jogo visível, content: {application/json: {schema: {$ref: '#/components/schemas/Game'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /rankings:
+    get:
+      tags: [Rankings]
+      operationId: listRankings
+      summary: Lista ranking individual ou de grupos
+      description: >-
+        Público. scope é obrigatório e aceita somente individual ou groups.
+        Posição é ordinal; empates preservam a ordem determinística por pontos
+        DESC, nome e id. Query desconhecida ou repetida é inválida.
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema: {type: string, enum: [individual, groups]}
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200':
+          description: Ranking persistido no escopo solicitado
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - {$ref: '#/components/schemas/IndividualRankingPage'}
+                  - {$ref: '#/components/schemas/GroupRankingPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /game/overview:
+    get:
+      tags: [Rankings]
+      operationId: getGameOverview
+      summary: Retorna rankings, extrato próprio e posição atual
+      description: >-
+        Exige usuário DEFAULT existente e onboarding completo. Retorna até 30
+        pessoas, 10 grupos e os 50 lançamentos próprios mais recentes. Não
+        expõe o reason interno do ledger.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Overview do usuário atual, content: {application/json: {schema: {$ref: '#/components/schemas/GameOverview'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /activity-runs/current:
+    get:
+      tags: [Game participation]
+      operationId: getCurrentActivityRun
+      summary: Retorna a run relevante do participante atual
+      description: >-
+        Sem runId escolhe deterministicamente a participação aberta mais
+        recente. Com runId, inclusive terminal, só retorna a run se o usuário
+        participa; ausência, UUID inválido, inexistente ou run alheia usa 204.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - name: runId
+          in: query
+          required: false
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Run do próprio participante, content: {application/json: {schema: {$ref: '#/components/schemas/ParticipantRunEnvelope'}}}}
+        '204': {description: Nenhuma run relevante para este usuário}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /participations/current:
+    get:
+      tags: [Game participation]
+      operationId: getCurrentParticipation
+      summary: Retorna a participação aberta do usuário atual
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Participação atual, content: {application/json: {schema: {$ref: '#/components/schemas/ParticipationEnvelope'}}}}
+        '204': {description: Nenhuma participação aberta}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /qr/validate:
+    post:
+      tags: [Game participation]
+      operationId: validateGameQR
+      summary: Valida QR e registra a entrada idempotente na run
+      description: >-
+        Aceita estritamente qrToken no corpo e Idempotency-Key no header. Não
+        concede pontos nem cria audit privilegiado. QR inválido, revogado ou
+        invisível retorna QR_UNAVAILABLE sem enumerar recurso; QR no instante
+        exato de expiração retorna QR_EXPIRED.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ValidateGameQRRequest'}}}
+      responses:
+        '200': {description: Usuário já participava; intenção registrada, content: {application/json: {schema: {$ref: '#/components/schemas/ParticipationEnvelope'}}}}
+        '201': {description: Participação criada, content: {application/json: {schema: {$ref: '#/components/schemas/ParticipationEnvelope'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '410': {$ref: '#/components/responses/Gone'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/game-overview:
+    get:
+      tags: [Game management]
+      operationId: getManagerGameOverview
+      summary: Retorna catálogo gerenciável e no máximo uma run aberta
+      description: >-
+        ADMIN possui escopo global. EVENT_MANAGER vê somente Activities com
+        assignment persistido. Papel e assignment são confirmados no banco.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Dashboard compatível com o consumidor existente, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerGameOverview'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/runs/{runId}:
+    parameters: [{$ref: '#/components/parameters/RunID'}]
+    get:
+      tags: [Game management]
+      operationId: getManagerRun
+      summary: Retorna estado e participantes da run no escopo atual
+      description: Recurso inexistente e fora do assignment retornam o mesmo 404.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Run gerenciável sem dados de contato, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerRun'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/runs:
+    post:
+      tags: [Game management]
+      operationId: createManagerRun
+      summary: Cria uma run draft para uma Activity competitive gerenciável
+      description: >-
+        Corpo estrito {gameId}. Regras 50/30/20/10 são snapshot do servidor.
+        Impede duas runs abertas na mesma Activity. Retry da mesma intenção
+        devolve o resultado original e não duplica audit.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CreateManagerRunRequest'}}}
+      responses:
+        '201': {description: Run draft criada ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerRun'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/runs/{runId}/qr:
+    parameters:
+      - {$ref: '#/components/parameters/RunID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Game management]
+      operationId: rotateManagerRunQR
+      summary: Cria ou rotaciona o único QR ativo da run draft
+      description: >-
+        Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token
+        expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '201': {description: Token novo ou token original reconstituído no retry, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerQR'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/runs/{runId}/start:
+    parameters: &managerRunMutationParameters
+      - {$ref: '#/components/parameters/RunID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Game management]
+      operationId: startManagerRun
+      summary: Transiciona draft para active e fixa startedAt
+      description: Não aceita corpo. startedAt é definido pelo servidor uma única vez.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses: &managerRunMutationResponses
+        '200': {description: Estado resultante ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerRun'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/runs/{runId}/pause:
+    parameters: *managerRunMutationParameters
+    post:
+      tags: [Game management]
+      operationId: pauseManagerRun
+      summary: Transiciona active para paused
+      description: Não aceita corpo; estados incompatíveis retornam 409.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses: *managerRunMutationResponses
+  /manager/runs/{runId}/resume:
+    parameters: *managerRunMutationParameters
+    post:
+      tags: [Game management]
+      operationId: resumeManagerRun
+      summary: Transiciona paused para active sem reescrever startedAt
+      description: Não aceita corpo; estados incompatíveis retornam 409.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses: *managerRunMutationResponses
+  /manager/runs/{runId}/results:
+    parameters: *managerRunMutationParameters
+    post:
+      tags: [Game management]
+      operationId: finalizeManagerRunResults
+      summary: Valida resultados completos, premia atomicamente e conclui a run
+      description: >-
+        Corpo estrito com exatamente todos os participantes. first, second e
+        third aceitam no máximo um usuário. Locks são ordenados; ledger,
+        users.points, estado completed e audit formam uma única transação.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/FinalizeManagerRunResultsRequest'}}}
+      responses: *managerRunMutationResponses
+  /manager/runs/{runId}/cancel:
+    parameters: *managerRunMutationParameters
+    post:
+      tags: [Game management]
+      operationId: cancelManagerRun
+      summary: Cancela uma run aberta sem conceder pontos
+      description: Não aceita corpo; cancelled é terminal e endedAt vem do servidor.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses: *managerRunMutationResponses
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
@@ -683,6 +951,16 @@ components:
       schema: {type: string, pattern: '^[1-9][0-9]*$'}
     ActivityID:
       name: activityId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    GameID:
+      name: gameId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RunID:
+      name: runId
       in: path
       required: true
       schema: {type: string, format: uuid}
@@ -747,6 +1025,13 @@ components:
           schema: {$ref: '#/components/schemas/Error'}
     Conflict:
       description: Estado atual impede a operação
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Gone:
+      description: Recurso temporal expirado
       headers:
         X-Request-ID: {$ref: '#/components/headers/RequestID'}
       content:
@@ -1125,6 +1410,240 @@ components:
       properties:
         id: {type: string, format: uuid}
         status: {type: string, enum: [active, paused]}
+    Game:
+      type: object
+      additionalProperties: false
+      required: [id, space, slug, name, description, startsAt, endsAt, allowsMoment, state]
+      properties:
+        id: {type: string, format: uuid}
+        space: {nullable: true, allOf: [{$ref: '#/components/schemas/PublicSpace'}]}
+        slug: {type: string}
+        name: {type: string}
+        description: {type: string, nullable: true}
+        startsAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z., example: '2026-10-18T15:00:00Z'}
+        endsAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z., example: '2026-10-18T16:00:00Z'}
+        allowsMoment: {type: boolean}
+        state: {type: string, nullable: true, enum: [ended, live, upcoming, scheduled]}
+    PaginatedGames:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Game'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    IndividualRanking:
+      type: object
+      additionalProperties: false
+      required: [id, name, groupName, points, position]
+      properties:
+        id: {type: string, pattern: '^[1-9][0-9]*$'}
+        name: {type: string}
+        groupName: {type: string, nullable: true}
+        points: {type: integer, minimum: 0}
+        position: {type: integer, format: int64, minimum: 1}
+    GroupRanking:
+      type: object
+      additionalProperties: false
+      required: [id, name, members, points, position]
+      properties:
+        id: {type: string, pattern: '^[1-9][0-9]*$'}
+        name: {type: string}
+        members: {type: integer, minimum: 0}
+        points: {type: integer, minimum: 0}
+        position: {type: integer, format: int64, minimum: 1}
+    IndividualRankingPage:
+      type: object
+      additionalProperties: false
+      required: [data, pagination, generatedAt]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/IndividualRanking'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        generatedAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T15:00:00Z'}
+    GroupRankingPage:
+      type: object
+      additionalProperties: false
+      required: [data, pagination, generatedAt]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/GroupRanking'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        generatedAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T15:00:00Z'}
+    PointEntry:
+      type: object
+      additionalProperties: false
+      required: [id, label, points, icon, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        label: {type: string, example: 1º lugar em jogo}
+        points: {type: integer, example: 50}
+        icon: {type: string, enum: [trophy, medal, game, points]}
+        createdAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T16:00:00Z'}
+    GameCurrent:
+      type: object
+      additionalProperties: false
+      required: [groupId, rankPosition, groupRankPosition, points]
+      properties:
+        groupId: {type: string, pattern: '^[1-9][0-9]*$', nullable: true}
+        rankPosition: {type: integer, format: int64, minimum: 1}
+        groupRankPosition: {type: integer, format: int64, minimum: 1, nullable: true}
+        points: {type: integer, minimum: 0}
+    GameOverview:
+      type: object
+      additionalProperties: false
+      required: [individual, groups, pointEntries, current]
+      properties:
+        individual: {type: array, maxItems: 30, items: {$ref: '#/components/schemas/IndividualRanking'}}
+        groups: {type: array, maxItems: 10, items: {$ref: '#/components/schemas/GroupRanking'}}
+        pointEntries: {type: array, maxItems: 50, items: {$ref: '#/components/schemas/PointEntry'}}
+        current: {$ref: '#/components/schemas/GameCurrent'}
+    NamedGameReference:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+    Participation:
+      type: object
+      additionalProperties: false
+      required: [id, activity, place, checkedInAt, status, canShareMoment, checkInPoints]
+      properties:
+        id: {type: string, format: uuid}
+        activity: {$ref: '#/components/schemas/NamedGameReference'}
+        place: {nullable: true, allOf: [{$ref: '#/components/schemas/NamedGameReference'}]}
+        checkedInAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T15:00:00Z'}
+        status: {type: string, enum: [active, completed, cancelled]}
+        canShareMoment: {type: boolean, description: Elegibilidade preservada para a Iteração 7; esta operação não cria Moment.}
+        checkInPoints: {type: integer, enum: [0], description: Scan não concede pontos.}
+        newTotalPoints: {type: integer, minimum: 0, description: Presente no scan/retry; omitido na leitura atual.}
+    ParticipationEnvelope:
+      type: object
+      additionalProperties: false
+      required: [participation]
+      properties:
+        participation: {$ref: '#/components/schemas/Participation'}
+    ParticipantRun:
+      type: object
+      additionalProperties: false
+      required: [id, status, gameName, startedAt, endedAt]
+      properties:
+        id: {type: string, format: uuid}
+        status: {type: string, enum: [draft, active, paused, results, completed, cancelled]}
+        gameName: {type: string}
+        startedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        endedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        result: {type: string, enum: [first, second, third, participation]}
+        points: {type: integer, minimum: 0}
+    ParticipantRunEnvelope:
+      type: object
+      additionalProperties: false
+      required: [run]
+      properties:
+        run: {$ref: '#/components/schemas/ParticipantRun'}
+    RunGame:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+    RunParticipant:
+      type: object
+      additionalProperties: false
+      required: [id, name, checkedInAt, result, pointsAwarded]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string, description: Nome de exibição; nenhum dado de contato é retornado.}
+        checkedInAt: {type: string, format: date-time, description: UTC RFC 3339 com Z.}
+        result: {type: string, nullable: true, enum: [first, second, third, participation]}
+        pointsAwarded: {type: integer, minimum: 0}
+    ManagerRun:
+      type: object
+      additionalProperties: false
+      required: [id, game, status, startedAt, endedAt, participants]
+      properties:
+        id: {type: string, format: uuid}
+        game: {$ref: '#/components/schemas/RunGame'}
+        status: {type: string, enum: [draft, active, paused, results, completed, cancelled]}
+        startedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        endedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        participants: {type: array, items: {$ref: '#/components/schemas/RunParticipant'}, description: Ordenados por checkedInAt e userId.}
+    PointRules:
+      type: object
+      additionalProperties: false
+      required: [first, second, third, participation]
+      properties:
+        first: {type: integer, enum: [50]}
+        second: {type: integer, enum: [30]}
+        third: {type: integer, enum: [20]}
+        participation: {type: integer, enum: [10]}
+    ManagerGame:
+      type: object
+      additionalProperties: false
+      required: [id, name, points]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        points: {$ref: '#/components/schemas/PointRules'}
+    ManagerDashboardRun:
+      type: object
+      additionalProperties: false
+      required: [id, gameId, gameName, status, startedAt, endedAt, participants]
+      properties:
+        id: {type: string, format: uuid}
+        gameId: {type: string, format: uuid}
+        gameName: {type: string}
+        status: {type: string, enum: [checkin, running, paused, results]}
+        startedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        endedAt: {type: string, format: date-time, nullable: true, description: UTC RFC 3339 com Z.}
+        participants: {type: array, items: {$ref: '#/components/schemas/RunParticipant'}}
+    ManagerGameOverviewActions:
+      type: object
+      additionalProperties: false
+      required: [games, run]
+      properties:
+        games: {type: array, items: {$ref: '#/components/schemas/ManagerGame'}}
+        run: {nullable: true, allOf: [{$ref: '#/components/schemas/ManagerDashboardRun'}]}
+    ManagerGameOverview:
+      type: object
+      additionalProperties: false
+      required: [scope, actions]
+      properties:
+        scope: {type: string, enum: [actions]}
+        actions: {$ref: '#/components/schemas/ManagerGameOverviewActions'}
+    ManagerQR:
+      type: object
+      additionalProperties: false
+      required: [runId, qrId, qrToken, expiresAt]
+      properties:
+        runId: {type: string, format: uuid}
+        qrId: {type: string, format: uuid}
+        qrToken: {type: string, minLength: 43, description: Segredo opaco exibido somente nesta resposta; não registrar em logs.}
+        expiresAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T15:45:00Z'}
+    ValidateGameQRRequest:
+      type: object
+      additionalProperties: false
+      required: [qrToken]
+      properties:
+        qrToken: {type: string, minLength: 1}
+    CreateManagerRunRequest:
+      type: object
+      additionalProperties: false
+      required: [gameId]
+      properties:
+        gameId: {type: string, format: uuid}
+    RunResultRequest:
+      type: object
+      additionalProperties: false
+      required: [participantId, result]
+      properties:
+        participantId: {type: string, format: uuid}
+        result: {type: string, enum: [first, second, third, participation]}
+    FinalizeManagerRunResultsRequest:
+      type: object
+      additionalProperties: false
+      required: [results]
+      properties:
+        results: {type: array, items: {$ref: '#/components/schemas/RunResultRequest'}}
     LogoutResponse:
       type: object
       required: [status]

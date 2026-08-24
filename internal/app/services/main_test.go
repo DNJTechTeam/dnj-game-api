@@ -11,6 +11,7 @@ import (
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
+	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
@@ -47,6 +48,7 @@ type TestSuiteType struct {
 	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
 	AdminOperationRepository      adminInterfaces.AdminOperationRepositoryInterface
 	FavoriteRepository            favoriteInterfaces.FavoriteRepositoryInterface
+	GameRepository                gameInterfaces.GameRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -71,6 +73,7 @@ func initializeTestSuite() {
 	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)
 	TestSuite.AdminOperationRepository = repositories.NewAdminOperationRepository(TestSuite.DbConn)
 	TestSuite.FavoriteRepository = repositories.NewFavoriteRepository(TestSuite.DbConn)
+	TestSuite.GameRepository = repositories.NewGameRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {

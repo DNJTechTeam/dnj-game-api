@@ -16,12 +16,12 @@ func MapParticipantOperationToEntity(model *models.ParticipantOperation) *entiti
 	if model == nil {
 		return nil
 	}
-	return &entities.ParticipantOperation{ID: model.ID, ActorUserID: model.ActorUserID, IdempotencyKey: model.IdempotencyKey, Operation: model.Operation, ActivityID: model.ActivityID, IntentHash: model.IntentHash, HTTPStatus: model.HTTPStatus, CreatedAt: model.CreatedAt}
+	return &entities.ParticipantOperation{ID: model.ID, ActorUserID: model.ActorUserID, IdempotencyKey: model.IdempotencyKey, Operation: model.Operation, ActivityID: model.ActivityID, IntentHash: model.IntentHash, HTTPStatus: model.HTTPStatus, ResultRef: model.ResultRef, ResultPoints: model.ResultPoints, CreatedAt: model.CreatedAt}
 }
 
 func MapParticipantOperationEntityToModel(entity *entities.ParticipantOperation) *models.ParticipantOperation {
 	if entity == nil {
 		return nil
 	}
-	return &models.ParticipantOperation{ID: entity.ID, ActorUserID: entity.ActorUserID, IdempotencyKey: entity.IdempotencyKey, Operation: entity.Operation, ActivityID: entity.ActivityID, IntentHash: entity.IntentHash, HTTPStatus: entity.HTTPStatus, CreatedAt: entity.CreatedAt}
+	return &models.ParticipantOperation{ID: entity.ID, ActorUserID: entity.ActorUserID, IdempotencyKey: entity.IdempotencyKey, Operation: entity.Operation, ActivityID: entity.ActivityID, IntentHash: entity.IntentHash, HTTPStatus: entity.HTTPStatus, ResultRef: entity.ResultRef, ResultPoints: entity.ResultPoints, CreatedAt: entity.CreatedAt}
 }

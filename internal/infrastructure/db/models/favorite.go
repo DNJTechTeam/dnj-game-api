@@ -18,6 +18,8 @@ type ParticipantOperation struct {
 	ActivityID     string    `gorm:"type:uuid;not null"`
 	IntentHash     string    `gorm:"size:64;not null"`
 	HTTPStatus     int       `gorm:"not null"`
+	ResultRef      *string   `gorm:"type:uuid;default:null"`
+	ResultPoints   *int      `gorm:"default:null"`
 	CreatedAt      time.Time `gorm:"autoCreateTime:nano"`
 }
 

@@ -709,4 +709,222 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_iteration6_games_runs_scoring",
+		Description: "Create competitive activity runs, participants, QR, participation, point ledger and manager idempotency storage",
+		Version:     "2.5.0",
+		Definition:  "iteration6-games-runs-scoring-expand-v2",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE TABLE IF NOT EXISTS activity_runs (
+					id UUID PRIMARY KEY,
+					activity_id UUID NOT NULL,
+					started_by BIGINT NOT NULL,
+					status VARCHAR(24) NOT NULL,
+					point_rules JSONB NOT NULL,
+					started_at TIMESTAMPTZ,
+					ended_at TIMESTAMPTZ,
+					created_at TIMESTAMPTZ NOT NULL,
+					updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS activity_run_qr_codes (
+					id UUID PRIMARY KEY,
+					activity_id UUID NOT NULL,
+					activity_run_id UUID NOT NULL,
+					token_hash VARCHAR(64) NOT NULL,
+					expires_at TIMESTAMPTZ NOT NULL,
+					status VARCHAR(24) NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL,
+					updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS participations (
+					id UUID PRIMARY KEY,
+					user_id BIGINT NOT NULL,
+					activity_id UUID NOT NULL,
+					activity_run_id UUID NOT NULL,
+					qr_code_id UUID NOT NULL,
+					checked_in_at TIMESTAMPTZ NOT NULL,
+					status VARCHAR(24) NOT NULL,
+					can_share_moment BOOLEAN NOT NULL DEFAULT FALSE,
+					check_in_points INTEGER NOT NULL DEFAULT 0,
+					created_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS activity_run_participants (
+					id UUID PRIMARY KEY,
+					activity_run_id UUID NOT NULL,
+					user_id BIGINT NOT NULL,
+					participation_id UUID NOT NULL,
+					checked_in_at TIMESTAMPTZ NOT NULL,
+					result VARCHAR(24),
+					points_awarded INTEGER NOT NULL DEFAULT 0,
+					created_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS point_entries (
+					id UUID PRIMARY KEY,
+					user_id BIGINT NOT NULL,
+					activity_id UUID,
+					activity_run_id UUID,
+					participation_id UUID,
+					origin VARCHAR(64) NOT NULL,
+					reason VARCHAR(80) NOT NULL,
+					delta INTEGER NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS manager_operations (
+					id UUID PRIMARY KEY,
+					actor_user_id BIGINT NOT NULL,
+					idempotency_key UUID NOT NULL,
+					operation VARCHAR(120) NOT NULL,
+					activity_id UUID NOT NULL,
+					activity_run_id UUID,
+					intent_hash VARCHAR(64) NOT NULL,
+					result_ref UUID,
+					result_status VARCHAR(24),
+					result_started_at TIMESTAMPTZ,
+					result_ended_at TIMESTAMPTZ,
+					result_expires_at TIMESTAMPTZ,
+					http_status INTEGER NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL
+				)`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS result_ref UUID`,
+				`ALTER TABLE participant_operations ADD COLUMN IF NOT EXISTS result_points INTEGER`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_iteration6_games_runs_scoring",
+		Description: "Normalize safe defaults for any pre-contract iteration 6 rows without inventing runs or points",
+		Version:     "2.5.0",
+		Definition:  "iteration6-games-runs-scoring-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`UPDATE activity_runs SET updated_at = created_at WHERE updated_at IS NULL`,
+				`UPDATE activity_run_qr_codes SET updated_at = created_at WHERE updated_at IS NULL`,
+				`UPDATE activity_run_participants SET points_awarded = 0 WHERE points_awarded IS NULL`,
+				`UPDATE participations SET can_share_moment = FALSE WHERE can_share_moment IS NULL`,
+				`UPDATE participations SET check_in_points = 0 WHERE check_in_points IS NULL`,
+				`INSERT INTO point_entries (id, user_id, activity_id, activity_run_id, participation_id, origin, reason, delta, created_at)
+				 SELECT gen_random_uuid(), users.id, NULL, NULL, NULL, 'legacy_balance', 'legacy_balance', users.points, users.created_at
+				 FROM users
+				 WHERE users.points > 0
+				   AND NOT EXISTS (
+				     SELECT 1 FROM point_entries
+				     WHERE point_entries.user_id = users.id AND point_entries.origin = 'legacy_balance'
+				   )`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_iteration6_games_runs_scoring",
+		Description: "Enforce run state, immutable-ledger relationships, deterministic ranking and idempotent competitive operations",
+		Version:     "2.5.0",
+		Definition:  "iteration6-games-runs-scoring-contract-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("participant_operations", "participant_operations_status_check") {
+				if err := db.Migrator().DropConstraint("participant_operations", "participant_operations_status_check"); err != nil {
+					return err
+				}
+			}
+			statements := []string{
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_runs_one_open_per_activity ON activity_runs (activity_id) WHERE status IN ('draft','active','paused','results')`,
+				`CREATE INDEX IF NOT EXISTS activity_runs_manager_open_idx ON activity_runs (started_by, status, created_at DESC, id DESC)`,
+				`CREATE INDEX IF NOT EXISTS activity_runs_activity_created_idx ON activity_runs (activity_id, created_at DESC, id DESC)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_run_qr_token_hash_unique ON activity_run_qr_codes (token_hash)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_run_qr_one_active_per_run ON activity_run_qr_codes (activity_run_id) WHERE status = 'active'`,
+				`CREATE INDEX IF NOT EXISTS activity_run_qr_expiry_idx ON activity_run_qr_codes (expires_at, id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS participations_run_user_unique ON participations (activity_run_id, user_id)`,
+				`CREATE INDEX IF NOT EXISTS participations_user_current_idx ON participations (user_id, checked_in_at DESC, id DESC)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_run_participants_run_user_unique ON activity_run_participants (activity_run_id, user_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_run_participants_participation_unique ON activity_run_participants (participation_id)`,
+				`CREATE INDEX IF NOT EXISTS activity_run_participants_order_idx ON activity_run_participants (activity_run_id, checked_in_at, user_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS point_entries_run_user_reason_unique ON point_entries (activity_run_id, user_id, reason) WHERE activity_run_id IS NOT NULL`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS point_entries_legacy_user_unique ON point_entries (user_id) WHERE origin = 'legacy_balance'`,
+				`CREATE INDEX IF NOT EXISTS point_entries_user_history_idx ON point_entries (user_id, created_at DESC, id DESC)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS manager_operations_actor_idempotency_unique ON manager_operations (actor_user_id, idempotency_key)`,
+				`CREATE INDEX IF NOT EXISTS manager_operations_run_created_idx ON manager_operations (activity_run_id, created_at, id)`,
+				`CREATE INDEX IF NOT EXISTS users_iteration6_ranking_idx ON users (points DESC, name ASC, id ASC) WHERE onboarding_complete = TRUE AND role = 'DEFAULT'`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			triggerStatements := []string{
+				`CREATE OR REPLACE FUNCTION prevent_point_entries_mutation()
+				 RETURNS TRIGGER AS $$
+				 BEGIN
+				   RAISE EXCEPTION 'point_entries is append-only';
+				 END;
+				 $$ LANGUAGE PLpgSQL`,
+				`DROP TRIGGER IF EXISTS point_entries_append_only ON point_entries`,
+				`CREATE TRIGGER point_entries_append_only
+				 BEFORE UPDATE OR DELETE ON point_entries
+				 FOR EACH ROW EXECUTE FUNCTION prevent_point_entries_mutation()`,
+			}
+			for _, statement := range triggerStatements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			constraints := []struct{ table, name, definition string }{
+				{"users", "users_points_nonnegative_check", `CHECK (points >= 0)`},
+				{"activity_runs", "activity_runs_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"activity_runs", "activity_runs_started_by_fk", `FOREIGN KEY (started_by) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"activity_runs", "activity_runs_status_check", `CHECK (status IN ('draft','active','paused','results','completed','cancelled'))`},
+				{"activity_runs", "activity_runs_terminal_time_check", `CHECK ((status IN ('completed','cancelled') AND ended_at IS NOT NULL) OR (status NOT IN ('completed','cancelled') AND ended_at IS NULL))`},
+				{"activity_run_qr_codes", "activity_run_qr_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"activity_run_qr_codes", "activity_run_qr_run_fk", `FOREIGN KEY (activity_run_id) REFERENCES activity_runs(id) ON DELETE RESTRICT`},
+				{"activity_run_qr_codes", "activity_run_qr_status_check", `CHECK (status IN ('active','disabled'))`},
+				{"participations", "participations_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"participations", "participations_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"participations", "participations_run_fk", `FOREIGN KEY (activity_run_id) REFERENCES activity_runs(id) ON DELETE RESTRICT`},
+				{"participations", "participations_qr_fk", `FOREIGN KEY (qr_code_id) REFERENCES activity_run_qr_codes(id) ON DELETE RESTRICT`},
+				{"participations", "participations_status_check", `CHECK (status IN ('active','completed','cancelled'))`},
+				{"participations", "participations_no_scan_points_check", `CHECK (check_in_points = 0)`},
+				{"activity_run_participants", "activity_run_participants_run_fk", `FOREIGN KEY (activity_run_id) REFERENCES activity_runs(id) ON DELETE RESTRICT`},
+				{"activity_run_participants", "activity_run_participants_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"activity_run_participants", "activity_run_participants_participation_fk", `FOREIGN KEY (participation_id) REFERENCES participations(id) ON DELETE RESTRICT`},
+				{"activity_run_participants", "activity_run_participants_result_check", `CHECK (result IS NULL OR result IN ('first','second','third','participation'))`},
+				{"activity_run_participants", "activity_run_participants_points_check", `CHECK (points_awarded >= 0)`},
+				{"point_entries", "point_entries_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_run_fk", `FOREIGN KEY (activity_run_id) REFERENCES activity_runs(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_participation_fk", `FOREIGN KEY (participation_id) REFERENCES participations(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_origin_check", `CHECK (
+					(origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL)
+					OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL)
+				)`},
+				{"point_entries", "point_entries_delta_check", `CHECK (delta <> 0)`},
+				{"manager_operations", "manager_operations_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"manager_operations", "manager_operations_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"manager_operations", "manager_operations_run_fk", `FOREIGN KEY (activity_run_id) REFERENCES activity_runs(id) ON DELETE RESTRICT`},
+				{"manager_operations", "manager_operations_http_status_check", `CHECK (http_status IN (200,201))`},
+				{"participant_operations", "participant_operations_status_check", `CHECK (http_status IN (200,201,204))`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

@@ -19,5 +19,7 @@ type ParticipantOperation struct {
 	ActivityID     string
 	IntentHash     string
 	HTTPStatus     int
+	ResultRef      *string
+	ResultPoints   *int
 	CreatedAt      time.Time
 }

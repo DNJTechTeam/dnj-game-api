@@ -4,6 +4,7 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
+	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
@@ -34,6 +35,10 @@ func ProvideActivityRepository(db *gorm.DB) activityInterfaces.ActivityRepositor
 
 func ProvideFavoriteRepository(db *gorm.DB) favoriteInterfaces.FavoriteRepositoryInterface {
 	return repositories.NewFavoriteRepository(db)
+}
+
+func ProvideGameRepository(db *gorm.DB) gameInterfaces.GameRepositoryInterface {
+	return repositories.NewGameRepository(db)
 }
 
 func ProvideOperationAuditRepository(db *gorm.DB) auditInterfaces.OperationAuditRepositoryInterface {
