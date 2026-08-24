@@ -52,7 +52,7 @@ automatizado e evidência no ambiente `develop`.
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
-| 9 | Operação e carga | observabilidade final, segurança, soak/spike/stress em develop | métricas e relatórios, sem novo domínio | Pendente |
+| 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
 | 10 | Handoff final | OpenAPI publicado, página única de integração do frontend, manifesto, exemplos e checklist de release | documentação versionada e artefato publicado pelo CI | Pendente |
 
 Os nomes e formatos exatos das operações das iterações 2–8 serão fechados a
@@ -91,6 +91,30 @@ cliente autenticado, refresh/CSRF, UUID de idempotência e conversão
 UTC↔fuso-local sem timezone fixo. A página deve abrir com um checklist ordenado
 "faça isto" e separar claramente trabalho obrigatório, limpeza posterior e
 itens fora de escopo.
+
+O backlog final deve ser granular: cada item informa tela/fluxo, prioridade,
+dependências, endpoints envolvidos, responsável sugerido, bloqueios, estado
+`pending|ready|blocked|done`, teste de aceite e evidência esperada. Itens amplos
+como "integrar agenda" devem ser decompostos até que cada passo possa ser
+implementado e verificado isoladamente.
+
+Para fluxos que disparam várias chamadas ao backend, o handoff deve incluir um
+grafo de requests com gatilho, ordem, fan-out paralelo, dependências, payload,
+autenticação, idempotência, cache/deduplicação, cancelamento, timeout, retry com
+backoff, polling e comportamento offline. Também deve registrar o número máximo
+esperado de requests por abertura de tela e por ação do usuário, evitando que
+re-render, reconexão ou retry multipliquem carga silenciosamente.
+
+A Iteração 9 deve transformar esses grafos em perfis de carga versionados e
+reproduzíveis. Para cada ambiente (`local`, `CI`, `develop` e produção apenas
+como modelo não destrutivo), documentar limites, massa sintética, concorrência,
+RPS, burst, duração, pool de conexões, timeout, rate limit e orçamento de erro.
+Os cenários devem cobrir cold start, login/refresh, abertura da home com fan-out,
+agenda, favoritos, ranking, upload/galeria, polling e retries; executar smoke de
+carga no CI e soak/spike/stress autorizados em `develop`, nunca carga mutante em
+produção. Relatórios precisam correlacionar p50/p95/p99, erros, throttling,
+conexões e saturação do banco por fluxo e por endpoint, com thresholds que
+falham o gate.
 
 Critério de aceite: uma pessoa com acesso somente ao artefato publicado deve
 conseguir migrar o frontend, validar cada fluxo e executar o rollback sem ler o
