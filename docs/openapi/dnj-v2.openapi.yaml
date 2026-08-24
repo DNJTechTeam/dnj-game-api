@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.2.0
+  version: 2.3.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -12,6 +12,8 @@ tags:
   - name: Profile
   - name: Groups
   - name: Group invites
+  - name: Spaces
+  - name: Activity operations
 paths:
   /healthcheck:
     get:
@@ -306,6 +308,67 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /spaces:
+    get:
+      tags: [Spaces]
+      operationId: listSpaces
+      summary: Lista os locais físicos da instalação única do DNJ
+      description: >-
+        Retorna o array consumido pelo mapa do frontend, em ordem name,id. A
+        paginação fica nos headers para preservar compatibilidade direta.
+      parameters: [{$ref: '#/components/parameters/Page'}]
+      responses:
+        '200':
+          description: Página de espaços; o corpo permanece um array.
+          headers:
+            X-Page: {$ref: '#/components/headers/Page'}
+            X-Limit: {$ref: '#/components/headers/Limit'}
+            X-Has-Next-Page: {$ref: '#/components/headers/HasNextPage'}
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Space'}}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/activities/{activityId}/start:
+    parameters:
+      - {$ref: '#/components/parameters/ActivityID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Activity operations]
+      operationId: startActivity
+      summary: Inicia uma atividade em draft ou retoma uma atividade pausada
+      description: >-
+        ADMIN possui escopo global. EVENT_MANAGER só opera uma atividade com
+        assignment persistido; atividade ausente ou fora do assignment usa o
+        mesmo 404. Papel e assignment são sempre lidos do banco.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Estado resultante ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ActivityState'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/activities/{activityId}/pause:
+    parameters:
+      - {$ref: '#/components/parameters/ActivityID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Activity operations]
+      operationId: pauseActivity
+      summary: Pausa uma atividade ativa
+      description: >-
+        Possui o mesmo escopo de autorização, isolamento, atomicidade e
+        idempotência da operação de início.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Estado resultante ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ActivityState'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
@@ -345,6 +408,17 @@ components:
       in: path
       required: true
       schema: {type: string, pattern: '^[1-9][0-9]*$'}
+    ActivityID:
+      name: activityId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UUID estável reutilizado somente no retry da mesma intenção pelo mesmo ator.
+      schema: {type: string, format: uuid}
   requestBodies:
     UpdateCurrentGroup:
       required: true
@@ -570,6 +644,21 @@ components:
       properties:
         data: {type: array, items: {$ref: '#/components/schemas/GroupInvite'}}
         pagination: {$ref: '#/components/schemas/Pagination'}
+    Space:
+      type: object
+      required: [id, name, slug, mapReference]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        slug: {type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}
+        mapReference: {type: string, nullable: true}
+    ActivityState:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id: {type: string, format: uuid}
+        status: {type: string, enum: [active, paused]}
     LogoutResponse:
       type: object
       required: [status]

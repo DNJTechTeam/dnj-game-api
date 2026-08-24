@@ -170,3 +170,83 @@ func TestMigrations_Iteration3BackfillPreservesLegacyGroupID(t *testing.T) {
 	assert.Equal(t, int64(1), membershipCount)
 	assert.Equal(t, groupID, preservedGroupID)
 }
+
+func TestMigrations_Iteration4PartialUpgradePreservesRowsAndRejectsMultiEventColumns(t *testing.T) {
+	// given
+	resetSchema(t)
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		CREATE TABLE users (
+			id BIGSERIAL PRIMARY KEY,
+			email TEXT NOT NULL,
+			name TEXT NOT NULL,
+			role TEXT NOT NULL DEFAULT 'DEFAULT',
+			created_at TIMESTAMPTZ,
+			updated_at TIMESTAMPTZ
+		);
+		CREATE TABLE spaces (
+			id UUID PRIMARY KEY,
+			slug VARCHAR(120),
+			name VARCHAR(200)
+		);
+		CREATE TABLE activities (
+			id UUID PRIMARY KEY,
+			slug VARCHAR(120),
+			name VARCHAR(200),
+			kind VARCHAR(32)
+		);
+		INSERT INTO spaces (id, slug, name) VALUES ('11111111-1111-4111-8111-111111111111', 'capela', 'Capela');
+		INSERT INTO activities (id, slug, name, kind) VALUES ('22222222-2222-4222-8222-222222222222', 'radicalidade', 'Radicalidade', 'competitive')
+	`).Error)
+
+	// when
+	err := migrations.MigrateModelsWithDB(migrationSuite.DbConn)
+	migrator := migrationSuite.DbConn.Migrator()
+	var spaces int64
+	var activities int64
+	require.NoError(t, migrationSuite.DbConn.Table("spaces").Count(&spaces).Error)
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Count(&activities).Error)
+
+	// then
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), spaces)
+	assert.Equal(t, int64(1), activities)
+	assert.True(t, migrator.HasTable("activity_manager_assignments"))
+	assert.True(t, migrator.HasTable("operation_audit"))
+	assert.False(t, migrator.HasTable("events"))
+	assert.False(t, migrator.HasColumn("spaces", "event_id"))
+	assert.False(t, migrator.HasColumn("activities", "event_id"))
+}
+
+func TestMigrations_Iteration4ActivityConfigurationConstraints(t *testing.T) {
+	// given
+	resetSchema(t)
+	require.NoError(t, migrations.MigrateModelsWithDB(migrationSuite.DbConn))
+	validID := "33333333-3333-4333-8333-333333333333"
+
+	// when
+	validErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, space_id, slug, name, description, kind, status, starts_at, ends_at, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES (?, NULL, 'photo-challenge', 'Photo challenge', 'Description', 'challenge', 'draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '10 minutes', 10, 30, 60, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, validID).Error
+	negativePointsErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES ('44444444-4444-4444-8444-444444444444', 'negative-points', 'Negative', 'live', 'draft', -1, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`).Error
+	invalidWindowErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, starts_at, ends_at, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES ('55555555-5555-4555-8555-555555555555', 'invalid-window', 'Invalid window', 'live', 'draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '1 minute', 0, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`).Error
+	scheduleMomentErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES ('66666666-6666-4666-8666-666666666666', 'schedule-moment', 'Schedule Moment', 'schedule', 'draft', 0, 0, 0, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`).Error
+
+	// then
+	require.NoError(t, validErr)
+	require.Error(t, negativePointsErr)
+	require.Error(t, invalidWindowErr)
+	require.Error(t, scheduleMomentErr)
+	var spaceID *string
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Select("space_id").Where("id = ?", validID).Scan(&spaceID).Error)
+	assert.Nil(t, spaceID)
+}

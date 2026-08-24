@@ -1,11 +1,14 @@
 package repositories
 
 import (
+	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
+	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -14,6 +17,18 @@ import (
 
 	"gorm.io/gorm"
 )
+
+func ProvideSpaceRepository(db *gorm.DB) spaceInterfaces.SpaceRepositoryInterface {
+	return repositories.NewSpaceRepository(db)
+}
+
+func ProvideActivityRepository(db *gorm.DB) activityInterfaces.ActivityRepositoryInterface {
+	return repositories.NewActivityRepository(db)
+}
+
+func ProvideOperationAuditRepository(db *gorm.DB) auditInterfaces.OperationAuditRepositoryInterface {
+	return repositories.NewOperationAuditRepository(db)
+}
 
 func ProvideUserRepository(db *gorm.DB) uInterfaces.UserRepositoryInterface {
 	return repositories.NewUserRepository(db)

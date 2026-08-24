@@ -3,12 +3,15 @@ package services
 import (
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/services"
+	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
+	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -17,6 +20,14 @@ import (
 	googlePkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/google"
 	webhookPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/webhook"
 )
+
+func ProvideSpaceService(spaceRepository spaceInterfaces.SpaceRepositoryInterface) appInterfaces.SpaceServiceInterface {
+	return services.NewSpaceService(spaceRepository)
+}
+
+func ProvideActivityService(baseService *services.BaseService, activityRepository activityInterfaces.ActivityRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.ActivityServiceInterface {
+	return services.NewActivityService(baseService, activityRepository, auditRepository, userRepository)
+}
 
 func ProvideBaseService(transactionManager commonInterfaces.TransactionManagerInterface) *services.BaseService {
 	return services.NewBaseService(transactionManager)

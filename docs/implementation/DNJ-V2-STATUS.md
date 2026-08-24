@@ -1,6 +1,6 @@
 # DNJ V2 — Status executivo e matriz de atendimento
 
-Atualizado em: 2026-08-22
+Atualizado em: 2026-08-24
 
 Branch de execução: `develop`
 
@@ -14,12 +14,14 @@ automatizado e evidência no ambiente `develop`.
 ## Decisões fechadas
 
 - O backend é o único repositório alterado; o frontend recebe um handoff pronto.
+- O DNJ é uma instalação de edição única. Não existe tabela `events`, coluna
+  `event_id`, seleção de evento ou suporte multi-evento na V2.
 - Filas e comentários estão fora do escopo da V2 atual.
 - Login Google cria perfil incompleto quando CPF, telefone ou grupo faltarem;
   recursos protegidos exigirão conclusão explícita do onboarding.
 - Dados existentes em `develop` são preservados. É proibido resetar o banco
   como estratégia de rollout.
-- Fotos permanecem por 90 dias após o término do evento; limpeza será assíncrona
+- Fotos permanecem por 90 dias após o término da edição do DNJ; limpeza será assíncrona
   e auditável.
 - Capacidade alvo: 2–10 mil conexões simultâneas, com ensaio posterior a 2x da
   carga esperada e critérios objetivos de abortar o teste.
@@ -45,7 +47,7 @@ automatizado e evidência no ambiente `develop`.
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
-| 4 | Configuração do evento | leitura/edição do evento, regras, staff e permissões | eventos, configurações, roles | Pendente |
+| 4 | Configuração da instalação | `GET /spaces`; iniciar/pausar Activities atribuídas | spaces, activities, assignments, auditoria | Implementada localmente; enabler administrativo pendente |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
@@ -196,3 +198,31 @@ Não há bloqueio de backend pendente para iniciar a Iteração 4. A integraçã
 frontend com os contratos das Iterações 2 e 3 permanece deliberadamente como
 enabler das etapas finais, conforme os handoffs, sem alteração antecipada do
 repositório frontend.
+
+## Evidência local da Iteração 4
+
+| Controle | Evidência em 2026-08-24 |
+|---|---|
+| Instalação única | migrations e teste de upgrade confirmam `events=0` e nenhuma coluna `event_id` |
+| Persistência | `spaces`, `activities`, `activity_manager_assignments` e `operation_audit`; UUID para recursos V2 e BIGINT somente na FK compatível com `users.id` legado |
+| Configuração | kinds/status publicados, horários UTC, janela válida, pontos e cooldown não negativos, Space opcional e elegibilidade estrutural de Moment protegidos por constraints |
+| Autorização | `ADMIN` global; `EVENT_MANAGER` somente com assignment persistido; `DEFAULT` sem operação; papel e assignment lidos sob lock no banco |
+| Isolamento e segurança | ausência e fora de assignment usam o mesmo 404; UUIDs validados; assignment duplicado rejeitado; cliente não fornece papel, escopo ou pontos |
+| Concorrência e idempotência | locks transacionais, update condicional e testes provam um vencedor com chaves distintas e um único efeito/audit em retries concorrentes da mesma chave |
+| Auditoria | `activity.start` e `activity.pause` gravam ator, ação, entidade e estados anterior/final, sem PII, token, segredo ou corpo |
+| Paginação | `GET /spaces` ordena por `name,id`, limita 20 e expõe headers mantendo o array exigido pelo frontend |
+| PostgreSQL real | `make validate` verde: race, cobertura 71,9% ≥ 55%, mappers/repositories 94,1% ≥ 90%, HTTP real e migrations |
+| CockroachDB | `v25.2.19` descartável: instalação limpa e replay pelo tracker; upgrade exato de `ba6a5dc` com dados preservados; 16 migrations, 0 checksum ausente, 4 tabelas da iteração e nenhum reset/bypass |
+| Contrato | OpenAPI 3.0.3 `2.3.0`, três operações implementadas e manifesto operação→testes consistente |
+
+As operações administrativas necessárias para criar/editar Spaces e
+Activities, promover/rebaixar `EVENT_MANAGER` e atribuir/remover gestores não
+possuem contrato compatível nos handoffs. Os Route Handlers atuais do frontend
+são de homologação e dependem de `events`, `experiences`, senhas e escopos
+antigos, portanto não podem ser copiados. A menor proposta está documentada em
+`docs/installation-activities.md` e não foi publicada no OpenAPI.
+
+Enabler preservado para as etapas finais: o frontend deve integrar em conjunto
+os contratos das Iterações 2–4, migrar `/api/v1/spaces` para `/v2/spaces` e,
+após decisão/implementação do contrato administrativo, substituir os handlers
+antigos de staff/configuração. Nenhum arquivo do frontend foi alterado.

@@ -133,3 +133,28 @@ operations:
     automatedTests:
       - internal/app/services/group_invite_service_test.go
       - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listSpaces
+    method: GET
+    path: /spaces
+    statuses: ['200', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/infrastructure/db/repositories/iteration4_repository_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: startActivity
+    method: POST
+    path: /manager/activities/{activityId}/start
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: pauseActivity
+    method: POST
+    path: /manager/activities/{activityId}/pause
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go

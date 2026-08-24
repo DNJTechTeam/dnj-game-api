@@ -33,6 +33,15 @@
       }
     },
     "parameters": {
+      "ActivityID": {
+        "in": "path",
+        "name": "activityId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
       "CSRFHeader": {
         "in": "header",
         "name": "X-CSRF-Token",
@@ -48,6 +57,16 @@
         "required": true,
         "schema": {
           "pattern": "^[1-9][0-9]*$",
+          "type": "string"
+        }
+      },
+      "IdempotencyKey": {
+        "description": "UUID estável reutilizado somente no retry da mesma intenção pelo mesmo ator.",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": true,
+        "schema": {
+          "format": "uuid",
           "type": "string"
         }
       },
@@ -209,6 +228,27 @@
       }
     },
     "schemas": {
+      "ActivityState": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object"
+      },
       "CompleteOnboardingRequest": {
         "additionalProperties": false,
         "properties": {
@@ -751,6 +791,32 @@
         ],
         "type": "object"
       },
+      "Space": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "mapReference": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "mapReference"
+        ],
+        "type": "object"
+      },
       "UpdateCurrentGroupRequest": {
         "additionalProperties": false,
         "properties": {
@@ -809,7 +875,7 @@
   "info": {
     "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.2.0"
+    "version": "2.3.0"
   },
   "openapi": "3.0.3",
   "paths": {
@@ -1440,6 +1506,118 @@
         ]
       }
     },
+    "/manager/activities/{activityId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Possui o mesmo escopo de autorização, isolamento, atomicidade e idempotência da operação de início.",
+        "operationId": "pauseActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityState"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Pausa uma atividade ativa",
+        "tags": [
+          "Activity operations"
+        ]
+      }
+    },
+    "/manager/activities/{activityId}/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "ADMIN possui escopo global. EVENT_MANAGER só opera uma atividade com assignment persistido; atividade ausente ou fora do assignment usa o mesmo 404. Papel e assignment são sempre lidos do banco.",
+        "operationId": "startActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityState"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Inicia uma atividade em draft ou retoma uma atividade pausada",
+        "tags": [
+          "Activity operations"
+        ]
+      }
+    },
     "/readiness": {
       "get": {
         "operationId": "getReadiness",
@@ -1466,6 +1644,50 @@
         "summary": "Confirma que a API e o banco estão prontos",
         "tags": [
           "Operations"
+        ]
+      }
+    },
+    "/spaces": {
+      "get": {
+        "description": "Retorna o array consumido pelo mapa do frontend, em ordem name,id. A paginação fica nos headers para preservar compatibilidade direta.",
+        "operationId": "listSpaces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Space"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Página de espaços; o corpo permanece um array.",
+            "headers": {
+              "X-Has-Next-Page": {
+                "$ref": "#/components/headers/HasNextPage"
+              },
+              "X-Limit": {
+                "$ref": "#/components/headers/Limit"
+              },
+              "X-Page": {
+                "$ref": "#/components/headers/Page"
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista os locais físicos da instalação única do DNJ",
+        "tags": [
+          "Spaces"
         ]
       }
     },
@@ -1660,6 +1882,12 @@
     },
     {
       "name": "Group invites"
+    },
+    {
+      "name": "Spaces"
+    },
+    {
+      "name": "Activity operations"
     }
   ]
 }

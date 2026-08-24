@@ -26,6 +26,9 @@ func InitializeServer() *api.API {
 		repositories.ProvideGroupRepository,
 		repositories.ProvideGroupMembershipRepository,
 		repositories.ProvideGroupInviteRepository,
+		repositories.ProvideSpaceRepository,
+		repositories.ProvideActivityRepository,
+		repositories.ProvideOperationAuditRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
 		repositories.ProvideSubscriptionWebhookVerificationCodeRepository,
 
@@ -42,6 +45,8 @@ func InitializeServer() *api.API {
 		services.ProvideProfileService,
 		services.ProvideGroupInviteService,
 		services.ProvideUserService,
+		services.ProvideSpaceService,
+		services.ProvideActivityService,
 
 		diApi.ProvideEngine,
 		diApi.ProvideRouter,
@@ -55,6 +60,7 @@ func InitializeServer() *api.API {
 		wire.Struct(new(handlers.GroupHandler), "*"),
 		wire.Struct(new(handlers.UserHandler), "*"),
 		wire.Struct(new(handlers.TaskHandler), "*"),
+		wire.Struct(new(handlers.InstallationHandler), "*"),
 		wire.Struct(new(handlers.Handlers), "*"),
 		wire.Struct(new(api.API), "*"),
 	)

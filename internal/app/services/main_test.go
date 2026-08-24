@@ -7,12 +7,15 @@ import (
 	"strconv"
 	"testing"
 
+	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
+	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -37,6 +40,9 @@ type TestSuiteType struct {
 	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
 	GoogleIdentityRepository      identityInterfaces.GoogleIdentityRepositoryInterface
 	RefreshSessionRepository      refreshInterfaces.RefreshSessionRepositoryInterface
+	SpaceRepository               spaceInterfaces.SpaceRepositoryInterface
+	ActivityRepository            activityInterfaces.ActivityRepositoryInterface
+	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -56,6 +62,9 @@ func initializeTestSuite() {
 	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
 	TestSuite.GoogleIdentityRepository = repositories.NewGoogleIdentityRepository(TestSuite.DbConn)
 	TestSuite.RefreshSessionRepository = repositories.NewRefreshSessionRepository(TestSuite.DbConn)
+	TestSuite.SpaceRepository = repositories.NewSpaceRepository(TestSuite.DbConn)
+	TestSuite.ActivityRepository = repositories.NewActivityRepository(TestSuite.DbConn)
+	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {

@@ -1,17 +1,42 @@
 package mappers
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	inviteEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/entities"
 	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
 	identityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/entities"
+	auditEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/entities"
 	refreshEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIteration4Mappers(t *testing.T) {
+	now := time.Now().UTC()
+	mapReference := "map:capela"
+	space := MapSpaceToEntity(&models.Space{ID: "space-id", Slug: "capela", Name: "Capela", MapReference: &mapReference, CreatedAt: now, UpdatedAt: now})
+	assert.Equal(t, "Capela", space.Name)
+	assert.Equal(t, mapReference, *space.MapReference)
+	assert.Nil(t, MapSpaceToEntity(nil))
+
+	activity := MapActivityToEntity(&models.Activity{ID: "activity-id", Slug: "radicalidade", Name: "Radicalidade", Kind: "competitive", Status: "active", CheckInPoints: 10, MomentPoints: 20, CooldownSeconds: 30, AllowsMoment: true, CreatedAt: now, UpdatedAt: now})
+	assert.Equal(t, "competitive", string(activity.Kind))
+	assert.Equal(t, 20, activity.MomentPoints)
+	assert.Nil(t, MapActivityToEntity(nil))
+
+	actorID := uint64(7)
+	entityID := "activity-id"
+	auditModel := &models.OperationAudit{ID: "audit-id", ActorUserID: &actorID, Action: "activity.start", EntityType: "activity", EntityID: &entityID, Metadata: json.RawMessage(`{"toStatus":"active"}`), IdempotencyKey: "key-id", CreatedAt: now}
+	audit := MapOperationAuditToEntity(auditModel)
+	assert.Equal(t, auditModel.Action, audit.Action)
+	assert.Equal(t, auditModel.IdempotencyKey, MapOperationAuditEntityToModel(audit).IdempotencyKey)
+	assert.Nil(t, MapOperationAuditToEntity(nil))
+	assert.Nil(t, MapOperationAuditEntityToModel((*auditEntities.OperationAudit)(nil)))
+}
 
 func TestMapTaskToEntity_NilInput(t *testing.T) {
 	assert.Nil(t, MapTaskToEntity(nil))

@@ -70,6 +70,15 @@ func InitializeServer() *api.API {
 	taskHandler := &handlers.TaskHandler{
 		TaskService: taskServiceInterface,
 	}
+	spaceRepositoryInterface := repositories.ProvideSpaceRepository(gormDB)
+	spaceServiceInterface := services.ProvideSpaceService(spaceRepositoryInterface)
+	activityRepositoryInterface := repositories.ProvideActivityRepository(gormDB)
+	operationAuditRepositoryInterface := repositories.ProvideOperationAuditRepository(gormDB)
+	activityServiceInterface := services.ProvideActivityService(baseService, activityRepositoryInterface, operationAuditRepositoryInterface, userRepositoryInterface)
+	installationHandler := &handlers.InstallationHandler{
+		SpaceService:    spaceServiceInterface,
+		ActivityService: activityServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
@@ -80,6 +89,7 @@ func InitializeServer() *api.API {
 		GroupHandler:               groupHandler,
 		UserHandler:                userHandler,
 		TaskHandler:                taskHandler,
+		InstallationHandler:        installationHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

@@ -23,6 +23,21 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: user_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: space_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: activity_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: operation_audit_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces:
     config:
       all: true

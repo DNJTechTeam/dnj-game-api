@@ -44,6 +44,13 @@ func createModelMigration(name, version string, model interface{}) Migration {
 	}
 }
 
+func addConstraintIfMissing(db *gorm.DB, table, name, definition string) error {
+	if db.Migrator().HasConstraint(table, name) {
+		return nil
+	}
+	return db.Exec("ALTER TABLE " + table + " ADD CONSTRAINT " + name + " " + definition).Error
+}
+
 // RegisterModelMigrations declares every migration, in order. Each migration
 // runs exactly once (tracked in schema_migrations), but every Up MUST still be
 // written idempotently — see docs/migrations.md.
@@ -326,6 +333,197 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			}
 			for _, statement := range statements {
 				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "expand_iteration4_installation_activities",
+		Description: "Create single-installation spaces, activities, assignments and privileged-operation audit storage",
+		Version:     "2.3.0",
+		Definition:  "iteration4-installation-activities-expand-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE TABLE IF NOT EXISTS spaces (
+					id UUID PRIMARY KEY,
+					slug VARCHAR(120),
+					name VARCHAR(200),
+					map_reference TEXT,
+					created_at TIMESTAMPTZ,
+					updated_at TIMESTAMPTZ
+				)`,
+				`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS slug VARCHAR(120)`,
+				`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS name VARCHAR(200)`,
+				`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS map_reference TEXT`,
+				`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+				`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`,
+				`CREATE TABLE IF NOT EXISTS activities (
+					id UUID PRIMARY KEY,
+					space_id UUID,
+					slug VARCHAR(120),
+					name VARCHAR(200),
+					description TEXT,
+					kind VARCHAR(32),
+					status VARCHAR(32),
+					starts_at TIMESTAMPTZ,
+					ends_at TIMESTAMPTZ,
+					check_in_points INTEGER,
+					moment_points INTEGER,
+					cooldown_seconds INTEGER,
+					allows_moment BOOLEAN,
+					created_at TIMESTAMPTZ,
+					updated_at TIMESTAMPTZ
+				)`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS space_id UUID`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS slug VARCHAR(120)`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS name VARCHAR(200)`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS description TEXT`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS kind VARCHAR(32)`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS status VARCHAR(32)`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS check_in_points INTEGER`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS moment_points INTEGER`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS cooldown_seconds INTEGER`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS allows_moment BOOLEAN`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+				`ALTER TABLE activities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`,
+				`CREATE TABLE IF NOT EXISTS activity_manager_assignments (
+					activity_id UUID NOT NULL,
+					user_id BIGINT NOT NULL,
+					created_at TIMESTAMPTZ,
+					PRIMARY KEY (activity_id, user_id)
+				)`,
+				`ALTER TABLE activity_manager_assignments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+				`CREATE TABLE IF NOT EXISTS operation_audit (
+					id UUID PRIMARY KEY,
+					actor_user_id BIGINT,
+					action VARCHAR(120),
+					entity_type VARCHAR(80),
+					entity_id UUID,
+					metadata JSONB,
+					idempotency_key UUID,
+					created_at TIMESTAMPTZ
+				)`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS actor_user_id BIGINT`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS action VARCHAR(120)`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS entity_type VARCHAR(80)`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS entity_id UUID`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS metadata JSONB`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS idempotency_key UUID`,
+				`ALTER TABLE operation_audit ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_iteration4_installation_activities",
+		Description: "Backfill safe defaults for single-installation activity configuration without deleting legacy data",
+		Version:     "2.3.0",
+		Definition:  "iteration4-installation-activities-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`UPDATE spaces SET slug = 'space-' || REPLACE(CAST(id AS VARCHAR), '-', '') WHERE slug IS NULL OR TRIM(slug) = ''`,
+				`UPDATE spaces SET name = slug WHERE name IS NULL OR TRIM(name) = ''`,
+				`UPDATE spaces SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+				`UPDATE spaces SET updated_at = created_at WHERE updated_at IS NULL`,
+				`UPDATE activities SET slug = 'activity-' || REPLACE(CAST(id AS VARCHAR), '-', '') WHERE slug IS NULL OR TRIM(slug) = ''`,
+				`UPDATE activities SET name = slug WHERE name IS NULL OR TRIM(name) = ''`,
+				`UPDATE activities SET kind = 'live' WHERE kind IS NULL OR TRIM(kind) = ''`,
+				`UPDATE activities SET status = 'draft' WHERE status IS NULL OR TRIM(status) = ''`,
+				`UPDATE activities SET check_in_points = 0 WHERE check_in_points IS NULL`,
+				`UPDATE activities SET moment_points = 0 WHERE moment_points IS NULL`,
+				`UPDATE activities SET cooldown_seconds = 0 WHERE cooldown_seconds IS NULL`,
+				`UPDATE activities SET allows_moment = FALSE WHERE allows_moment IS NULL`,
+				`UPDATE activities SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+				`UPDATE activities SET updated_at = created_at WHERE updated_at IS NULL`,
+				`UPDATE activity_manager_assignments SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+				`UPDATE operation_audit SET action = 'legacy.unknown' WHERE action IS NULL OR TRIM(action) = ''`,
+				`UPDATE operation_audit SET entity_type = 'unknown' WHERE entity_type IS NULL OR TRIM(entity_type) = ''`,
+				`UPDATE operation_audit SET metadata = CAST('{}' AS JSONB) WHERE metadata IS NULL`,
+				`UPDATE operation_audit SET idempotency_key = id WHERE idempotency_key IS NULL`,
+				`UPDATE operation_audit SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_iteration4_installation_activities",
+		Description: "Enforce activity types, permissions, deterministic lookups and operation idempotency",
+		Version:     "2.3.0",
+		Definition:  "iteration4-installation-activities-contract-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`ALTER TABLE spaces ALTER COLUMN slug SET NOT NULL`,
+				`ALTER TABLE spaces ALTER COLUMN name SET NOT NULL`,
+				`ALTER TABLE spaces ALTER COLUMN created_at SET NOT NULL`,
+				`ALTER TABLE spaces ALTER COLUMN updated_at SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN slug SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN name SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN kind SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN status SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN check_in_points SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN moment_points SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN cooldown_seconds SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN allows_moment SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN created_at SET NOT NULL`,
+				`ALTER TABLE activities ALTER COLUMN updated_at SET NOT NULL`,
+				`ALTER TABLE activity_manager_assignments ALTER COLUMN created_at SET NOT NULL`,
+				`ALTER TABLE operation_audit ALTER COLUMN action SET NOT NULL`,
+				`ALTER TABLE operation_audit ALTER COLUMN entity_type SET NOT NULL`,
+				`ALTER TABLE operation_audit ALTER COLUMN metadata SET NOT NULL`,
+				`ALTER TABLE operation_audit ALTER COLUMN idempotency_key SET NOT NULL`,
+				`ALTER TABLE operation_audit ALTER COLUMN created_at SET NOT NULL`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS spaces_slug_unique ON spaces (slug)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activities_slug_unique ON activities (slug)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS activity_manager_assignments_unique ON activity_manager_assignments (activity_id, user_id)`,
+				`CREATE INDEX IF NOT EXISTS activities_schedule_idx ON activities (status, starts_at, id) WHERE kind = 'schedule'`,
+				`CREATE INDEX IF NOT EXISTS activities_space_idx ON activities (space_id, id)`,
+				`CREATE INDEX IF NOT EXISTS activity_manager_assignments_user_idx ON activity_manager_assignments (user_id, activity_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS operation_audit_actor_idempotency_unique ON operation_audit (actor_user_id, idempotency_key)`,
+				`CREATE INDEX IF NOT EXISTS operation_audit_entity_created_idx ON operation_audit (entity_type, entity_id, created_at, id)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+
+			constraints := []struct{ table, name, definition string }{
+				{"spaces", "spaces_slug_format_check", `CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')`},
+				{"spaces", "spaces_name_not_blank_check", `CHECK (CHAR_LENGTH(TRIM(name)) > 0)`},
+				{"activities", "activities_space_fk", `FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE SET NULL`},
+				{"activities", "activities_slug_format_check", `CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')`},
+				{"activities", "activities_name_not_blank_check", `CHECK (CHAR_LENGTH(TRIM(name)) > 0)`},
+				{"activities", "activities_kind_check", `CHECK (kind IN ('schedule','checkpoint','challenge','competitive','live'))`},
+				{"activities", "activities_status_check", `CHECK (status IN ('draft','active','paused','completed','archived'))`},
+				{"activities", "activities_time_window_check", `CHECK (ends_at IS NULL OR starts_at IS NULL OR starts_at < ends_at)`},
+				{"activities", "activities_points_check", `CHECK (check_in_points >= 0 AND moment_points >= 0 AND cooldown_seconds >= 0)`},
+				{"activities", "activities_moment_eligibility_check", `CHECK (NOT allows_moment OR kind IN ('checkpoint','challenge','competitive','live'))`},
+				{"activity_manager_assignments", "activity_manager_assignments_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE`},
+				{"activity_manager_assignments", "activity_manager_assignments_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`},
+				{"operation_audit", "operation_audit_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
 					return err
 				}
 			}
