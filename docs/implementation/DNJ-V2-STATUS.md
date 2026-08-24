@@ -47,7 +47,7 @@ automatizado e evidência no ambiente `develop`.
 | 1 | Enablers e trilho | `GET /healthcheck`, `GET /readiness` | `schema_migrations.checksum` | Implementada e publicada em develop |
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
-| 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Enabler administrativo implementado e em validação de deploy |
+| 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | agenda, atividades, favoritos | Pendente |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
@@ -260,6 +260,10 @@ participações, runs, jogos, Moments e anúncios permanecem fora deste enabler.
 - Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32727711442>.
 - Revalidação do commit documental: run
   <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32728720693>, verde.
+- Commit do enabler administrativo: `362ea1f`.
+- Commit de normalização UTC e handoff do frontend: `0458c8b`.
+- Run final do enabler: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32745253801>,
+  verde, incluindo race, gates de cobertura, migrations, deploy Lambda e Pages.
 - API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
 - OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
 
@@ -270,8 +274,12 @@ participações, runs, jogos, Moments e anúncios permanecem fora deste enabler.
 | `GET /readiness` | 200 `ready`, com `X-Request-ID` |
 | `GET /spaces?page=1` | 200 `[]`; `X-Page: 1`, `X-Limit: 20`, `X-Has-Next-Page: false` e `X-Request-ID` |
 | `POST /manager/activities/{id}/start` sem token | 401 `UNAUTHENTICATED` com `requestId`, confirmando registro e proteção da rota sem enumerar Activity |
+| `GET /admin/spaces?page=1` sem token | 401 `UNAUTHENTICATED` com `requestId`, sem expor dados administrativos |
+| `GET /admin/staff?role=EVENT_MANAGER&page=1` sem token | 401 `UNAUTHENTICATED` com `requestId` |
+| `POST /admin/spaces` sem token, JSON e chave válidos | 401 `UNAUTHENTICATED`; middleware bloqueou antes de qualquer mutação |
+| `PUT /admin/activities/{id}/managers/{userId}` sem token | 401 `UNAUTHENTICATED`, sem enumerar Activity, User ou assignment |
 | UI OpenAPI | 200 |
-| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.3.0 e 19 paths; inclui `/spaces` e start/pause |
+| JSON OpenAPI | 200, OpenAPI 3.0.3, versão 2.3.1 e 27 paths; inclui as 11 operações administrativas e a regra UTC/RFC 3339 `Z` com exibição local no cliente |
 
 O ambiente de develop não possui Space/Activity administrativa publicada nem
 credencial de gestor atribuída para um smoke mutante seguro. Sucesso,
