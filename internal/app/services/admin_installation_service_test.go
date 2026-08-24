@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -64,6 +65,15 @@ func assertAdminError(t *testing.T, err error, status int, code string) {
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, status, apiErr.Status)
 	assert.Equal(t, code, apiErr.Code)
+}
+
+func assertAdminActivityResponseEqual(t *testing.T, expected, actual *messages.AdminActivityResponseDTO) {
+	t.Helper()
+	expectedJSON, err := json.Marshal(expected)
+	require.NoError(t, err)
+	actualJSON, err := json.Marshal(actual)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expectedJSON), string(actualJSON))
 }
 
 func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.T) {
@@ -248,7 +258,7 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	require.NoError(t, listErr)
 	require.NoError(t, archiveErr)
 	require.NoError(t, archiveRetryErr)
-	assert.Equal(t, created, retried)
+	assertAdminActivityResponseEqual(t, created, retried)
 	assert.Equal(t, "draft", created.Status)
 	assert.Nil(t, updated.SpaceID)
 	assert.Nil(t, updated.Description)
@@ -256,7 +266,7 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	require.Len(t, list.Data, 1)
 	assert.Equal(t, created.ID, list.Data[0].ID)
 	assert.Equal(t, "archived", archived.Status)
-	assert.Equal(t, archived, archiveRetry)
+	assertAdminActivityResponseEqual(t, archived, archiveRetry)
 	assertAdminError(t, activeArchiveErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
 	assertAdminError(t, reconfigureArchivedErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
 	assertAdminError(t, startSimulationErr, http.StatusBadRequest, "INVALID_REQUEST")
@@ -397,7 +407,7 @@ func TestAdminInstallationService_DetailedPatchValidationAndEveryPersistedField(
 	assert.Equal(t, 40, updatedActivity.MomentPoints)
 	assert.Equal(t, 90, updatedActivity.CooldownSeconds)
 	assert.Equal(t, "archived", archivedNoOp.Status)
-	assert.Equal(t, archivedNoOp, archivedSecondNoOp)
+	assertAdminActivityResponseEqual(t, archivedNoOp, archivedSecondNoOp)
 	assertAdminError(t, duplicateSpaceSlugErr, http.StatusConflict, "SLUG_ALREADY_EXISTS")
 	assertAdminError(t, nullSpaceSlugErr, http.StatusBadRequest, "INVALID_REQUEST")
 	assertAdminError(t, nullSpaceNameErr, http.StatusBadRequest, "INVALID_REQUEST")
@@ -411,6 +421,35 @@ func TestAdminInstallationService_DetailedPatchValidationAndEveryPersistedField(
 	}
 	assertAdminError(t, duplicateCreateErr, http.StatusConflict, "SLUG_ALREADY_EXISTS")
 	assertAdminError(t, nilCreateErr, http.StatusBadRequest, "INVALID_REQUEST")
+}
+
+func TestAdminInstallationService_ActivityTransportNormalizesTimesToUTC(t *testing.T) {
+	// given
+	service := setupAdminInstallationTest(t)
+	_, adminCtx := seedAdminInstallationUser(t, "admin-timezone@example.com", userEntities.RoleAdmin, true)
+	localZone := time.FixedZone("America/Sao_Paulo", -3*60*60)
+	request := validCreateActivity("timezone-activity", nil)
+	request.StartsAt = optional(time.Date(2026, 8, 24, 15, 0, 0, 0, localZone))
+	request.EndsAt = optional(time.Date(2026, 8, 24, 16, 0, 0, 0, localZone))
+
+	// when
+	created, createErr := service.CreateActivity(adminCtx, uuid.NewString(), request)
+	updated, updateErr := service.UpdateActivity(adminCtx, created.ID, uuid.NewString(), &messages.UpdateAdminActivityRequestDTO{
+		StartsAt: optional(time.Date(2026, 8, 24, 17, 0, 0, 0, localZone)),
+		EndsAt:   optional(time.Date(2026, 8, 24, 18, 0, 0, 0, localZone)),
+	})
+
+	// then
+	require.NoError(t, createErr)
+	require.NoError(t, updateErr)
+	require.NotNil(t, created.StartsAt)
+	require.NotNil(t, created.EndsAt)
+	require.NotNil(t, updated.StartsAt)
+	require.NotNil(t, updated.EndsAt)
+	assert.Equal(t, "2026-08-24T18:00:00Z", created.StartsAt.Format(time.RFC3339))
+	assert.Equal(t, "2026-08-24T19:00:00Z", created.EndsAt.Format(time.RFC3339))
+	assert.Equal(t, "2026-08-24T20:00:00Z", updated.StartsAt.Format(time.RFC3339))
+	assert.Equal(t, "2026-08-24T21:00:00Z", updated.EndsAt.Format(time.RFC3339))
 }
 
 func stringsOfLength(length int) string { return string(make([]byte, length)) }

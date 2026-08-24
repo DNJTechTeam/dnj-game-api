@@ -874,8 +874,8 @@ components:
         description: {type: string, maxLength: 4000, nullable: true}
         kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
         status: {type: string, enum: [draft, active, paused, completed, archived], readOnly: true}
-        startsAt: {type: string, format: date-time, nullable: true}
-        endsAt: {type: string, format: date-time, nullable: true}
+        startsAt: {type: string, format: date-time, nullable: true, description: Instante normalizado para UTC e serializado em RFC 3339 com Z; a exibição usa o fuso local do cliente.}
+        endsAt: {type: string, format: date-time, nullable: true, description: Instante normalizado para UTC e serializado em RFC 3339 com Z; a exibição usa o fuso local do cliente.}
         checkInPoints: {type: integer, minimum: 0}
         momentPoints: {type: integer, minimum: 0}
         cooldownSeconds: {type: integer, minimum: 0}
@@ -890,8 +890,8 @@ components:
         name: {type: string, minLength: 1, maxLength: 200}
         description: {type: string, maxLength: 4000, nullable: true}
         kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
-        startsAt: {type: string, format: date-time, nullable: true}
-        endsAt: {type: string, format: date-time, nullable: true}
+        startsAt: {type: string, format: date-time, nullable: true, description: Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.}
+        endsAt: {type: string, format: date-time, nullable: true, description: Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.}
         checkInPoints: {type: integer, minimum: 0}
         momentPoints: {type: integer, minimum: 0}
         cooldownSeconds: {type: integer, minimum: 0}
@@ -918,8 +918,8 @@ components:
         name: {type: string, minLength: 1, maxLength: 200}
         description: {type: string, maxLength: 4000, nullable: true}
         kind: {type: string, enum: [schedule, checkpoint, challenge, competitive, live]}
-        startsAt: {type: string, format: date-time, nullable: true}
-        endsAt: {type: string, format: date-time, nullable: true}
+        startsAt: {type: string, format: date-time, nullable: true, description: Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.}
+        endsAt: {type: string, format: date-time, nullable: true, description: Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.}
         checkInPoints: {type: integer, minimum: 0}
         momentPoints: {type: integer, minimum: 0}
         cooldownSeconds: {type: integer, minimum: 0}

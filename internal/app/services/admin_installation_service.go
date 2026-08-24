@@ -194,8 +194,16 @@ func validateOptionalText(value *string, max int, field string) (*string, error)
 	return &trimmed, nil
 }
 
+func adminUTCTime(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	normalized := value.UTC()
+	return &normalized
+}
+
 func mapAdminActivity(activity *activityEntities.Activity) *messages.AdminActivityResponseDTO {
-	return &messages.AdminActivityResponseDTO{ID: activity.ID, SpaceID: activity.SpaceID, Slug: activity.Slug, Name: activity.Name, Description: activity.Description, Kind: string(activity.Kind), Status: string(activity.Status), StartsAt: activity.StartsAt, EndsAt: activity.EndsAt, CheckInPoints: activity.CheckInPoints, MomentPoints: activity.MomentPoints, CooldownSeconds: activity.CooldownSeconds, AllowsMoment: activity.AllowsMoment}
+	return &messages.AdminActivityResponseDTO{ID: activity.ID, SpaceID: activity.SpaceID, Slug: activity.Slug, Name: activity.Name, Description: activity.Description, Kind: string(activity.Kind), Status: string(activity.Status), StartsAt: adminUTCTime(activity.StartsAt), EndsAt: adminUTCTime(activity.EndsAt), CheckInPoints: activity.CheckInPoints, MomentPoints: activity.MomentPoints, CooldownSeconds: activity.CooldownSeconds, AllowsMoment: activity.AllowsMoment}
 }
 
 func mapAdminStaff(user *userEntities.User) messages.AdminStaffResponseDTO {
@@ -393,7 +401,7 @@ func (s *AdminInstallationService) CreateActivity(ctx context.Context, key strin
 		}
 		kind := activityEntities.Kind(strings.TrimSpace(*request.Kind))
 		now := s.now().UTC()
-		activity := &activityEntities.Activity{ID: uuid.NewString(), SpaceID: spaceID, Slug: slug, Name: name, Description: description, Kind: kind, Status: activityEntities.StatusDraft, StartsAt: request.StartsAt.Value, EndsAt: request.EndsAt.Value, CheckInPoints: *request.CheckInPoints, MomentPoints: *request.MomentPoints, CooldownSeconds: *request.CooldownSeconds, AllowsMoment: *request.AllowsMoment, CreatedAt: now, UpdatedAt: now}
+		activity := &activityEntities.Activity{ID: uuid.NewString(), SpaceID: spaceID, Slug: slug, Name: name, Description: description, Kind: kind, Status: activityEntities.StatusDraft, StartsAt: adminUTCTime(request.StartsAt.Value), EndsAt: adminUTCTime(request.EndsAt.Value), CheckInPoints: *request.CheckInPoints, MomentPoints: *request.MomentPoints, CooldownSeconds: *request.CooldownSeconds, AllowsMoment: *request.AllowsMoment, CreatedAt: now, UpdatedAt: now}
 		if err := validateActivityEntity(activity); err != nil {
 			return nil, err
 		}
@@ -480,11 +488,11 @@ func (s *AdminInstallationService) UpdateActivity(ctx context.Context, rawActivi
 			fields = append(fields, "kind")
 		}
 		if request.StartsAt.Set {
-			current.StartsAt = request.StartsAt.Value
+			current.StartsAt = adminUTCTime(request.StartsAt.Value)
 			fields = append(fields, "startsAt")
 		}
 		if request.EndsAt.Set {
-			current.EndsAt = request.EndsAt.Value
+			current.EndsAt = adminUTCTime(request.EndsAt.Value)
 			fields = append(fields, "endsAt")
 		}
 		if request.CheckInPoints.Set {

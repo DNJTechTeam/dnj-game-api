@@ -238,8 +238,8 @@ Nenhum arquivo do frontend foi alterado.
 | Auditoria | Toda escrita bem-sucedida, inclusive no-op com chave nova, grava ator, ação, entidade e metadados mínimos sem PII, corpo, mapa, descrição, token ou segredo. |
 | HTTP real entre camadas | Uma suíte atravessa middleware, handlers, services, repositories e PostgreSQL real nas 11 rotas, incluindo 401, 403, strict JSON e resultado original após alteração posterior. |
 | Concorrência | Oito retries simultâneos do mesmo assignment produzem um único row, um único resultado idempotente e um único audit. |
-| Cobertura do service | 91,3% (399/437 statements), gate permanente `make test-admin-cover-check` com mínimo 90%. |
-| Cobertura da fatia entre camadas | 92,1% (604/656 statements) em service, handlers, mappers e métodos de repositories da fatia, também bloqueada em 90%. |
+| Cobertura do service | 91,4% (403/441 statements), gate permanente `make test-admin-cover-check` com mínimo 90%. |
+| Cobertura da fatia entre camadas | 92,1% (608/660 statements) em service, handlers, mappers e métodos de repositories da fatia, também bloqueada em 90%. |
 | Migrations PostgreSQL | Clean install, replay direto duplo, upgrade preservando rows da Iteração 4, quatro runners, checksum e constraints verdes; três migrations adicionais expand/backfill/contract. |
 | Migrations CockroachDB | `v25.2.19`: clean install e replay com 19 migrations/0 checksum ausente; upgrade exato desde `9e33526` preservou User, Space, Activity, assignment e audit, realizou backfill de `entity_reference` e repetiu sem reset ou bypass; `events=0` e `event_id=0`. |
 | Enforcement no CI | Os workflows de PR, develop, release e production executam `make test-admin-cover-check`; tanto o service quanto a fatia integrada precisam manter no mínimo 90%. |
@@ -248,7 +248,10 @@ Nenhum arquivo do frontend foi alterado.
 Enablers finais do frontend, sem alteração deste repositório: Iteração 2 exige
 Google/sessão/refresh/onboarding/perfil V2; Iteração 3 exige membership, grupos,
 paginação e convites; Iteração 4 exige `/v2/spaces`, `/v2/admin`, JWT de
-identidade e um UUID de idempotência estável por intenção. Agenda, QR,
+identidade e um UUID de idempotência estável por intenção. Datas trafegam e são
+persistidas como instantes UTC/RFC 3339 `Z`; o frontend deve convertê-las para o
+fuso local atual somente na exibição e converter escolhas locais de volta para
+UTC antes de enviar. Agenda, QR,
 participações, runs, jogos, Moments e anúncios permanecem fora deste enabler.
 
 ## Deploy e smokes remotos da Iteração 4

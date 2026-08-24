@@ -113,6 +113,19 @@ papel atual no banco. Somente `ADMIN` recebe acesso. As listagens usam envelope
 | `PUT /admin/activities/{activityId}/managers/{userId}` | Exige usuário existente, onboarding completo e papel atual `EVENT_MANAGER`; é idempotente. |
 | `DELETE /admin/activities/{activityId}/managers/{userId}` | Remove assignment; ausência já é sucesso 204 idempotente. |
 
+### Datas, UTC e exibição local
+
+`startsAt` e `endsAt` representam instantes absolutos. O transporte HTTP e a
+persistência usam UTC; respostas são normalizadas para RFC 3339 com sufixo `Z`
+(por exemplo, `2026-08-24T18:00:00Z`). Se a API receber um RFC 3339 com offset,
+ela preserva o instante e o normaliza para UTC antes de persistir e responder.
+
+No frontend, UTC não deve ser exibido como se fosse horário de parede. O
+consumidor deve interpretar o valor como instante, formatá-lo no fuso local
+atual do dispositivo para exibição e, ao editar, converter a escolha local de
+volta para UTC antes do envio. Nunca acrescente `Z` a uma string local sem fazer
+a conversão de fuso; isso altera o instante real.
+
 Toda escrita exige `Idempotency-Key` UUID. O retry da mesma intenção pelo mesmo
 ator devolve o status e o resultado originais mesmo após alterações posteriores;
 a chave usada com outra operação, alvo ou payload retorna
@@ -142,7 +155,9 @@ ordem para não misturar contratos antigos de homologação:
 3. Iteração 4: trocar `/api/v1/spaces` por `GET /v2/spaces`, substituir Route
    Handlers acoplados a `events`, `experiences`, senhas e escopos antigos pelas
    rotas `/v2/admin`, e gerar um UUID de idempotência por intenção de escrita,
-   preservando-o somente durante retries.
+   preservando-o somente durante retries. Tratar `startsAt`/`endsAt` como
+   instantes UTC no transporte e formatá-los para o fuso local atual somente na
+   apresentação; seleções locais devem ser convertidas para UTC antes do envio.
 
 Agenda, QR, participações, runs, jogos, Moments e anúncios permanecem nas
 iterações posteriores e não devem ser simulados por esses endpoints.
