@@ -48,7 +48,7 @@ automatizado e evidência no ambiente `develop`.
 | 2 | Identidade e Google | Google, refresh/logout, sessão atual, completar perfil | usuários, identidades, refresh sessions | Concluída e publicada em develop |
 | 3 | Perfil e grupos | perfil atual, grupo atual, membros, convites/códigos | perfis, grupos, memberships, invites | Concluída e publicada em develop |
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
-| 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Implementada localmente; publicação em develop pendente |
+| 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
 | 6 | Jogos e ranking | catálogo, partidas/tentativas, placar e ranking | jogos, tentativas, resultados, leaderboard | Pendente |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
@@ -376,6 +376,8 @@ da Iteração 10 continuam preservados na seção “Entrega obrigatória da Ite
 - Commit de implementação: `ddcf50a`.
 - Run verde: <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32754142688>,
   incluindo race sob `TZ=UTC`, gates de cobertura, migrations, deploy Lambda e Pages.
+- Commit documental: `dcd33d8`; revalidação final verde em
+  <https://github.com/DNJTechTeam/dnj-game-api/actions/runs/32754694548>.
 - API: <https://ttwkfudhvvhuhp5yvsoydxggum0ictpg.lambda-url.sa-east-1.on.aws/v2>.
 - OpenAPI: <https://dnjtechteam.github.io/dnj-game-api/develop/v2/>.
 
