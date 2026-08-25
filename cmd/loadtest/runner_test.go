@@ -125,6 +125,25 @@ func TestRun(t *testing.T) {
 		// then
 		assert.Equal(t, 0, report.Requests)
 	})
+
+	t.Run("a non-positive concurrency does not panic allocating the results buffer", func(t *testing.T) {
+		// given
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+		cfg := Config{
+			BaseURL: server.URL, Path: "/healthcheck",
+			Concurrency: -1, RPS: 20, Duration: 50 * time.Millisecond,
+		}
+
+		// when
+		report := run(context.Background(), server.Client(), cfg)
+
+		// then: negative concurrency is clamped to a single worker instead of
+		// reaching make(chan sample, -4), which would panic at runtime.
+		require.GreaterOrEqual(t, report.Requests, 0)
+	})
 }
 
 func TestDoRequest(t *testing.T) {

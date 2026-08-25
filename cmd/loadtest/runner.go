@@ -49,12 +49,13 @@ func run(ctx context.Context, client *http.Client, cfg Config) Report {
 	runCtx, cancel := context.WithTimeout(ctx, cfg.Duration)
 	defer cancel()
 
+	concurrency := max(cfg.Concurrency, 1)
 	url := cfg.BaseURL + cfg.Path
 	jobs := make(chan struct{})
-	results := make(chan sample, cfg.Concurrency*4)
+	results := make(chan sample, concurrency*4)
 	var workers sync.WaitGroup
 
-	for range max(cfg.Concurrency, 1) {
+	for range concurrency {
 		workers.Add(1)
 		go func() {
 			defer workers.Done()

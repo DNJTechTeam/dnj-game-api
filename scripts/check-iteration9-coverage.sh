@@ -34,6 +34,10 @@ END {
       if (hits[key] > 0) slice_covered += statements[key]
     }
   }
+  if (service_total == 0 || slice_total == 0) {
+    print "Iteration 9 coverage gate matched zero statements — in_service/in_slice regex is stale or the profile is empty" > "/dev/stderr"
+    exit 1
+  }
   service_percent = 100 * service_covered / service_total
   slice_percent = 100 * slice_covered / slice_total
   service_rounded = int(service_percent * 10 + 0.5) / 10

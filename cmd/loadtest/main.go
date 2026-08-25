@@ -35,10 +35,26 @@ func main() {
 		"fail if more than this many 5xx/transport-failure responses are observed, "+
 			"regardless of -error-budget-percent (negative disables this stricter check)",
 	)
-	timeoutSeconds := flag.Int("request-timeout-seconds", 8, "per-request client timeout")
+	timeoutSeconds := flag.Int("request-timeout-seconds", 8, "per-request client timeout (must be > 0: a value of 0 disables Go's http.Client timeout entirely, which can hang a stuck profile forever)")
 	flag.Parse()
 
-	client := &http.Client{Timeout: time.Duration(*timeoutSeconds) * time.Second}
+	if *timeoutSeconds <= 0 {
+		fmt.Fprintln(os.Stderr, "load profile failed: -request-timeout-seconds must be greater than 0")
+		os.Exit(1)
+	}
+
+	// A non-nil Transport with per-host idle-connection limits at least as
+	// large as -concurrency is required: http.DefaultTransport's own default
+	// (MaxIdleConnsPerHost = 2) forces most workers above concurrency 2 to
+	// open a fresh TCP connection per request instead of reusing a pooled
+	// keep-alive one, inflating measured latency with handshake overhead
+	// that has nothing to do with the server under test — exactly the
+	// number this tool's p95 budget gates on.
+	poolSize := max(*concurrency, 2)
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = poolSize
+	transport.MaxIdleConnsPerHost = poolSize
+	client := &http.Client{Timeout: time.Duration(*timeoutSeconds) * time.Second, Transport: transport}
 	cfg := Config{
 		BaseURL:            *baseURL,
 		Path:               *path,
