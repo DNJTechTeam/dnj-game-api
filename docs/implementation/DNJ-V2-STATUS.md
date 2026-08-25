@@ -50,7 +50,7 @@ automatizado e evidência no ambiente `develop`.
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
 | 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Concluída e publicada em develop |
-| 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | media_assets, moments, moment_likes, moderação, jobs de retenção | Concluída localmente; validação de publicação em develop em andamento |
+| 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | media_assets, moments, moment_likes, moderação, jobs de retenção | Concluída e publicada em develop |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
 | 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
 | 10 | Handoff final | OpenAPI publicado, página única de integração do frontend, manifesto, exemplos e checklist de release | documentação versionada e artefato publicado pelo CI | Pendente |
@@ -442,6 +442,41 @@ de produção para fabricar smoke mutante.
 | MinIO/S3 | `docker-compose.yml` provisiona bucket privado com versionamento habilitado e lifecycle de defesa em profundidade (`staging/` expira em 2 dias); version ID confirmado persistido internamente para impedir que um PUT tardio substitua o conteúdo do Moment. |
 | Contrato/handoff | OpenAPI 3.0.3 `2.6.0` com as 7 operações novas; manifesto operação→testes atualizado; `docs/game-frontend-handoff.md` atualizado. |
 | Frontend | Clone consultado somente em leitura para descoberta de contrato; nenhum arquivo, commit ou push produzido no repositório do frontend. |
+
+## Publicação da Iteração 7 em develop
+
+- Commit de implementação: `d0fb895` (`feat: implement iteration 7 media, moments,
+  gallery and moderation`).
+- Workflow `develop.yml`: run `32799531920` verde em 11m5s, incluindo vet, race,
+  todos os gates de cobertura (geral, admin, Iterações 5–7), migrations
+  PostgreSQL reais, contrato OpenAPI, imagem, Lambda e GitHub Pages. Os quatro
+  workflows (`develop`, `pr`, `production`, `release`) passaram a exigir
+  `test-iteration7-cover-check`.
+- Migrations aplicadas sem reset: `expand_media_moments_v2`,
+  `backfill_global_idempotency_registry` e `contract_media_moments_v2`.
+- Configuração de retenção e cursor (`DNJ_MEDIA_RETENTION_ANCHOR_AT`,
+  `DNJ_CURSOR_HMAC_SECRET`, bucket S3 real privado e versionado) aplicada no
+  Lambda de develop externamente ao repositório, conforme o padrão já adotado
+  para as demais variáveis de ambiente.
+- Smokes somente leitura após o deploy:
+
+| Operação publicada | Resultado |
+|---|---|
+| `GET /healthcheck` | 200, serviço `ok` |
+| `GET /readiness` | 200, `status:ready` (confirma configuração de banco e de mídia válidas) |
+| `GET /moments?scope=feed` sem autenticação | 401 `UNAUTHENTICATED` |
+| `POST /media/upload-intents` sem autenticação | 401 `UNAUTHENTICATED` |
+| `GET /admin/moments/moderation?queue=general` sem autenticação | 401 `UNAUTHENTICATED` |
+| `POST /moments/{id}/likes` sem autenticação | 401 `UNAUTHENTICATED` |
+| UI OpenAPI (`/develop/v2/`) | 200 |
+| JSON OpenAPI (`/develop/v2/openapi.json`) | 200, OpenAPI 3.0.3, versão 2.6.0, servidor de develop e os 7 paths novos da Iteração 7 |
+
+O ambiente permaneceu sem assets, Moments, likes ou decisões de moderação
+artificiais; nenhum smoke mutante foi executado. A permissão IAM da execution
+role do Lambda para operações reais no bucket (upload/leitura/exclusão) não é
+verificável por smoke somente leitura — só é exercitada por um upload real de
+um usuário autenticado. As Iterações 8–10 e os artefatos obrigatórios do
+handoff final permanecem preservados no roadmap.
 
 ## Publicação da Iteração 6 em develop
 
