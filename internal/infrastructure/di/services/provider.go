@@ -14,6 +14,7 @@ import (
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
 	momentInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces"
+	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
@@ -107,6 +108,14 @@ func ProvideMomentService(
 		userRepository,
 		auditRepository,
 	)
+}
+
+func ProvideNotificationService(
+	baseService *services.BaseService,
+	notificationRepository notificationInterfaces.Repository,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.NotificationServiceInterface {
+	return services.NewNotificationService(baseService, notificationRepository, userRepository)
 }
 
 func ProvideBaseService(transactionManager commonInterfaces.TransactionManagerInterface) *services.BaseService {

@@ -17,6 +17,9 @@ ITERATION6_SLICE_COVER_MIN ?= 90
 ITERATION7_COVER_PROFILE ?= /tmp/dnj-iteration7-coverage.out
 ITERATION7_SERVICE_COVER_MIN ?= 90
 ITERATION7_SLICE_COVER_MIN ?= 90
+ITERATION8_COVER_PROFILE ?= /tmp/dnj-iteration8-coverage.out
+ITERATION8_SERVICE_COVER_MIN ?= 90
+ITERATION8_SLICE_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -26,7 +29,7 @@ OPENAPI_DIR=docs/openapi
 
 .PHONY: wire build run run-api media-worker vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check \
+        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -131,7 +134,14 @@ test-iteration7-cover-check:
 		-coverpkg=./internal/app/services,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
 	bash scripts/check-iteration7-coverage.sh $(ITERATION7_COVER_PROFILE) $(ITERATION7_SERVICE_COVER_MIN) $(ITERATION7_SLICE_COVER_MIN)
 
-validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-migrations openapi
+test-iteration8-cover-check:
+	TZ=UTC go test ./internal/app/services ./internal/presentation/api/handlers ./internal/infrastructure/db/mappers ./internal/infrastructure/db/repositories ./internal/app/mappers \
+		-run 'TestNotifications|TestNotificationService|TestNotificationMapper|TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle|TestIteration6_FinalizeResultsAwardsExactlyOnceAndRollsBackInvalidSets' -count=1 \
+		-coverprofile=$(ITERATION8_COVER_PROFILE) \
+		-coverpkg=./internal/app/services,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories,./internal/app/mappers
+	bash scripts/check-iteration8-coverage.sh $(ITERATION8_COVER_PROFILE) $(ITERATION8_SERVICE_COVER_MIN) $(ITERATION8_SLICE_COVER_MIN)
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:

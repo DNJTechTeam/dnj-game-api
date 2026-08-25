@@ -417,3 +417,32 @@ operations:
       - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
       - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
       - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: getNotificationPreferences
+    method: GET
+    path: /notifications/preferences
+    statuses: ['200', '401', '403', '409', '500']
+    automatedTests: &iteration8NotificationTests
+      - internal/app/services/notification_service_test.go
+      - internal/app/services/notification_service_repository_failure_test.go
+      - internal/app/services/notification_http_integration_test.go
+      - internal/infrastructure/db/repositories/notification_sqlmock_error_test.go
+  - operationId: updateNotificationPreferences
+    method: PUT
+    path: /notifications/preferences
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: listNotifications
+    method: GET
+    path: /notifications
+    statuses: ['200', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: markNotificationRead
+    method: POST
+    path: /notifications/{notificationId}/read
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: sendAdminNotification
+    method: POST
+    path: /admin/notifications
+    statuses: ['201', '400', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests

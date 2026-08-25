@@ -11,6 +11,7 @@ import (
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
 	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
 	momentInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces"
+	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
@@ -49,6 +50,10 @@ func ProvideMediaRepository(db *gorm.DB) mediaInterfaces.Repository {
 
 func ProvideMomentRepository(db *gorm.DB) momentInterfaces.Repository {
 	return repositories.NewMomentRepository(db)
+}
+
+func ProvideNotificationRepository(db *gorm.DB) notificationInterfaces.Repository {
+	return repositories.NewNotificationRepository(db)
 }
 
 func ProvideOperationAuditRepository(db *gorm.DB) auditInterfaces.OperationAuditRepositoryInterface {

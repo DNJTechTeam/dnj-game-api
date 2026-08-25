@@ -60,6 +60,12 @@ packages:
       dir: './internal/mocks'
       filename: moment_domain_mocks.go
       structname: 'MockMoment{{.InterfaceName}}'
+  github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: notification_domain_mocks.go
+      structname: 'MockNotification{{.InterfaceName}}'
   github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces:
     config:
       all: true

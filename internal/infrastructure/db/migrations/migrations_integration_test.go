@@ -503,3 +503,75 @@ func TestMigrations_Iteration6UpgradePreservesPriorDataAndEnforcesGameInvariants
 	assert.True(t, migrator.HasColumn("participant_operations", "result_points"))
 	assert.False(t, migrator.HasTable("events"))
 }
+
+func TestMigrations_Iteration8UpgradePreservesPriorDataAndEnforcesNotificationInvariants(t *testing.T) {
+	// given
+	resetSchema(t)
+	registered := registeredMigrations()
+	for _, migration := range registered {
+		if migration.Name == "create_notifications_v1" {
+			break
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name)
+	}
+	var userID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email, name, role, points, onboarding_complete, created_at, updated_at)
+		VALUES ('iteration8-user@example.com', 'Iteration 8 User', 'DEFAULT', 0, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&userID).Error)
+	activityID := uuid.NewString()
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO activities (id, slug, name, kind, status, check_in_points, moment_points, cooldown_seconds, allows_moment, created_at, updated_at)
+		VALUES (?, 'iteration8-activity', 'Iteration 8 Activity', 'competitive', 'active', 0, 0, 0, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, activityID).Error)
+
+	// when: the migration runs twice — a genuine idempotency replay
+	var notificationsMigration migrations.Migration
+	for _, migration := range registered {
+		if migration.Name == "create_notifications_v1" {
+			notificationsMigration = migration
+			break
+		}
+	}
+	require.NoError(t, notificationsMigration.Up(migrationSuite.DbConn), "first apply")
+	require.NoError(t, notificationsMigration.Up(migrationSuite.DbConn), "second apply (replay)")
+
+	migrator := migrationSuite.DbConn.Migrator()
+	assert.True(t, migrator.HasTable("notifications"))
+	assert.True(t, migrator.HasTable("notification_preferences"))
+
+	badUserErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO notifications (id, user_id, category, state, title, body, source_type, created_at)
+		VALUES (?, 999999, 'points', 'unread', 'T', 'B', 'test', CURRENT_TIMESTAMP)
+	`, uuid.NewString()).Error
+	badCategoryErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO notifications (id, user_id, category, state, title, body, source_type, created_at)
+		VALUES (?, ?, 'not-a-category', 'unread', 'T', 'B', 'test', CURRENT_TIMESTAMP)
+	`, uuid.NewString(), userID).Error
+	badStateErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO notifications (id, user_id, category, state, title, body, source_type, created_at)
+		VALUES (?, ?, 'points', 'not-a-state', 'T', 'B', 'test', CURRENT_TIMESTAMP)
+	`, uuid.NewString(), userID).Error
+	okErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO notifications (id, user_id, category, state, title, body, source_type, created_at)
+		VALUES (?, ?, 'moment_moderation', 'unread', 'T', 'B', 'test', CURRENT_TIMESTAMP)
+	`, uuid.NewString(), userID).Error
+	badPreferenceUserErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO notification_preferences (user_id, points_enabled, announcement_enabled, updated_at)
+		VALUES (999999, TRUE, TRUE, CURRENT_TIMESTAMP)
+	`).Error
+	var preserved int64
+	require.NoError(t, migrationSuite.DbConn.Table("activities").Where("id = ?", activityID).Count(&preserved).Error)
+	var preservedUser int64
+	require.NoError(t, migrationSuite.DbConn.Table("users").Where("id = ?", userID).Count(&preservedUser).Error)
+
+	// then
+	require.Error(t, badUserErr)
+	require.Error(t, badCategoryErr)
+	require.Error(t, badStateErr)
+	require.NoError(t, okErr)
+	require.Error(t, badPreferenceUserErr)
+	assert.Equal(t, int64(1), preserved)
+	assert.Equal(t, int64(1), preservedUser)
+}

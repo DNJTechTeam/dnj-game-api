@@ -70,6 +70,8 @@ func TestMigrations_CockroachCleanInstallAndReplay(t *testing.T) {
 		"idempotency_operations",
 		"media_processing_claims",
 		"media_cleanup_jobs",
+		"notifications",
+		"notification_preferences",
 	} {
 		assert.True(t, database.Migrator().HasTable(table), table)
 	}

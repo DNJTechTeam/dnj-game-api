@@ -281,12 +281,18 @@ func (r *MomentRepository) AwardMoment(
 	if err := r.getDB(ctx).Model(&models.User{}).Where("id=?", userID).Update("points", gorm.Expr("points + ?", points)).Error; err != nil {
 		return handleRepositoryError(err)
 	}
-	return handleRepositoryError(
-		r.getDB(ctx).
-			Model(&models.Moment{}).
-			Where("id=?", momentID).
-			Updates(map[string]any{"reward_status": string(momentEntities.RewardAwarded), "points_awarded": points, "updated_at": now}).
-			Error,
+	if err := r.getDB(ctx).
+		Model(&models.Moment{}).
+		Where("id=?", momentID).
+		Updates(map[string]any{"reward_status": string(momentEntities.RewardAwarded), "points_awarded": points, "updated_at": now}).
+		Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	return writeDerivedNotification(
+		r.getDB(ctx), userID, "points",
+		"Pontos concedidos",
+		"Você recebeu pontos por uma foto publicada.",
+		"moment", momentID, now,
 	)
 }
 
@@ -327,6 +333,14 @@ func (r *MomentRepository) ReverseMomentAward(
 	if err := r.getDB(ctx).Model(&models.Moment{}).Where("id=?", momentID).Updates(map[string]any{"reward_status": string(momentEntities.RewardReversed), "updated_at": now}).Error; err != nil {
 		return false, handleRepositoryError(err)
 	}
+	if err := writeDerivedNotification(
+		r.getDB(ctx), userID, "points",
+		"Pontos revertidos",
+		"Uma pontuação da sua foto foi revertida por moderação.",
+		"moment", momentID, now,
+	); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -356,6 +370,7 @@ func (r *MomentRepository) ApplyModeration(
 		}
 	}
 	changed := false
+	assetJustDeleted := false
 	if action == "deny_points" {
 		if row.RewardStatus == string(momentEntities.RewardAwarded) {
 			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, now)
@@ -384,10 +399,12 @@ func (r *MomentRepository) ApplyModeration(
 				return nil, nil, false, handleRepositoryError(err)
 			}
 			changed = true
+			assetJustDeleted = true
 		}
 	}
-	if row.PublicationStatus != string(momentEntities.PublicationPrivate) ||
-		row.ModerationStatus != string(momentEntities.ModerationRejected) {
+	moderationJustChanged := row.PublicationStatus != string(momentEntities.PublicationPrivate) ||
+		row.ModerationStatus != string(momentEntities.ModerationRejected)
+	if moderationJustChanged {
 		row.PublicationStatus = string(momentEntities.PublicationPrivate)
 		row.ModerationStatus = string(momentEntities.ModerationRejected)
 		row.UpdatedAt = now
@@ -395,6 +412,21 @@ func (r *MomentRepository) ApplyModeration(
 			return nil, nil, false, handleRepositoryError(err)
 		}
 		changed = true
+	}
+	// A second decision (e.g. delete_photo after an earlier deny_points already
+	// rejected the moment) still needs to reach the owner: the moderation status
+	// transition above only fires once, but the photo can be deleted later.
+	if moderationJustChanged || assetJustDeleted {
+		body := "Sua foto não atendeu às regras de publicação."
+		if action == "delete_photo" {
+			body = "Sua foto foi removida da galeria."
+		}
+		if err := writeDerivedNotification(
+			r.getDB(ctx), row.UserID, "moment_moderation",
+			"Sua foto foi moderada", body, "moment", row.ID, now,
+		); err != nil {
+			return nil, nil, false, err
+		}
 	}
 	return mappers.MapMomentToEntity(&row), mappers.MapMediaAssetToEntity(&asset), changed, nil
 }

@@ -111,6 +111,11 @@ func InitializeServer() *api.API {
 	momentHandler := &handlers.MomentHandler{
 		MomentService: momentServiceInterface,
 	}
+	repository2 := repositories.ProvideNotificationRepository(gormDB)
+	notificationServiceInterface := services.ProvideNotificationService(baseService, repository2, userRepositoryInterface)
+	notificationHandler := &handlers.NotificationHandler{
+		NotificationService: notificationServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
@@ -128,6 +133,7 @@ func InitializeServer() *api.API {
 		GameHandler:                gameHandler,
 		MediaHandler:               mediaHandler,
 		MomentHandler:              momentHandler,
+		NotificationHandler:        notificationHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

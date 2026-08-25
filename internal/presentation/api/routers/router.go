@@ -47,6 +47,7 @@ func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterAdminInstallationRoutes()
 	r.RegisterGameRoutes()
 	r.RegisterMediaMomentRoutes()
+	r.RegisterNotificationRoutes()
 
 	return r.engine
 }

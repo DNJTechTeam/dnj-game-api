@@ -1,6 +1,6 @@
 # DNJ V2 — Status executivo e matriz de atendimento
 
-Atualizado em: 2026-08-24
+Atualizado em: 2026-08-25
 
 Branch de execução: `develop`
 
@@ -51,7 +51,7 @@ automatizado e evidência no ambiente `develop`.
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
 | 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Concluída e publicada em develop |
 | 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | media_assets, moments, moment_likes, moderação, jobs de retenção | Concluída e publicada em develop |
-| 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
+| 8 | Notificações | preferências, listagem, leitura e envio administrativo | `notifications`, `notification_preferences` | Concluída localmente; PR aberto para develop |
 | 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
 | 10 | Handoff final | OpenAPI publicado, página única de integração do frontend, manifesto, exemplos e checklist de release | documentação versionada e artefato publicado pelo CI | Pendente |
 
@@ -442,6 +442,24 @@ de produção para fabricar smoke mutante.
 | MinIO/S3 | `docker-compose.yml` provisiona bucket privado com versionamento habilitado e lifecycle de defesa em profundidade (`staging/` expira em 2 dias); version ID confirmado persistido internamente para impedir que um PUT tardio substitua o conteúdo do Moment. |
 | Contrato/handoff | OpenAPI 3.0.3 `2.6.0` com as 7 operações novas; manifesto operação→testes atualizado; `docs/game-frontend-handoff.md` atualizado. |
 | Frontend | Clone consultado somente em leitura para descoberta de contrato; nenhum arquivo, commit ou push produzido no repositório do frontend. |
+
+## Evidência local da Iteração 8
+
+| Controle | Evidência em 2026-08-25 |
+|---|---|
+| Domínio | `Notification` é a única entidade nova persistida, sempre derivada de um evento do servidor (moderação de Moment rejeitada, pontos concedidos/revertidos) ou do envio administrativo explícito; nunca aceita tipo, destinatário, conteúdo arbitrário ou timestamp do cliente para uma notificação derivada — `userId`/`read`/`sentAt`/`createdAt`/estado são sempre calculados no servidor. |
+| Escrita atômica com o evento | A notificação é gravada na mesma transação do evento que a origina: `notification_event_writer.go` é chamado a partir de `moment_repository.go` (`ApplyModeration`, `AwardMoment`, `ReverseMomentAward`) e `game_repository.go` (`ApplyAward`) — decisão deliberada para não alterar as assinaturas de `MomentService`/`GameService`, preservando os testes já gated das Iterações 5–7 sem risco. |
+| Preferências | `GET/PUT /notifications/preferences` controla só `pointsEnabled`/`announcementEnabled`; `momentModerationEnabled` é sempre `true` na resposta e não existe caminho de escrita para desabilitá-la (decodificação estrita rejeita o campo). |
+| Listagem/leitura | `GET /notifications` pagina 10 por página (`createdAt DESC,id DESC`) e expõe `unreadCount` agregado para o badge; `POST /notifications/{id}/read` é idempotente, nunca reverte `read`→`unread`, e notificação alheia/inexistente retorna o mesmo `404` sem permitir enumeração. |
+| Envio administrativo | `POST /admin/notifications` é a única via de conteúdo livre, sempre atribuída ao ADMIN autenticado; `EVENT_MANAGER` não recebe a permissão; sem `targetUserIds` faz broadcast para todo `DEFAULT` onboarded que não desabilitou `announcementEnabled`; resposta expõe só `recipientCount` agregado, nunca a lista de destinatários. |
+| Idempotência | Toda escrita HTTP exige `Idempotency-Key` UUID, reaproveitando a mesma tabela unificada `idempotency_operations` das Iterações 1–7 (sem tabela nova de idempotência); envio administrativo em massa não duplica entrega sob retry com a mesma chave — inserção do lote inteiro e registro da operação acontecem na mesma transação. |
+| HTTP real | `TestNotificationsHTTP_MiddlewareHandlerServiceRepositoryAndDatabase` atravessa middleware→handler→service→repository→PostgreSQL para os 5 endpoints; inclui rejeição por role, decodificação estrita e 404 uniforme. |
+| Concorrência | `TestNotificationsHTTP_ConcurrentMarkReadWithSameKeyIsSingleEffect` prova que 8 requisições concorrentes com a mesma `Idempotency-Key` produzem um único registro em `idempotency_operations` e o mesmo efeito final. |
+| Cobertura | Gate novo `test-iteration8-cover-check`: serviço 98,8% (167/169); fatia integrada (service+repository+handler+event-writer) 97,6% (279/286) — mínimo exigido 90%/90%. Gates administrativos (91,4%/92,2%), Iteração 5 (97,4%/97,3%) e Iterações 6/7 (mínimo 90%) preservados após as mudanças em `moment_repository.go`/`game_repository.go`. |
+| Gate agregado | `make validate` verde: Wire, build, vet, race sob `TZ=UTC`, cobertura (geral + todos os gates permanentes 1–8), migrations PostgreSQL e CockroachDB reais, testes HTTP reais, OpenAPI. |
+| Migrations PostgreSQL/CockroachDB | Uma migration nova e idempotente (`create_notifications_v1`, versão `2.7.0`), sem editar nenhuma migration já aplicada; instalação limpa e upgrade exato verdes em ambos os bancos; dados das Iterações 1–7 preservados. |
+| Contrato/handoff | OpenAPI 3.0.3 `2.7.0` com os 5 endpoints novos; manifesto operação→testes atualizado; `docs/notifications.md` e `docs/game-frontend-handoff.md` atualizados. |
+| Frontend | Nenhuma alteração necessária no clone local do frontend para esta iteração; contrato descoberto a partir de `docs/game-frontend-handoff.md` e `docs/media-moments.md` já existentes. |
 
 ## Publicação da Iteração 7 em develop
 

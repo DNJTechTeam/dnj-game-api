@@ -1087,4 +1087,45 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "create_notifications_v1",
+		Description: "Persist notification preferences and server-derived notifications for Iteration 8",
+		Version:     "2.7.0",
+		Definition:  "notifications-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE TABLE IF NOT EXISTS notification_preferences (
+					user_id BIGINT PRIMARY KEY, points_enabled BOOLEAN NOT NULL DEFAULT true,
+					announcement_enabled BOOLEAN NOT NULL DEFAULT true, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS notifications (
+					id UUID PRIMARY KEY, user_id BIGINT NOT NULL, category VARCHAR(32) NOT NULL,
+					state VARCHAR(16) NOT NULL DEFAULT 'unread', title VARCHAR(200) NOT NULL, body TEXT NOT NULL,
+					source_type VARCHAR(32) NOT NULL, source_id VARCHAR(64), metadata JSONB,
+					created_at TIMESTAMPTZ NOT NULL, read_at TIMESTAMPTZ
+				)`,
+				`CREATE INDEX IF NOT EXISTS notifications_user_feed_idx ON notifications (user_id, created_at DESC, id DESC)`,
+				`CREATE INDEX IF NOT EXISTS notifications_user_unread_idx ON notifications (user_id, state)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			constraints := []struct{ table, name, definition string }{
+				{"notification_preferences", "notification_preferences_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"notifications", "notifications_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"notifications", "notifications_category_check", `CHECK (category IN ('moment_moderation','points','announcement'))`},
+				{"notifications", "notifications_state_check", `CHECK (state IN ('unread','read'))`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.6.0
+  version: 2.7.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -25,6 +25,8 @@ tags:
   - name: Media
   - name: Moments
   - name: Moderation
+  - name: Notifications
+  - name: Notification administration
 paths:
   /healthcheck:
     get:
@@ -1104,6 +1106,115 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /notifications/preferences:
+    get:
+      tags: [Notifications]
+      operationId: getNotificationPreferences
+      summary: Retorna as preferências de notificação do ator atual
+      description: >-
+        momentModerationEnabled é sempre true na resposta; não existe caminho
+        de escrita para desabilitar notificações de moderação/segurança da
+        própria conta. Um ator que nunca personalizou preferências recebe o
+        padrão: todas habilitadas. Exige DEFAULT com onboarding completo.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Preferências atuais do ator, content: {application/json: {schema: {$ref: '#/components/schemas/NotificationPreferences'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    put:
+      tags: [Notifications]
+      operationId: updateNotificationPreferences
+      summary: Atualiza as preferências de notificação do ator atual
+      description: >-
+        Corpo estrito {pointsEnabled opcional, announcementEnabled
+        opcional}; qualquer outro campo, incluindo momentModerationEnabled, é
+        rejeitado por decodificação estrita. Campos omitidos preservam o
+        valor atual (ou o padrão, se ainda não existir preferência
+        persistida). Exige DEFAULT com onboarding completo.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/UpdateNotificationPreferencesRequest'}}}
+      responses:
+        '200': {description: Preferências atualizadas ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/NotificationPreferences'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /notifications:
+    get:
+      tags: [Notifications]
+      operationId: listNotifications
+      summary: Lista as notificações do ator atual com contagem de não lidas
+      description: >-
+        Ordena por createdAt DESC, id DESC; 10 por página (?page=N,
+        1-indexado). unreadCount é a contagem agregada de não lidas do ator,
+        usada pelo badge do app. Nunca expõe notificação de outro usuário.
+        Exige DEFAULT com onboarding completo.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200': {description: Página de notificações do ator, content: {application/json: {schema: {$ref: '#/components/schemas/NotificationList'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /notifications/{notificationId}/read:
+    parameters:
+      - {$ref: '#/components/parameters/NotificationID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Notifications]
+      operationId: markNotificationRead
+      summary: Marca uma notificação do ator atual como lida
+      description: >-
+        Não aceita corpo. Idempotente: reenviar a mesma chave, ou marcar uma
+        notificação já lida, retorna o mesmo estado terminal — nunca reverte
+        read para unread. Notificação alheia ou inexistente retorna o mesmo
+        404, sem permitir enumeração. Exige DEFAULT com onboarding completo.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Notificação marcada como lida ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/Notification'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/notifications:
+    post:
+      tags: [Notification administration]
+      operationId: sendAdminNotification
+      summary: Envia uma notificação administrativa de conteúdo livre
+      description: >-
+        Corpo estrito {title, body, targetUserIds opcional}. Única via de
+        conteúdo livre desta iteração; sempre atribuída ao ator ADMIN
+        autenticado, nunca a um usuário arbitrário. Exige ADMIN confirmado no
+        banco; EVENT_MANAGER não recebe essa permissão. Sem targetUserIds,
+        faz broadcast para todo usuário DEFAULT, existente, com onboarding
+        completo e que não desabilitou announcementEnabled; com
+        targetUserIds, restringe o broadcast a esse conjunto, ainda filtrado
+        pelos mesmos critérios de elegibilidade e preferência. A resposta
+        expõe somente a contagem agregada de destinatários — nunca a lista.
+        Retry com a mesma Idempotency-Key replica o recipientCount original
+        sem duplicar entrega.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/AdminSendNotificationRequest'}}}
+      responses:
+        '201': {description: Notificação(ões) enviada(s) ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminSendNotificationResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
@@ -1182,6 +1293,11 @@ components:
       schema: {type: string, format: uuid}
     MomentID:
       name: momentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    NotificationID:
+      name: notificationId
       in: path
       required: true
       schema: {type: string, format: uuid}
@@ -2041,3 +2157,54 @@ components:
         rewardStatus: {type: string, enum: [not_applicable, awarded, denied, reversed]}
         photoStatus: {type: string, enum: [available, deleted]}
         pointsAwarded: {type: integer}
+    NotificationPreferences:
+      type: object
+      additionalProperties: false
+      required: [momentModerationEnabled, pointsEnabled, announcementEnabled, updatedAt]
+      properties:
+        momentModerationEnabled: {type: boolean, description: Sempre true; não existe caminho de escrita para desabilitá-la.}
+        pointsEnabled: {type: boolean}
+        announcementEnabled: {type: boolean}
+        updatedAt: {type: string, format: date-time, example: '2026-10-18T15:45:00Z'}
+    UpdateNotificationPreferencesRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        pointsEnabled: {type: boolean}
+        announcementEnabled: {type: boolean}
+    Notification:
+      type: object
+      additionalProperties: false
+      required: [id, category, state, title, body, sourceType, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        category: {type: string, enum: [moment_moderation, points, announcement]}
+        state: {type: string, enum: [unread, read]}
+        title: {type: string}
+        body: {type: string}
+        sourceType: {type: string}
+        sourceId: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time, example: '2026-10-18T15:45:00Z'}
+        readAt: {type: string, format: date-time, nullable: true, example: '2026-10-18T15:50:00Z'}
+    NotificationList:
+      type: object
+      additionalProperties: false
+      required: [data, pagination, unreadCount]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Notification'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+        unreadCount: {type: string, description: Contagem agregada de notificações não lidas do ator, para o badge do app.}
+    AdminSendNotificationRequest:
+      type: object
+      additionalProperties: false
+      required: [title, body]
+      properties:
+        title: {type: string}
+        body: {type: string}
+        targetUserIds: {type: array, items: {type: string, pattern: '^[1-9][0-9]*$'}, description: Restringe o broadcast a este conjunto, ainda filtrado por elegibilidade e preferência; omitido faz broadcast geral.}
+    AdminSendNotificationResponse:
+      type: object
+      additionalProperties: false
+      required: [recipientCount]
+      properties:
+        recipientCount: {type: string, description: Contagem agregada de destinatários; a lista de destinatários nunca é exposta.}
