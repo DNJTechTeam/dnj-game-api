@@ -2,6 +2,9 @@ package migrations
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"gorm.io/gorm"
@@ -1122,6 +1125,47 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			for _, constraint := range constraints {
 				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
 					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name: "seed_initial_admin_users",
+		Description: "One-time bootstrap: promote an operator-provided list of emails " +
+			"(ADMIN_SEED_EMAILS) to ADMIN, creating the user row if it doesn't exist yet. Like " +
+			"every migration, the tracker (schema_migrations) runs this exactly once per " +
+			"database — ADMIN_SEED_EMAILS must be set on the deploy that first ships this " +
+			"migration, or it applies as a no-op and can never retry. After bootstrap, grant " +
+			"further ADMIN/EVENT_MANAGER roles through PATCH /v2/admin/users/:userId/role, not " +
+			"by editing this list — later runs never touch it again.",
+		Version:    "2.8.0",
+		Definition: "seed-initial-admin-users-v1",
+		Up: func(db *gorm.DB) error {
+			raw := strings.TrimSpace(os.Getenv("ADMIN_SEED_EMAILS"))
+			if raw == "" {
+				return nil
+			}
+			now := time.Now().UTC()
+			for entry := range strings.SplitSeq(raw, ",") {
+				email := strings.ToLower(strings.TrimSpace(entry))
+				if email == "" {
+					continue
+				}
+				name := email
+				if at := strings.Index(email, "@"); at > 0 {
+					name = email[:at]
+				}
+				err := db.Exec(`
+					INSERT INTO users (email, name, role, onboarding_complete, points, created_at, updated_at)
+					VALUES (?, ?, 'ADMIN', true, 0, ?, ?)
+					ON CONFLICT (email) DO UPDATE SET role = 'ADMIN'
+					WHERE users.role <> 'ADMIN'
+				`, email, name, now, now).Error
+				if err != nil {
+					return fmt.Errorf("failed to seed admin user %s: %w", email, err)
 				}
 			}
 			return nil

@@ -52,6 +52,7 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
+          ADMIN_SEED_EMAILS: ${{ secrets.ADMIN_SEED_EMAILS }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
