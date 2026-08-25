@@ -3,6 +3,7 @@ package repositories
 import (
 	"time"
 
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -32,18 +33,18 @@ func writeDerivedNotification(
 		}
 	}
 	ref := sourceID
-	row := map[string]any{
-		"id":          uuid.NewString(),
-		"user_id":     userID,
-		"category":    category,
-		"state":       "unread",
-		"title":       title,
-		"body":        body,
-		"source_type": sourceType,
-		"source_id":   ref,
-		"created_at":  now,
+	row := &models.Notification{
+		ID:         uuid.NewString(),
+		UserID:     userID,
+		Category:   category,
+		State:      "unread",
+		Title:      title,
+		Body:       body,
+		SourceType: sourceType,
+		SourceID:   &ref,
+		CreatedAt:  now,
 	}
-	return handleRepositoryError(db.Table("notifications").Create(row).Error)
+	return handleRepositoryError(db.Create(row).Error)
 }
 
 func categoryEnabled(db *gorm.DB, userID uint64, category string) (bool, error) {

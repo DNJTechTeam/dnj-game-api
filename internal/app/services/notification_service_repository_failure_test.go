@@ -180,14 +180,14 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 
 	t.Run("MarkRead: rejects an invalid Idempotency-Key", func(t *testing.T) {
 		service, _, _ := newNotificationServiceWithMocks(t)
-		_, err := service.MarkRead(ctx, "notification-1", "not-a-uuid")
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", "not-a-uuid")
 		apiServiceError(t, err, http.StatusBadRequest, "INVALID_REQUEST")
 	})
 
 	t.Run("MarkRead: rejects a non-DEFAULT actor", func(t *testing.T) {
 		service, _, users := newNotificationServiceWithMocks(t)
 		mockAdminActor(users, 42)
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		apiServiceError(t, err, http.StatusForbidden, "FORBIDDEN")
 	})
 
@@ -197,7 +197,7 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		users.On("FindByID", mock.Anything, uint64(42)).Return(defaultActor, nil).Once()
 		users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(nil, errors.New("db down")).Once()
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, appErrors.ErrNotFound).Once()
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -207,18 +207,18 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		operation := "notifications.read"
 		fingerprint := intentHash(operation, struct {
 			NotificationID string `json:"notificationId"`
-		}{NotificationID: "notification-1"})
+		}{NotificationID: "11111111-1111-4111-8111-111111111111"})
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, appErrors.ErrNotFound).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateUnread}, nil).Once()
-		notifications.On("MarkRead", mock.Anything, "notification-1", uint64(42), mock.Anything).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateRead}, nil).Once()
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateUnread}, nil).Once()
+		notifications.On("MarkRead", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42), mock.Anything).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateRead}, nil).Once()
 		notifications.On("CreateOperation", mock.Anything, mock.Anything).Return(appErrors.ErrConflict).Once()
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).
 			Return(&notificationEntities.Operation{Operation: operation, IntentHash: fingerprint}, nil).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateRead}, nil).Once()
-		result, err := service.MarkRead(ctx, "notification-1", key)
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateRead}, nil).Once()
+		result, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.NoError(t, err)
 		assert.Equal(t, "read", result.State)
 	})
@@ -227,7 +227,7 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		service, notifications, users := newNotificationServiceWithMocks(t)
 		mockDefaultActor(users, 42)
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, errors.New("db down")).Once()
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -235,25 +235,25 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		service, notifications, users := newNotificationServiceWithMocks(t)
 		mockDefaultActor(users, 42)
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, appErrors.ErrNotFound).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
 			Return(nil, errors.New("db down")).Once()
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
 	t.Run("MarkRead: replays a cached result without writing again", func(t *testing.T) {
 		service, notifications, users := newNotificationServiceWithMocks(t)
 		mockDefaultActor(users, 42)
-		resourceRef := "notification-1"
+		resourceRef := "11111111-1111-4111-8111-111111111111"
 		operation := "notifications.read"
 		fingerprint := intentHash(operation, struct {
 			NotificationID string `json:"notificationId"`
-		}{NotificationID: "notification-1"})
+		}{NotificationID: "11111111-1111-4111-8111-111111111111"})
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).
 			Return(&notificationEntities.Operation{Operation: operation, IntentHash: fingerprint, ResourceRef: &resourceRef}, nil).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateRead}, nil).Once()
-		result, err := service.MarkRead(ctx, "notification-1", key)
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateRead}, nil).Once()
+		result, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.NoError(t, err)
 		assert.Equal(t, "read", result.State)
 	})
@@ -262,11 +262,11 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		service, notifications, users := newNotificationServiceWithMocks(t)
 		mockDefaultActor(users, 42)
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, appErrors.ErrNotFound).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateUnread}, nil).Once()
-		notifications.On("MarkRead", mock.Anything, "notification-1", uint64(42), mock.Anything).
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateUnread}, nil).Once()
+		notifications.On("MarkRead", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42), mock.Anything).
 			Return(nil, errors.New("db down")).Once()
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -274,12 +274,12 @@ func TestNotificationService_RepositoryFailures(t *testing.T) {
 		service, notifications, users := newNotificationServiceWithMocks(t)
 		mockDefaultActor(users, 42)
 		notifications.On("FindOperation", mock.Anything, uint64(42), key).Return(nil, appErrors.ErrNotFound).Once()
-		notifications.On("FindByIDAndUser", mock.Anything, "notification-1", uint64(42)).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateUnread}, nil).Once()
-		notifications.On("MarkRead", mock.Anything, "notification-1", uint64(42), mock.Anything).
-			Return(&notificationEntities.Notification{ID: "notification-1", State: notificationEntities.StateRead}, nil).Once()
+		notifications.On("FindByIDAndUser", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42)).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateUnread}, nil).Once()
+		notifications.On("MarkRead", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42), mock.Anything).
+			Return(&notificationEntities.Notification{ID: "11111111-1111-4111-8111-111111111111", State: notificationEntities.StateRead}, nil).Once()
 		notifications.On("CreateOperation", mock.Anything, mock.Anything).Return(errors.New("db down")).Once()
-		_, err := service.MarkRead(ctx, "notification-1", key)
+		_, err := service.MarkRead(ctx, "11111111-1111-4111-8111-111111111111", key)
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 

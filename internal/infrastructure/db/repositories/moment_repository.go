@@ -370,6 +370,7 @@ func (r *MomentRepository) ApplyModeration(
 		}
 	}
 	changed := false
+	assetJustDeleted := false
 	if action == "deny_points" {
 		if row.RewardStatus == string(momentEntities.RewardAwarded) {
 			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, now)
@@ -398,16 +399,24 @@ func (r *MomentRepository) ApplyModeration(
 				return nil, nil, false, handleRepositoryError(err)
 			}
 			changed = true
+			assetJustDeleted = true
 		}
 	}
-	if row.PublicationStatus != string(momentEntities.PublicationPrivate) ||
-		row.ModerationStatus != string(momentEntities.ModerationRejected) {
+	moderationJustChanged := row.PublicationStatus != string(momentEntities.PublicationPrivate) ||
+		row.ModerationStatus != string(momentEntities.ModerationRejected)
+	if moderationJustChanged {
 		row.PublicationStatus = string(momentEntities.PublicationPrivate)
 		row.ModerationStatus = string(momentEntities.ModerationRejected)
 		row.UpdatedAt = now
 		if err := r.getDB(ctx).Save(&row).Error; err != nil {
 			return nil, nil, false, handleRepositoryError(err)
 		}
+		changed = true
+	}
+	// A second decision (e.g. delete_photo after an earlier deny_points already
+	// rejected the moment) still needs to reach the owner: the moderation status
+	// transition above only fires once, but the photo can be deleted later.
+	if moderationJustChanged || assetJustDeleted {
 		body := "Sua foto não atendeu às regras de publicação."
 		if action == "delete_photo" {
 			body = "Sua foto foi removida da galeria."
@@ -418,7 +427,6 @@ func (r *MomentRepository) ApplyModeration(
 		); err != nil {
 			return nil, nil, false, err
 		}
-		changed = true
 	}
 	return mappers.MapMomentToEntity(&row), mappers.MapMediaAssetToEntity(&asset), changed, nil
 }

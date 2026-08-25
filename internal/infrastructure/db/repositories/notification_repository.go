@@ -158,7 +158,10 @@ func (r *NotificationRepository) CreateBroadcast(ctx context.Context, notificati
 	for i, item := range notifications {
 		rows[i] = mappers.MapNotificationEntityToModel(item)
 	}
-	return handleRepositoryError(r.getDB(ctx).Create(rows).Error)
+	// Batched to stay under Postgres's 65535 bind-parameter limit on a single
+	// INSERT — models.Notification has enough columns that an unbatched
+	// broadcast could hit it once the eligible user base grows large.
+	return handleRepositoryError(r.getDB(ctx).CreateInBatches(rows, 500).Error)
 }
 
 func (r *NotificationRepository) FindOperation(

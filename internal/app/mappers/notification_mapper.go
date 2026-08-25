@@ -1,6 +1,8 @@
 package mappers
 
 import (
+	"time"
+
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/notification/entities"
 )
@@ -8,6 +10,11 @@ import (
 func MapNotificationToResponseDTO(item *entities.Notification) *messages.NotificationResponseDTO {
 	if item == nil {
 		return nil
+	}
+	var readAt *time.Time
+	if item.ReadAt != nil {
+		utc := item.ReadAt.UTC()
+		readAt = &utc
 	}
 	return &messages.NotificationResponseDTO{
 		ID:         item.ID,
@@ -18,7 +25,7 @@ func MapNotificationToResponseDTO(item *entities.Notification) *messages.Notific
 		SourceType: item.SourceType,
 		SourceID:   item.SourceID,
 		CreatedAt:  item.CreatedAt.UTC(),
-		ReadAt:     item.ReadAt,
+		ReadAt:     readAt,
 	}
 }
 

@@ -295,6 +295,18 @@ func TestNotificationService_MarkRead(t *testing.T) {
 		// then
 		apiServiceError(t, err, http.StatusNotFound, "NOT_FOUND")
 	})
+
+	t.Run("returns a uniform not-found for a malformed notification id instead of a 500", func(t *testing.T) {
+		// given
+		service := setupNotificationServiceTest(t)
+		_, ctx := seedNotificationUser(t, "read-malformed@example.com", userEntities.RoleDefault, true)
+
+		// when
+		_, err := service.MarkRead(ctx, "not-a-uuid", uuid.NewString())
+
+		// then
+		apiServiceError(t, err, http.StatusNotFound, "NOT_FOUND")
+	})
 }
 
 func TestNotificationService_AdminSend(t *testing.T) {

@@ -169,6 +169,24 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	require.NoError(t, err)
 	assert.False(t, changedAgain)
 
+	// A second, different decision (delete_photo) on an already-rejected Moment still
+	// changes state (the asset is actually deleted) and must still notify the owner —
+	// the moderation-status transition alone no longer gates the notification.
+	_, secondDecisionAsset, secondDecisionChanged, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "delete_photo", 0, uuid.NewString(), now)
+	require.NoError(t, err)
+	assert.True(t, secondDecisionChanged)
+	assert.Equal(t, mediaEntities.AssetDeleted, secondDecisionAsset.State)
+	var deletePhotoNotification models.Notification
+	require.NoError(t, TestSuite.DbConn.
+		Where("user_id = ? AND category = ? AND source_id = ? AND body = ?",
+			owner.ID, "moment_moderation", moderationMoment.ID, "Sua foto foi removida da galeria.").
+		Take(&deletePhotoNotification).Error)
+	var moderationNotificationCount int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
+		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "moment_moderation", moderationMoment.ID).
+		Count(&moderationNotificationCount).Error)
+	assert.Equal(t, int64(2), moderationNotificationCount)
+
 	// ── ApplyModeration: delete_photo marks the asset deleted (idempotent on retry) ──
 	freeAsset := seedMediaAsset(t, ctx, mediaRepo, owner.ID, string(mediaEntities.AssetAvailable), now.Add(time.Hour))
 	freeMoment := &momentEntities.Moment{

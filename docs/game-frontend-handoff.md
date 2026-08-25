@@ -286,6 +286,49 @@ rota. Cada decisão usa uma `Idempotency-Key` própria; repetir a mesma decisão
 com uma chave nova sobre um Moment já decidido retorna o estado terminal sem
 novo efeito (seguro chamar de novo, mas não é necessário).
 
+## Grafo de requests — notificações (Iteração 8)
+
+```text
+abrir lista de notificações
+  └─ GET /v2/notifications?page=      [auth DEFAULT]
+       └─ {data:[...10 por página], pagination, unreadCount}
+            └─ usar unreadCount para o badge — não somar itens da página local
+
+badge de não lidas (sem abrir a lista)
+  └─ mesmo GET /v2/notifications acima; ler somente unreadCount
+       — não existe endpoint dedicado só de contagem nesta iteração
+
+marcar como lida (ao abrir o detalhe de uma notificação)
+  └─ POST /v2/notifications/{notificationId}/read
+       header Idempotency-Key: UUID novo por marcação    — SEM corpo
+       ├─ 200 → atualizar o item local para state:"read"; decrementar o
+       │        badge local em 1 SE o item ainda estava unread no cliente
+       └─ 404 → notificação alheia ou removida; remover do estado local
+                sem mostrar erro (não é enumerável)
+
+abrir preferências
+  └─ GET /v2/notifications/preferences   [auth DEFAULT]
+       └─ {momentModerationEnabled:true (sempre), pointsEnabled, announcementEnabled, updatedAt}
+            └─ o toggle de moderação/segurança nem deve ser renderizado como editável
+
+atualizar preferências (toggle de pontos ou anúncios)
+  └─ PUT /v2/notifications/preferences
+       header Idempotency-Key: UUID novo por submissão
+       body {pointsEnabled?, announcementEnabled?}        — NUNCA enviar momentModerationEnabled
+       └─ 200 → refletir os valores retornados (não os enviados) como fonte da verdade
+```
+
+Orçamento: **abertura de lista/badge (1 GET) + uma chamada por marcação de
+leitura + preferências sob demanda (1 GET ao abrir a tela, 1 PUT por
+alteração)**. `momentModerationEnabled` é sempre `true` na resposta — a UI
+deve exibi-lo como informativo/desabilitado, nunca como toggle editável, já
+que qualquer tentativa de enviá-lo é rejeitada com `400`. `title`/`body` de
+notificações administrativas (`announcement`) já vêm prontos do servidor;
+não há template client-side. O envio administrativo
+(`POST /v2/admin/notifications`) é uma tela exclusiva de ADMIN, fora do fluxo
+do app do participante — sem componente de destinatários individuais, já que
+a resposta expõe somente `recipientCount`.
+
 ## Refresh de URL assinada
 
 `imageUrl`/`thumbnailUrl`/`shareImageUrl`/a `uploadUrl` da intenção de upload
@@ -393,6 +436,10 @@ o fuso atual do dispositivo.
 | P1 | invalidação pós-publicação (galeria + overview quando challenge público) | `/v2/moments`, `/v2/game/overview` | ready | teste prova no máximo uma invalidação de cada |
 | P2 | remover `src/lib/moments/moderation.ts` ação `approve` e qualquer fila de aprovação prévia | tipos e UI de moderação | blocked | depende do rollout do item P1 de moderação |
 | P2 | remover Route Handlers `v1/moments`, `v1/gallery*`, `v1/media/*`, `admin/moderation` legados | todos os itens P0/P1 acima | blocked | depende de telemetria e rollback aprovado |
+| P0 | badge e lista de notificações | `GET /v2/notifications` | ready | `unreadCount` do servidor usado no badge; paginação de 10 testada |
+| P0 | marcar notificação como lida | `POST /v2/notifications/{id}/read` | ready | idempotência e 404 uniforme (alheia/inexistente) testados |
+| P1 | tela de preferências de notificação | `GET/PUT /v2/notifications/preferences` | ready | `momentModerationEnabled` renderizado como informativo, nunca editável; envio do campo é rejeitado em teste |
+| P2 | tela administrativa de envio (ADMIN) | `POST /v2/admin/notifications` | ready | sem campo de destinatários individuais; só `recipientCount` exibido |
 
 Rollback: manter o adaptador antigo atrás de flag durante o rollout, mas nunca
 executar V1 e V2 mutantes em paralelo. Para recuar, parar novos POSTs, aguardar

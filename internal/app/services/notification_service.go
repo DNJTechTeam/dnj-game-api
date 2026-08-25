@@ -217,6 +217,10 @@ func (s *NotificationService) MarkRead(
 	rawNotificationID string,
 	rawKey string,
 ) (*messages.NotificationResponseDTO, error) {
+	notificationID, err := uuid.Parse(rawNotificationID)
+	if err != nil {
+		return nil, notFoundError()
+	}
 	key, err := parseIdempotencyKey(rawKey)
 	if err != nil {
 		return nil, err
@@ -228,7 +232,7 @@ func (s *NotificationService) MarkRead(
 	operation := "notifications.read"
 	fingerprint := intentHash(operation, struct {
 		NotificationID string `json:"notificationId"`
-	}{NotificationID: rawNotificationID})
+	}{NotificationID: notificationID.String()})
 	now := utcNow(s.now)
 	var response *messages.NotificationResponseDTO
 
@@ -240,7 +244,7 @@ func (s *NotificationService) MarkRead(
 		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
 			return authErr
 		}
-		notification, findErr := s.notifications.FindByIDAndUser(tx, rawNotificationID, actor.ID)
+		notification, findErr := s.notifications.FindByIDAndUser(tx, notificationID.String(), actor.ID)
 		if errors.Is(findErr, appErrors.ErrNotFound) {
 			return notFoundError()
 		}
@@ -313,6 +317,9 @@ func (s *NotificationService) AdminSend(
 		if priorErr != nil {
 			return priorErr
 		}
+		if _, authErr := requireAdminActor(tx, s.users); authErr != nil {
+			return authErr
+		}
 		if prior != nil {
 			count := 0
 			if prior.ResultCount != nil {
@@ -322,9 +329,6 @@ func (s *NotificationService) AdminSend(
 				RecipientCount: messages.Uint64StringFromUint64(uint64(count)),
 			}
 			return nil
-		}
-		if _, authErr := requireAdminActor(tx, s.users); authErr != nil {
-			return authErr
 		}
 
 		explicit := make([]uint64, len(request.TargetUserIds))
