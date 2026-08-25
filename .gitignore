@@ -8,5 +8,11 @@ coverage.html
 coverage.gate.out
 coverage.maintained.out
 
-# Local cmd/loadtest build artifact (built via `go build -o loadtest ./cmd/loadtest`)
+# Local build artifacts left in the repo root by `go build ./...` (it writes
+# one binary per cmd/* main package to cwd unless -o is given)
 /loadtest
+/handoff-check
+/openapi-check
+/migrate
+/media-worker
+/api

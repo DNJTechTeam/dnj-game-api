@@ -48,4 +48,25 @@ if [ -n "$V2_SPEC_IN" ]; then
   cp "$PAGES_DIR/v2-index.html" "$V2_OUT_DIR/index.html"
 fi
 
+# Frontend handoff page (Iteration 10): publishes alongside V2 at
+# /<env>/frontend-integration/, self-contained (fetches its own JSON
+# manifest, no build step). __DNJ_HANDOFF_REF__ is rewritten to the exact
+# commit deployed so the page's links to the canonical Markdown on GitHub
+# always resolve to what is actually live, not to a branch that may move.
+HANDOFF_MANIFEST="$(dirname "$0")/../docs/handoff/dnj-v2-frontend-integration.json"
+if [ -f "$HANDOFF_MANIFEST" ]; then
+  HANDOFF_OUT_DIR="$OUT_DIR/frontend-integration"
+  mkdir -p "$HANDOFF_OUT_DIR"
+  # Falls back to the branch this env actually deploys from (develop.yml
+  # triggers on "develop", production.yml on "main" — ENV_NAME itself is
+  # "production", not a real branch) if HEAD can't be resolved (detached/
+  # shallow checkout edge case). A production publish must never point its
+  # handoff links at develop's tree.
+  FALLBACK_REF="develop"
+  if [ "$ENV_NAME" = "production" ]; then FALLBACK_REF="main"; fi
+  DEPLOY_REF="$(git -C "$(dirname "$0")/.." rev-parse HEAD 2>/dev/null || echo "$FALLBACK_REF")"
+  sed "s/__DNJ_HANDOFF_REF__/${DEPLOY_REF}/" "$PAGES_DIR/frontend-integration.html" > "$HANDOFF_OUT_DIR/index.html"
+  cp "$HANDOFF_MANIFEST" "$HANDOFF_OUT_DIR/dnj-v2-frontend-integration.json"
+fi
+
 echo "OpenAPI docs publicados em $OUT_DIR (host=$HOST basePath=$NEW_BASE_PATH scheme=$SCHEME)"

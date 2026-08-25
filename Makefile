@@ -23,6 +23,9 @@ ITERATION8_SLICE_COVER_MIN ?= 90
 ITERATION9_COVER_PROFILE ?= /tmp/dnj-iteration9-coverage.out
 ITERATION9_SERVICE_COVER_MIN ?= 90
 ITERATION9_SLICE_COVER_MIN ?= 90
+ITERATION10_COVER_PROFILE ?= /tmp/dnj-iteration10-coverage.out
+ITERATION10_SERVICE_COVER_MIN ?= 90
+ITERATION10_SLICE_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -32,7 +35,7 @@ OPENAPI_DIR=docs/openapi
 
 .PHONY: wire build run run-api media-worker vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check loadtest-smoke \
+        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-iteration10-cover-check loadtest-smoke handoff-check \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -57,7 +60,15 @@ openapi-v2:
 openapi-check:
 	go run ./cmd/openapi-check
 
-openapi: openapi-v1 openapi-v2 openapi-check
+# handoff-check fails the build if docs/handoff/dnj-v2-frontend-integration.json
+# (the machine-readable frontend handoff manifest) diverges from
+# docs/openapi/dnj-v2.operations.yaml: every published operationId must be
+# covered by exactly one flow, and every flow must reference only published
+# operationIds. This is the Iteration 10 CI gate — see docs/handoff/.
+handoff-check:
+	go run ./cmd/handoff-check
+
+openapi: openapi-v1 openapi-v2 openapi-check handoff-check
 
 vet:
 	go vet ./...
@@ -179,7 +190,13 @@ loadtest-smoke:
 		"$(LOADTEST_DURATION)" "$(LOADTEST_P95_BUDGET_MS)" "$(LOADTEST_ERROR_BUDGET_PERCENT)" \
 		"$(LOADTEST_REQUEST_TIMEOUT_SECONDS)" "$(LOADTEST_MAX_SERVER_ERRORS)"
 
-validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-migrations openapi
+test-iteration10-cover-check:
+	go test ./cmd/handoff-check/... -count=1 \
+		-coverprofile=$(ITERATION10_COVER_PROFILE) \
+		-coverpkg=./cmd/handoff-check
+	bash scripts/check-iteration10-coverage.sh $(ITERATION10_COVER_PROFILE) $(ITERATION10_SERVICE_COVER_MIN) $(ITERATION10_SLICE_COVER_MIN)
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-iteration10-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:
