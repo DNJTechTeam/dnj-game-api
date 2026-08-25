@@ -45,8 +45,10 @@ The tracker guarantees each migration runs once per database. **Even so, every
 - **Indexes**: `CREATE INDEX IF NOT EXISTS ...`.
 - **Dropping**: guard with `HasColumn` / `HasTable` before `DROP`.
 - **Seeding data**: check for existence first (`SELECT ... ; if found return nil`),
-  and no-op when required env vars are absent. See `seed_admin_user` in
-  `model_migrations.go`.
+  and no-op when required env vars are absent. See `seed_initial_admin_users`
+  in `model_migrations.go` — note it deliberately deviates from "check then
+  no-op" (it upserts by email) because its whole point is promoting existing
+  rows to `ADMIN`, not just inserting missing ones.
 
 Re-running `make run-api` twice must never error — that is the practical test
 of idempotency.
