@@ -20,6 +20,9 @@ ITERATION7_SLICE_COVER_MIN ?= 90
 ITERATION8_COVER_PROFILE ?= /tmp/dnj-iteration8-coverage.out
 ITERATION8_SERVICE_COVER_MIN ?= 90
 ITERATION8_SLICE_COVER_MIN ?= 90
+ITERATION9_COVER_PROFILE ?= /tmp/dnj-iteration9-coverage.out
+ITERATION9_SERVICE_COVER_MIN ?= 90
+ITERATION9_SLICE_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -29,7 +32,7 @@ OPENAPI_DIR=docs/openapi
 
 .PHONY: wire build run run-api media-worker vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check \
+        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check loadtest-smoke \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -141,7 +144,42 @@ test-iteration8-cover-check:
 		-coverpkg=./internal/app/services,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories,./internal/app/mappers
 	bash scripts/check-iteration8-coverage.sh $(ITERATION8_COVER_PROFILE) $(ITERATION8_SERVICE_COVER_MIN) $(ITERATION8_SLICE_COVER_MIN)
 
-validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-migrations openapi
+test-iteration9-cover-check:
+	go test ./cmd/loadtest/... -race -count=1 \
+		-coverprofile=$(ITERATION9_COVER_PROFILE) \
+		-coverpkg=./cmd/loadtest
+	bash scripts/check-iteration9-coverage.sh $(ITERATION9_COVER_PROFILE) $(ITERATION9_SERVICE_COVER_MIN) $(ITERATION9_SLICE_COVER_MIN)
+
+# loadtest-smoke boots the real API server against a local, disposable
+# Postgres/MinIO stack (docker compose; no external/production credentials
+# involved) and runs the "CI smoke" load profile from
+# docs/load-testing.md against GET /v1/healthcheck. It fails the build if the
+# server's p95 latency or error rate crosses budget under sustained
+# concurrent load — this is the "smoke de carga no CI" gate for Iteration 9.
+LOADTEST_URL ?= http://localhost:8081/v1
+LOADTEST_PATH ?= /healthcheck
+LOADTEST_CONCURRENCY ?= 10
+LOADTEST_RPS ?= 10
+LOADTEST_DURATION ?= 2m
+LOADTEST_P95_BUDGET_MS ?= 500
+LOADTEST_ERROR_BUDGET_PERCENT ?= 0.5
+# Matches the "CI smoke reproduzível" row in docs/game-frontend-handoff.md:
+# 5 s per-request timeout and zero 5xx/transport-failure responses tolerated,
+# on top of (not instead of) the 0.5% aggregate error budget above.
+LOADTEST_REQUEST_TIMEOUT_SECONDS ?= 5
+LOADTEST_MAX_SERVER_ERRORS ?= 0
+
+loadtest-smoke:
+	docker compose up -d --wait db s3
+	go build -o /tmp/dnj-loadtest-api ./cmd/api
+	go build -o /tmp/dnj-loadtest ./cmd/loadtest
+	go run ./cmd/migrate
+	bash scripts/run-loadtest-smoke.sh /tmp/dnj-loadtest-api /tmp/dnj-loadtest \
+		"$(LOADTEST_URL)" "$(LOADTEST_PATH)" "$(LOADTEST_CONCURRENCY)" "$(LOADTEST_RPS)" \
+		"$(LOADTEST_DURATION)" "$(LOADTEST_P95_BUDGET_MS)" "$(LOADTEST_ERROR_BUDGET_PERCENT)" \
+		"$(LOADTEST_REQUEST_TIMEOUT_SECONDS)" "$(LOADTEST_MAX_SERVER_ERRORS)"
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:

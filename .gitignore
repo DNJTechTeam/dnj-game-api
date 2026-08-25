@@ -7,3 +7,6 @@ coverage.out
 coverage.html
 coverage.gate.out
 coverage.maintained.out
+
+# Local cmd/loadtest build artifact (built via `go build -o loadtest ./cmd/loadtest`)
+/loadtest
