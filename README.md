@@ -101,11 +101,20 @@ both, and the deploy publishes separate Swagger UIs:
 ## Documentation
 
 - `CLAUDE.md` / `AGENTS.md` — guides for AI agents working in the repo.
+- `docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md` — canonical, single-entry-point
+  handoff for integrating a frontend against the V2 contract (ordered
+  checklist, auth/error/idempotency reference, TypeScript helpers, and a
+  granular per-screen backlog). Also published as an HTML page
+  (`/develop/frontend-integration/`, `/production/frontend-integration/`)
+  generated from `docs/handoff/dnj-v2-frontend-integration.json`, which
+  `cmd/handoff-check` keeps in sync with the OpenAPI contract in CI.
 - `docs/architecture.md` — layers and request flow.
 - `docs/auth-and-tokens.md` — JWT, header vs cookie, middleware.
 - `docs/migrations.md` — the migration system and idempotency rules.
 - `docs/local-development.md` — isolated ports and local runtime.
 - `docs/implementation/DNJ-V2-STATUS.md` — cross-session source of truth.
+- `docs/implementation/release-checklist.md` — V2 content checklist to pass
+  before cutting a release (see `docs/RELEASE.md` for the mechanical steps).
 - `docs/new-resource-guide.md` — step-by-step for adding a new resource.
 
 ## Project layout
