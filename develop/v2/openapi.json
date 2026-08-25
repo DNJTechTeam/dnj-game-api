@@ -106,6 +106,15 @@
           "type": "string"
         }
       },
+      "NotificationID": {
+        "in": "path",
+        "name": "notificationId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
       "Page": {
         "description": "Página 1-indexada; 0 é aceito como alias da primeira página.",
         "in": "query",
@@ -473,6 +482,44 @@
         "required": [
           "activityId",
           "userId"
+        ],
+        "type": "object"
+      },
+      "AdminSendNotificationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "targetUserIds": {
+            "ainda filtrado por elegibilidade e preferência; omitido faz broadcast geral.": null,
+            "description": "Restringe o broadcast a este conjunto",
+            "items": {
+              "pattern": "^[1-9][0-9]*$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "AdminSendNotificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "recipientCount": {
+            "description": "Contagem agregada de destinatários; a lista de destinatários nunca é exposta.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipientCount"
         ],
         "type": "object"
       },
@@ -2076,6 +2123,116 @@
         ],
         "type": "object"
       },
+      "Notification": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "moment_moderation",
+              "points",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "readAt": {
+            "example": "2026-10-18T15:50:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "unread",
+              "read"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "state",
+          "title",
+          "body",
+          "sourceType",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "NotificationList": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "unreadCount": {
+            "description": "Contagem agregada de notificações não lidas do ator",
+            "para o badge do app.": null,
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "unreadCount"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "announcementEnabled": {
+            "type": "boolean"
+          },
+          "momentModerationEnabled": {
+            "description": "Sempre true; não existe caminho de escrita para desabilitá-la.",
+            "type": "boolean"
+          },
+          "pointsEnabled": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "momentModerationEnabled",
+          "pointsEnabled",
+          "announcementEnabled",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "PaginatedAdminActivities": {
         "additionalProperties": false,
         "properties": {
@@ -2901,6 +3058,18 @@
         },
         "type": "object"
       },
+      "UpdateNotificationPreferencesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "announcementEnabled": {
+            "type": "boolean"
+          },
+          "pointsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "UploadIntent": {
         "additionalProperties": false,
         "properties": {
@@ -2983,7 +3152,7 @@
   "info": {
     "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
     "title": "DNJ Game API V2",
-    "version": "2.6.0"
+    "version": "2.7.0"
   },
   "openapi": "3.0.3",
   "paths": {
@@ -3790,6 +3959,66 @@
         "summary": "Aplica uma ação corretiva sobre um Moment",
         "tags": [
           "Moderation"
+        ]
+      }
+    },
+    "/admin/notifications": {
+      "post": {
+        "description": "Corpo estrito {title, body, targetUserIds opcional}. Única via de conteúdo livre desta iteração; sempre atribuída ao ator ADMIN autenticado, nunca a um usuário arbitrário. Exige ADMIN confirmado no banco; EVENT_MANAGER não recebe essa permissão. Sem targetUserIds, faz broadcast para todo usuário DEFAULT, existente, com onboarding completo e que não desabilitou announcementEnabled; com targetUserIds, restringe o broadcast a esse conjunto, ainda filtrado pelos mesmos critérios de elegibilidade e preferência. A resposta expõe somente a contagem agregada de destinatários — nunca a lista. Retry com a mesma Idempotency-Key replica o recipientCount original sem duplicar entrega.",
+        "operationId": "sendAdminNotification",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSendNotificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSendNotificationResponse"
+                }
+              }
+            },
+            "description": "Notificação(ões) enviada(s) ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Envia uma notificação administrativa de conteúdo livre",
+        "tags": [
+          "Notification administration"
         ]
       }
     },
@@ -5586,6 +5815,209 @@
         ]
       }
     },
+    "/notifications": {
+      "get": {
+        "description": "Ordena por createdAt DESC, id DESC; 10 por página (?page=N, 1-indexado). unreadCount é a contagem agregada de não lidas do ator, usada pelo badge do app. Nunca expõe notificação de outro usuário. Exige DEFAULT com onboarding completo.",
+        "operationId": "listNotifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            },
+            "description": "Página de notificações do ator"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista as notificações do ator atual com contagem de não lidas",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/preferences": {
+      "get": {
+        "description": "momentModerationEnabled é sempre true na resposta; não existe caminho de escrita para desabilitar notificações de moderação/segurança da própria conta. Um ator que nunca personalizou preferências recebe o padrão: todas habilitadas. Exige DEFAULT com onboarding completo.",
+        "operationId": "getNotificationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Preferências atuais do ator"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna as preferências de notificação do ator atual",
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "put": {
+        "description": "Corpo estrito {pointsEnabled opcional, announcementEnabled opcional}; qualquer outro campo, incluindo momentModerationEnabled, é rejeitado por decodificação estrita. Campos omitidos preservam o valor atual (ou o padrão, se ainda não existir preferência persistida). Exige DEFAULT com onboarding completo.",
+        "operationId": "updateNotificationPreferences",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Preferências atualizadas ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Atualiza as preferências de notificação do ator atual",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/{notificationId}/read": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/NotificationID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Idempotente: reenviar a mesma chave, ou marcar uma notificação já lida, retorna o mesmo estado terminal — nunca reverte read para unread. Notificação alheia ou inexistente retorna o mesmo 404, sem permitir enumeração. Exige DEFAULT com onboarding completo.",
+        "operationId": "markNotificationRead",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Notificação marcada como lida ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Marca uma notificação do ator atual como lida",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/participations/current": {
       "get": {
         "operationId": "getCurrentParticipation",
@@ -6240,6 +6672,12 @@
     },
     {
       "name": "Moderation"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "Notification administration"
     }
   ]
 }

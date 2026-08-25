@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DNJ Game API V2 — Handoff de integração do frontend</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+      h1 { font-size: 1.5rem; }
+      .top-links a { margin-right: 1rem; }
+      table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; font-size: 0.9rem; }
+      th, td { border: 1px solid #8888; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+      th { position: sticky; top: 0; background: Canvas; }
+      code { font-size: 0.85em; }
+      .state-done { color: #1a7f37; font-weight: 600; }
+      .state-ready { color: #1a5f9c; }
+      .state-blocked { color: #b42318; font-weight: 600; }
+      .state-pending { color: #6e6e6e; }
+      .scope-admin-tooling, .scope-enabler { opacity: 0.7; }
+      #error { color: #b42318; display: none; }
+      #checklist { padding-left: 1.25rem; }
+    </style>
+  </head>
+  <body>
+    <p class="top-links">
+      <a href="../v2/">Swagger UI (contrato completo)</a>
+      <a id="markdown-link" href="#">Markdown fonte</a>
+      <a id="json-link" href="./dnj-v2-frontend-integration.json">Manifesto JSON</a>
+    </p>
+    <h1>Handoff de integração do frontend — contrato V2</h1>
+    <p>
+      Esta página é gerada a partir de <code>docs/handoff/dnj-v2-frontend-integration.json</code>,
+      validado em CI contra <code>docs/openapi/dnj-v2.operations.yaml</code> — nunca
+      diverge do contrato publicado. Comece pelo
+      <a id="canonical-link" href="#">documento canônico em Markdown</a>, que
+      traz o checklist ordenado, os helpers de referência (cliente
+      autenticado, refresh/CSRF, idempotência, UTC↔fuso-local) e o snippet
+      TypeScript de cada fluxo. A tabela abaixo é o backlog granular
+      tela/fluxo → operação → estado.
+    </p>
+    <div id="error"></div>
+    <table id="flows">
+      <thead>
+        <tr>
+          <th>Tela/fluxo</th>
+          <th>Escopo</th>
+          <th>Iteração</th>
+          <th>Prioridade</th>
+          <th>Estado</th>
+          <th>Endpoints</th>
+          <th>Dono</th>
+          <th>Critério de aceite</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <script>
+      const REPO = "DNJTechTeam/dnj-game-api";
+      // The publish script rewrites this to the exact branch/tag it deployed
+      // from before copying the file into public/<env>/frontend-integration/.
+      const REF = "1469ac5afc84ddf0c5bfda205225f9ddd857c2b0";
+      document.getElementById("canonical-link").href =
+        `https://github.com/${REPO}/blob/${REF}/docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md`;
+      document.getElementById("markdown-link").href =
+        `https://github.com/${REPO}/blob/${REF}/docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md`;
+
+      fetch("./dnj-v2-frontend-integration.json")
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((manifest) => {
+          const body = document.querySelector("#flows tbody");
+          const flows = [...manifest.flows].sort((a, b) => (a.iteration || 0) - (b.iteration || 0));
+          // Built with DOM APIs (textContent), not innerHTML template
+          // interpolation: every field below comes from the JSON manifest,
+          // and a future free-text value containing "<"/"&" must render as
+          // literal text, never be parsed as markup.
+          const cell = (text) => {
+            const td = document.createElement("td");
+            td.textContent = text ?? "";
+            return td;
+          };
+          for (const flow of flows) {
+            const row = document.createElement("tr");
+            row.className = `scope-${flow.scope}`;
+            row.appendChild(cell(flow.screen));
+            row.appendChild(cell(flow.scope));
+            row.appendChild(cell(flow.iteration));
+            row.appendChild(cell(flow.priority));
+            const stateCell = cell(flow.state);
+            stateCell.className = `state-${flow.state}`;
+            row.appendChild(stateCell);
+            const endpointsCell = document.createElement("td");
+            for (const id of flow.endpoints || []) {
+              const code = document.createElement("code");
+              code.textContent = id;
+              endpointsCell.appendChild(code);
+              endpointsCell.append(", ");
+            }
+            if (endpointsCell.lastChild) endpointsCell.removeChild(endpointsCell.lastChild);
+            row.appendChild(endpointsCell);
+            row.appendChild(cell(flow.owner));
+            row.appendChild(cell(flow.acceptanceTest));
+            body.appendChild(row);
+          }
+        })
+        .catch((error) => {
+          const box = document.getElementById("error");
+          box.style.display = "block";
+          box.textContent =
+            "Não foi possível carregar o manifesto (" + error.message + "). " +
+            "Consulte docs/handoff/dnj-v2-frontend-integration.json diretamente no repositório.";
+        });
+    </script>
+  </body>
+</html>
