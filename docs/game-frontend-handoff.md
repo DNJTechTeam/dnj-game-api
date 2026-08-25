@@ -446,11 +446,24 @@ executar V1 e V2 mutantes em paralelo. Para recuar, parar novos POSTs, aguardar
 intenções em voo, alternar a flag e preservar as chaves já emitidas até o fim
 dos retries.
 
-## Perfis futuros de carga — entrada da Iteração 9
+## Perfis futuros de carga — implementado na Iteração 9
 
 Não executar stress amplo nesta iteração. Todos os perfis abaixo são
 não destrutivos por padrão; cenários mutantes usam tenants/dados efêmeros
 somente em ambiente autorizado.
+
+O perfil **CI smoke reproduzível** (linha abaixo) tem sua concorrência, RPS,
+duração, timeout e orçamento de erro automatizados em `cmd/loadtest` +
+`make loadtest-smoke`, rodando no workflow `pr.yml` a cada PR — o `burst` e o
+`pool` de conexão da tabela não são parâmetros configuráveis da ferramenta
+(o cliente HTTP interno já usa um pool dimensionado para a concorrência
+configurada, mas não impõe um teto de burst separado); trate essas duas
+colunas como caracterização do cenário, não como algo que o gate valida
+literalmente. Os demais perfis (`develop soak/spike`, `produção canary` e
+todos os perfis por fluxo autenticado) permanecem manuais — ver
+`docs/load-testing.md` para o comando exato e o motivo (acesso autorizado a
+`develop` e dados de conta autenticada, nenhum dos dois disponível para uma
+execução autônoma sem supervisão).
 
 | Ambiente/perfil | Concorrência | RPS/burst/duração | Timeout/limite/pool | Orçamento de erro |
 |---|---:|---|---|---:|
