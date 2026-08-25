@@ -19,6 +19,20 @@ operations:
       - internal/presentation/api/handlers/identity_handler_test.go
       - internal/app/services/identity_service_test.go
       - internal/infrastructure/google/id_token_verifier_test.go
+  - operationId: signupWithEmail
+    method: POST
+    path: /auth/signup
+    statuses: ['200', '400', '429', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/email_signup_service_test.go
+  - operationId: verifyEmailSignup
+    method: POST
+    path: /auth/signup/verify
+    statuses: ['200', '400', '401', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/email_signup_service_test.go
   - operationId: refreshIdentitySession
     method: POST
     path: /auth/refresh

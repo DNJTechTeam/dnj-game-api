@@ -48,6 +48,35 @@ func (h *IdentityHandler) Google(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+func (h *IdentityHandler) SignupWithEmail(c *gin.Context) {
+	var request messages.EmailSignupRequestDTO
+	if err := ParseRequest(c, &request); err != nil {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Email é obrigatório.", nil)
+		return
+	}
+	response, err := h.IdentityService.SignupWithEmail(c.Request.Context(), &request)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
+func (h *IdentityHandler) VerifyEmailSignup(c *gin.Context) {
+	var request messages.VerifyEmailSignupRequestDTO
+	if err := ParseRequest(c, &request); err != nil {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Email e código são obrigatórios.", nil)
+		return
+	}
+	response, err := h.IdentityService.VerifyEmailSignup(c.Request.Context(), &request)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	setIdentityResponse(c, response)
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
 func (h *IdentityHandler) Refresh(c *gin.Context) {
 	if !csrfValid(c) {
 		ResponseAPIError(c, http.StatusForbidden, "CSRF_INVALID", "Token CSRF inválido.", nil)

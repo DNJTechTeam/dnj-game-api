@@ -28,15 +28,16 @@ func setupIdentityServiceTest(t *testing.T, payload *appInterfaces.GooglePayload
 	t.Helper()
 	TestSuite.DefaultSetup(t)
 	for _, model := range []interface{ TableName() string }{
-		&models.RefreshSession{}, &models.GoogleIdentity{}, &models.User{}, &models.Group{},
+		&models.RefreshSession{}, &models.GoogleIdentity{}, &models.User{}, &models.Group{}, &models.EmailSignupCode{},
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
 	return NewIdentityService(
 		TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
 		TestSuite.GroupMembershipRepository,
-		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
+		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository, TestSuite.EmailSignupCodeRepository,
 		NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: payload},
+		newTestEmailService(),
 	)
 }
 
@@ -90,8 +91,9 @@ func TestIdentityService_AuthenticateGoogle(t *testing.T) {
 		service = NewIdentityService(
 			TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
 			TestSuite.GroupMembershipRepository,
-			TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
+			TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository, TestSuite.EmailSignupCodeRepository,
 			NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: verifiedGooglePayload("google-sub-conflict", "attacker@example.com")},
+			newTestEmailService(),
 		)
 
 		// when
@@ -204,8 +206,9 @@ func TestIdentityService_RejectsDuplicateDocument(t *testing.T) {
 	secondService := NewIdentityService(
 		TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository,
 		TestSuite.GroupMembershipRepository,
-		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository,
+		TestSuite.GoogleIdentityRepository, TestSuite.RefreshSessionRepository, TestSuite.EmailSignupCodeRepository,
 		NewJwtService(TestSuite.BaseService), &fakeGoogleVerifier{payload: verifiedGooglePayload("google-document-2", "second-document@example.com")},
+		newTestEmailService(),
 	)
 	secondLogin, err := secondService.AuthenticateGoogle(TestSuite.Ctx, &messages.GoogleAuthRequestDTO{IDToken: "second"})
 	require.NoError(t, err)

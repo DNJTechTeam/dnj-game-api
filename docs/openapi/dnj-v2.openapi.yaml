@@ -74,6 +74,52 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /auth/signup:
+    post:
+      tags: [Identity]
+      operationId: signupWithEmail
+      summary: Envia um código de 6 dígitos por email para cadastro sem Google
+      description: >-
+        Self-service — não depende de nenhum registro pré-existente (ao
+        contrário do /v1/auth/onboarding). Sempre responde CODE_SENT, mesmo
+        quando o email já possui conta, para não permitir enumeração. Um
+        reenvio antes do cooldown responde 429.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EmailSignupRequest'}
+      responses:
+        '200':
+          description: Código enviado (ou reenviado)
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EmailSignupResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /auth/signup/verify:
+    post:
+      tags: [Identity]
+      operationId: verifyEmailSignup
+      summary: Confirma o código e inicia uma sessão
+      description: >-
+        Cria uma conta DEFAULT incompleta na primeira verificação deste
+        email, ou vincula à conta já existente (Google ou um signup
+        anterior) — mesmo formato de resposta do login Google, incluindo
+        cookies de sessão.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VerifyEmailSignupRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentitySession'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /auth/refresh:
     post:
       tags: [Identity]
@@ -1351,6 +1397,13 @@ components:
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
+    TooManyRequests:
+      description: Limite de reenvio excedido — aguarde o cooldown antes de tentar de novo
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
     Gone:
       description: Recurso temporal expirado
       headers:
@@ -1411,6 +1464,24 @@ components:
       required: [idToken]
       properties:
         idToken: {type: string, minLength: 1}
+    EmailSignupRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email}
+    EmailSignupResponse:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [CODE_SENT]}
+    VerifyEmailSignupRequest:
+      type: object
+      additionalProperties: false
+      required: [email, code]
+      properties:
+        email: {type: string, format: email}
+        code: {type: string, minLength: 6, maxLength: 6, example: '042917'}
     CompleteOnboardingRequest:
       type: object
       additionalProperties: false

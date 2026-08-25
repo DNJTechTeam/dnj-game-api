@@ -40,8 +40,9 @@ func InitializeServer() *api.API {
 	}
 	googleIdentityRepositoryInterface := repositories.ProvideGoogleIdentityRepository(gormDB)
 	refreshSessionRepositoryInterface := repositories.ProvideRefreshSessionRepository(gormDB)
+	emailSignupCodeRepositoryInterface := repositories.ProvideEmailSignupCodeRepository(gormDB)
 	googleIDTokenVerifierInterface := services.ProvideGoogleIDTokenVerifier()
-	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface)
+	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, emailSignupCodeRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface, emailServiceInterface)
 	identityHandler := &handlers.IdentityHandler{
 		IdentityService: identityServiceInterface,
 	}

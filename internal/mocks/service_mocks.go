@@ -4028,6 +4028,142 @@ func (_c *MockIdentityServiceInterface_Refresh_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// SignupWithEmail provides a mock function for the type MockIdentityServiceInterface
+func (_mock *MockIdentityServiceInterface) SignupWithEmail(ctx context.Context, request *messages.EmailSignupRequestDTO) (*messages.EmailSignupResponseDTO, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SignupWithEmail")
+	}
+
+	var r0 *messages.EmailSignupResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.EmailSignupRequestDTO) (*messages.EmailSignupResponseDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.EmailSignupRequestDTO) *messages.EmailSignupResponseDTO); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.EmailSignupResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.EmailSignupRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIdentityServiceInterface_SignupWithEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignupWithEmail'
+type MockIdentityServiceInterface_SignupWithEmail_Call struct {
+	*mock.Call
+}
+
+// SignupWithEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request *messages.EmailSignupRequestDTO
+func (_e *MockIdentityServiceInterface_Expecter) SignupWithEmail(ctx interface{}, request interface{}) *MockIdentityServiceInterface_SignupWithEmail_Call {
+	return &MockIdentityServiceInterface_SignupWithEmail_Call{Call: _e.mock.On("SignupWithEmail", ctx, request)}
+}
+
+func (_c *MockIdentityServiceInterface_SignupWithEmail_Call) Run(run func(ctx context.Context, request *messages.EmailSignupRequestDTO)) *MockIdentityServiceInterface_SignupWithEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *messages.EmailSignupRequestDTO
+		if args[1] != nil {
+			arg1 = args[1].(*messages.EmailSignupRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIdentityServiceInterface_SignupWithEmail_Call) Return(emailSignupResponseDTO *messages.EmailSignupResponseDTO, err error) *MockIdentityServiceInterface_SignupWithEmail_Call {
+	_c.Call.Return(emailSignupResponseDTO, err)
+	return _c
+}
+
+func (_c *MockIdentityServiceInterface_SignupWithEmail_Call) RunAndReturn(run func(ctx context.Context, request *messages.EmailSignupRequestDTO) (*messages.EmailSignupResponseDTO, error)) *MockIdentityServiceInterface_SignupWithEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// VerifyEmailSignup provides a mock function for the type MockIdentityServiceInterface
+func (_mock *MockIdentityServiceInterface) VerifyEmailSignup(ctx context.Context, request *messages.VerifyEmailSignupRequestDTO) (*messages.IdentitySessionResponseDTO, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyEmailSignup")
+	}
+
+	var r0 *messages.IdentitySessionResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.VerifyEmailSignupRequestDTO) (*messages.IdentitySessionResponseDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.VerifyEmailSignupRequestDTO) *messages.IdentitySessionResponseDTO); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.IdentitySessionResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.VerifyEmailSignupRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIdentityServiceInterface_VerifyEmailSignup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyEmailSignup'
+type MockIdentityServiceInterface_VerifyEmailSignup_Call struct {
+	*mock.Call
+}
+
+// VerifyEmailSignup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request *messages.VerifyEmailSignupRequestDTO
+func (_e *MockIdentityServiceInterface_Expecter) VerifyEmailSignup(ctx interface{}, request interface{}) *MockIdentityServiceInterface_VerifyEmailSignup_Call {
+	return &MockIdentityServiceInterface_VerifyEmailSignup_Call{Call: _e.mock.On("VerifyEmailSignup", ctx, request)}
+}
+
+func (_c *MockIdentityServiceInterface_VerifyEmailSignup_Call) Run(run func(ctx context.Context, request *messages.VerifyEmailSignupRequestDTO)) *MockIdentityServiceInterface_VerifyEmailSignup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *messages.VerifyEmailSignupRequestDTO
+		if args[1] != nil {
+			arg1 = args[1].(*messages.VerifyEmailSignupRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIdentityServiceInterface_VerifyEmailSignup_Call) Return(identitySessionResponseDTO *messages.IdentitySessionResponseDTO, err error) *MockIdentityServiceInterface_VerifyEmailSignup_Call {
+	_c.Call.Return(identitySessionResponseDTO, err)
+	return _c
+}
+
+func (_c *MockIdentityServiceInterface_VerifyEmailSignup_Call) RunAndReturn(run func(ctx context.Context, request *messages.VerifyEmailSignupRequestDTO) (*messages.IdentitySessionResponseDTO, error)) *MockIdentityServiceInterface_VerifyEmailSignup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockJwtServiceInterface creates a new instance of MockJwtServiceInterface. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockJwtServiceInterface(t interface {

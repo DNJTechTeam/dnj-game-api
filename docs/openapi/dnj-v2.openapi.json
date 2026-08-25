@@ -305,6 +305,21 @@
           }
         }
       },
+      "TooManyRequests": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Limite de reenvio excedido — aguarde o cooldown antes de tentar de novo",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
       "Unauthorized": {
         "content": {
           "application/json": {
@@ -904,6 +919,33 @@
         "required": [
           "onboardingRequired",
           "user"
+        ],
+        "type": "object"
+      },
+      "EmailSignupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "EmailSignupResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "CODE_SENT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
         ],
         "type": "object"
       },
@@ -3124,6 +3166,26 @@
           "qrToken"
         ],
         "type": "object"
+      },
+      "VerifyEmailSignupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "example": "042917",
+            "maxLength": 6,
+            "minLength": 6,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -4533,6 +4595,86 @@
           }
         ],
         "summary": "Retorna o usuário e o estado atual do onboarding",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "description": "Self-service — não depende de nenhum registro pré-existente (ao contrário do /v1/auth/onboarding). Sempre responde CODE_SENT, mesmo quando o email já possui conta, para não permitir enumeração. Um reenvio antes do cooldown responde 429.",
+        "operationId": "signupWithEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailSignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailSignupResponse"
+                }
+              }
+            },
+            "description": "Código enviado (ou reenviado)",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Envia um código de 6 dígitos por email para cadastro sem Google",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/signup/verify": {
+      "post": {
+        "description": "Cria uma conta DEFAULT incompleta na primeira verificação deste email, ou vincula à conta já existente (Google ou um signup anterior) — mesmo formato de resposta do login Google, incluindo cookies de sessão.",
+        "operationId": "verifyEmailSignup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailSignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/IdentitySession"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Confirma o código e inicia uma sessão",
         "tags": [
           "Identity"
         ]

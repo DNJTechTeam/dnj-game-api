@@ -6,6 +6,7 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	emailSignupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
@@ -141,8 +142,10 @@ func ProvideIdentityService(
 	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 	identityRepository identityInterfaces.GoogleIdentityRepositoryInterface,
 	refreshRepository refreshInterfaces.RefreshSessionRepositoryInterface,
+	signupCodeRepository emailSignupInterfaces.EmailSignupCodeRepositoryInterface,
 	jwtService appInterfaces.JwtServiceInterface,
 	googleVerifier appInterfaces.GoogleIDTokenVerifierInterface,
+	emailService appInterfaces.EmailServiceInterface,
 ) appInterfaces.IdentityServiceInterface {
 	return services.NewIdentityService(
 		baseService,
@@ -151,8 +154,10 @@ func ProvideIdentityService(
 		membershipRepository,
 		identityRepository,
 		refreshRepository,
+		signupCodeRepository,
 		jwtService,
 		googleVerifier,
+		emailService,
 	)
 }
 

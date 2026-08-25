@@ -1172,4 +1172,10 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(createModelMigration(
+		"create_email_signup_codes_table",
+		"2.9.0",
+		&models.EmailSignupCode{},
+	))
 }

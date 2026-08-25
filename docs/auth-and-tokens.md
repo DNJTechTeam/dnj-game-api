@@ -4,6 +4,35 @@ The V2 identity contract lives under `/v2/auth`. V1 passwordless email routes
 remain available while their consumers migrate; the new flow does not change
 the frontend repository.
 
+## Frontend: obtaining the Google ID token (GIS)
+
+`POST /v2/auth/google` needs a real Google ID token as input — the frontend
+gets it from **Google Identity Services (GIS)**, not from this API:
+
+```html
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+```
+
+```ts
+google.accounts.id.initialize({
+  client_id: GOOGLE_CLIENT_ID, // same value as the backend's GOOGLE_CLIENT_ID env var
+  callback: (response) => {
+    // response.credential IS the idToken — send it as-is to POST /v2/auth/google
+    apiFetch("/auth/google", { method: "POST", body: JSON.stringify({ idToken: response.credential }) });
+  },
+});
+google.accounts.id.renderButton(buttonEl, { theme: "outline", size: "large" });
+// or, for One Tap instead of a button:
+google.accounts.id.prompt();
+```
+
+Setup in Google Cloud Console (OAuth client, type **Web application**):
+add every frontend origin that will call `initialize` (e.g.
+`https://app.example.com`, `http://localhost:3000` for local dev) to
+**Authorized JavaScript origins**. GIS uses postMessage/FedCM, not a
+redirect — unlike the OAuth Playground trick used for manual/QA testing (see
+the testing guide), no redirect URI is needed for the real integration.
+
 ## Google login and account linking
 
 `POST /v2/auth/google` receives `{ "idToken": "..." }`. The backend uses the
@@ -22,6 +51,27 @@ Linking follows these rules, in order:
 3. New subject and email: create a `DEFAULT` user with incomplete onboarding.
 4. Database uniqueness on `(provider, subject)`, user email and CPF hash closes
    concurrent linking races; a conflict never silently changes ownership.
+
+## Cadastro/login por email (V2)
+
+`POST /v2/auth/signup` sends a 6-digit code to the given email — self-service,
+no pre-existing record required (unlike the V1 flow below, which only works
+for a document a partner webhook already pushed in; that webhook never
+shipped, so V1 onboarding is effectively dead for anyone new). Always
+responds `200 {"status":"CODE_SENT"}`, even when the email already owns an
+account, so the endpoint can't be used to enumerate registered emails. A
+resend before the 60-second cooldown responds `429 RATE_LIMITED`.
+
+`POST /v2/auth/signup/verify` (`{"email":"...","code":"042917"}`) confirms
+the code and returns the exact same `IdentitySessionResponse` shape as
+`/v2/auth/google` — same cookies, same `onboardingRequired` semantics — so a
+frontend that already integrated Google login reuses its session-handling
+code unchanged. The first successful verification for an email creates a
+`DEFAULT` user with incomplete onboarding (same as a fresh Google signup);
+verifying an email that already owns an account (Google or a prior signup)
+links to it instead of creating a duplicate. The code expires after 15
+minutes and locks after 5 wrong attempts; both cases return `401
+INVALID_CODE` without revealing which reason applied.
 
 ## Session lifecycle
 

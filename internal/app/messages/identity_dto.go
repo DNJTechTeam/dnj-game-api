@@ -4,6 +4,19 @@ type GoogleAuthRequestDTO struct {
 	IDToken string `json:"idToken" binding:"required"`
 }
 
+type EmailSignupRequestDTO struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type EmailSignupResponseDTO struct {
+	Status string `json:"status"`
+}
+
+type VerifyEmailSignupRequestDTO struct {
+	Email string `json:"email" binding:"required,email"`
+	Code  string `json:"code" binding:"required"`
+}
+
 type CompleteOnboardingRequestDTO struct {
 	Document    string       `json:"document" binding:"required"`
 	MobilePhone string       `json:"mobilePhone" binding:"required"`

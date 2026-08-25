@@ -28,6 +28,8 @@ func identityTestEngine(t *testing.T, service *mocks.MockIdentityServiceInterfac
 	engine.Use(middlewares.RequestObservabilityMiddleware(logger))
 	handler := &handlers.IdentityHandler{IdentityService: service}
 	engine.POST("/v2/auth/google", handler.Google)
+	engine.POST("/v2/auth/signup", handler.SignupWithEmail)
+	engine.POST("/v2/auth/signup/verify", handler.VerifyEmailSignup)
 	engine.POST("/v2/auth/refresh", handler.Refresh)
 	engine.POST("/v2/auth/logout", handler.Logout)
 	engine.GET("/v2/auth/session", handler.Current)
@@ -70,6 +72,60 @@ func TestIdentityHandler_GoogleContractAndCookies(t *testing.T) {
 	assert.True(t, byName[apiCookies.IdentityTokenName].Secure)
 	assert.Equal(t, http.SameSiteNoneMode, byName[apiCookies.IdentityTokenName].SameSite)
 	assert.Equal(t, "/v2/auth", byName[apiCookies.RefreshTokenName].Path)
+}
+
+func TestIdentityHandler_SignupWithEmailRejectsMissingEmail(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	engine := identityTestEngine(t, service)
+	request := httptest.NewRequest(http.MethodPost, "/v2/auth/signup", bytes.NewBufferString(`{}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	// when
+	engine.ServeHTTP(recorder, request)
+
+	// then
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	service.AssertNotCalled(t, "SignupWithEmail", mock.Anything, mock.Anything)
+}
+
+func TestIdentityHandler_SignupWithEmailDelegatesToService(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	service.On("SignupWithEmail", mock.Anything, &messages.EmailSignupRequestDTO{Email: "ana@example.com"}).
+		Return(&messages.EmailSignupResponseDTO{Status: "CODE_SENT"}, nil)
+	engine := identityTestEngine(t, service)
+	request := httptest.NewRequest(http.MethodPost, "/v2/auth/signup", bytes.NewBufferString(`{"email":"ana@example.com"}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	// when
+	engine.ServeHTTP(recorder, request)
+
+	// then
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "CODE_SENT")
+}
+
+func TestIdentityHandler_VerifyEmailSignupSetsSessionCookies(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	service.On("VerifyEmailSignup", mock.Anything, &messages.VerifyEmailSignupRequestDTO{Email: "ana@example.com", Code: "042917"}).
+		Return(sessionResponse(), nil)
+	engine := identityTestEngine(t, service)
+	request := httptest.NewRequest(
+		http.MethodPost, "/v2/auth/signup/verify", bytes.NewBufferString(`{"email":"ana@example.com","code":"042917"}`),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	// when
+	engine.ServeHTTP(recorder, request)
+
+	// then
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Len(t, recorder.Result().Cookies(), 3)
 }
 
 func TestIdentityHandler_RefreshAndLogoutRequireCSRF(t *testing.T) {

@@ -84,8 +84,33 @@ completude, mas não bloqueiam o app do jogador.
 
 ## Helpers de referência (TypeScript)
 
-Copie estes quatro helpers como ponto de partida — cada fluxo da tabela
+Copie estes cinco helpers como ponto de partida — cada fluxo da tabela
 abaixo assume pelo menos um deles.
+
+### Google Identity Services — obtendo o `idToken` para `/auth/google`
+
+O backend nunca gera o `idToken`; ele vem do SDK do Google no cliente.
+
+```html
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+```
+
+```typescript
+google.accounts.id.initialize({
+  client_id: GOOGLE_CLIENT_ID, // mesmo valor do GOOGLE_CLIENT_ID configurado no backend
+  callback: (response) => {
+    // response.credential JÁ é o idToken — envie direto pro POST /auth/google
+    apiFetch("/auth/google", { method: "POST", body: JSON.stringify({ idToken: response.credential }) });
+  },
+});
+google.accounts.id.renderButton(buttonEl, { theme: "outline", size: "large" });
+// ou, para One Tap em vez de botão:
+google.accounts.id.prompt();
+```
+
+No Google Cloud Console, o OAuth Client (tipo **Web application**) precisa
+ter toda origem do frontend (produção e `http://localhost:3000` em dev) em
+**Authorized JavaScript origins** — sem isso o `initialize` falha silenciosamente.
 
 ### Cliente autenticado com refresh automático e CSRF
 
@@ -146,7 +171,7 @@ function toUtcIso(localDate: Date): string {
 }
 ```
 
-## Backlog granular (24 fluxos, cobertura 1:1 com as 67 operações publicadas)
+## Backlog granular (25 fluxos, cobertura 1:1 com as 69 operações publicadas)
 
 Fonte de verdade estruturada: [`dnj-v2-frontend-integration.json`](dnj-v2-frontend-integration.json)
 (validado em CI contra o OpenAPI pelo `cmd/handoff-check` — `make openapi`
@@ -156,6 +181,7 @@ referenciar um `operationId` que não existe).
 | Fluxo | Escopo | Iteração | Prioridade | Estado | Dependências | Dono |
 |---|---|---:|---|---|---|---|
 | Tela de login | frontend | 2 | P0 | ready | — | frontend |
+| Tela de cadastro/login por email | frontend | 11 | P0 | ready | — | frontend |
 | Bootstrap de app (sessão + refresh) | frontend | 2 | P0 | ready | Tela de login | frontend |
 | Completar cadastro (onboarding) | frontend | 2 | P0 | ready | Tela de login | frontend |
 | Ação de sair | frontend | 2 | P1 | ready | Bootstrap de app | frontend |
@@ -180,7 +206,7 @@ referenciar um `operationId` que não existe).
 | Configuração administrativa (spaces/activities/staff/managers) | admin-tooling | 4 | P2 | ready | — | admin-panel |
 | Enablers de plataforma (healthcheck/readiness) | enabler | 1 | P0 | done | — | platform |
 
-Para cada linha, o manifesto JSON traz `blockers` (vazio para todas as 24 —
+Para cada linha, o manifesto JSON traz `blockers` (vazio para todas as 25 —
 nenhuma pendência de backend nesta entrega) e `acceptanceTest` (critério
 objetivo de pronto). Nenhum fluxo amplo ficou sem decompor: cada linha acima
 corresponde a uma tela ou ação concreta, nunca a um domínio inteiro como
@@ -196,6 +222,7 @@ implementar.
 | Fluxo | Rota(s) V1 → V2 | Sequência resumida | Grafo completo |
 |---|---|---|---|
 | Tela de login | `POST /api/auth/google` → `POST /v2/auth/google` | 1 chamada; `onboardingComplete=false` redireciona para onboarding | [`auth-and-tokens.md`](../auth-and-tokens.md) |
+| Cadastro/login por email | novo em V2, substitui o `/v1/auth/onboarding` passwordless (morto — depende de um webhook de parceiro que nunca chegou a existir) | `POST /auth/signup` (sempre `CODE_SENT`) → usuário digita o código do email → `POST /auth/signup/verify` (mesma resposta de sessão do login Google); 429 no reenvio antes do cooldown | [`auth-and-tokens.md#cadastrologin-por-email-v2`](../auth-and-tokens.md#cadastrologin-por-email-v2) |
 | Bootstrap de app | novo em V2 | `GET /auth/session`; em 401, `POST /auth/refresh` uma vez, então repete | [`auth-and-tokens.md`](../auth-and-tokens.md) |
 | Completar cadastro | novo em V2 | `PATCH /auth/onboarding` com CPF/telefone/grupo | [`auth-and-tokens.md`](../auth-and-tokens.md) |
 | Agenda e detalhe | `GET /api/v1/schedule` → `GET /v2/schedule` | schedule → detalhe sob demanda ao abrir card | [`agenda-content.md`](../agenda-content.md) |
@@ -278,6 +305,8 @@ handoff — cada linha tem um teste automatizado real por trás (arquivo em
 | Preferências de notificação | PUT /notifications/preferences | `updateNotificationPreferences` | 200,400,401,403,409,500 | `notification_service_test.go` |
 | Scanner de QR | POST /qr/validate | `validateGameQR` | 200,201,400,401,403,409,410,500 | `iteration6_service_test.go` |
 | Tela de login | POST /auth/google | `authenticateWithGoogle` | 200,400,401,409,500 | `identity_handler_test.go` |
+| Cadastro/login por email | POST /auth/signup | `signupWithEmail` | 200,400,429,500 | `email_signup_service_test.go` |
+| Cadastro/login por email | POST /auth/signup/verify | `verifyEmailSignup` | 200,400,401,500 | `email_signup_service_test.go` |
 | n/a — usado por load balancer/monitoramento, não por UI | GET /healthcheck | `getHealthcheck` | 200 | `healthcheck_router_test.go` |
 | n/a — usado por load balancer/monitoramento, não por UI | GET /readiness | `getReadiness` | 200,503 | `healthcheck_router_test.go` |
 

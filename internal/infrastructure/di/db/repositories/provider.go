@@ -3,6 +3,7 @@ package repositories
 import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
+	emailSignupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
@@ -70,6 +71,10 @@ func ProvideGoogleIdentityRepository(db *gorm.DB) identityInterfaces.GoogleIdent
 
 func ProvideRefreshSessionRepository(db *gorm.DB) refreshInterfaces.RefreshSessionRepositoryInterface {
 	return repositories.NewRefreshSessionRepository(db)
+}
+
+func ProvideEmailSignupCodeRepository(db *gorm.DB) emailSignupInterfaces.EmailSignupCodeRepositoryInterface {
+	return repositories.NewEmailSignupCodeRepository(db)
 }
 
 func ProvideTaskRepository(db *gorm.DB) taskInterfaces.TaskRepositoryInterface {

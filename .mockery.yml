@@ -101,6 +101,11 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: refresh_session_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: email_signup_code_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces:
     config:
       all: true

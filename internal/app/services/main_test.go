@@ -10,6 +10,7 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	emailSignupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
@@ -43,6 +44,7 @@ type TestSuiteType struct {
 	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
 	GoogleIdentityRepository      identityInterfaces.GoogleIdentityRepositoryInterface
 	RefreshSessionRepository      refreshInterfaces.RefreshSessionRepositoryInterface
+	EmailSignupCodeRepository     emailSignupInterfaces.EmailSignupCodeRepositoryInterface
 	SpaceRepository               spaceInterfaces.SpaceRepositoryInterface
 	ActivityRepository            activityInterfaces.ActivityRepositoryInterface
 	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
@@ -68,6 +70,7 @@ func initializeTestSuite() {
 	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
 	TestSuite.GoogleIdentityRepository = repositories.NewGoogleIdentityRepository(TestSuite.DbConn)
 	TestSuite.RefreshSessionRepository = repositories.NewRefreshSessionRepository(TestSuite.DbConn)
+	TestSuite.EmailSignupCodeRepository = repositories.NewEmailSignupCodeRepository(TestSuite.DbConn)
 	TestSuite.SpaceRepository = repositories.NewSpaceRepository(TestSuite.DbConn)
 	TestSuite.ActivityRepository = repositories.NewActivityRepository(TestSuite.DbConn)
 	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)

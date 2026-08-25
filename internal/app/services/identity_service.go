@@ -5,9 +5,12 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -17,6 +20,8 @@ import (
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	emailSignupEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/entities"
+	emailSignupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces"
 	groupEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/group/entities"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
 	membershipEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/entities"
@@ -33,6 +38,10 @@ import (
 const (
 	AccessTokenTTL  = 15 * time.Minute
 	RefreshTokenTTL = 30 * 24 * time.Hour
+
+	signupCodeTTL         = 15 * time.Minute
+	signupResendCooldown  = 60 * time.Second
+	signupMaxCodeAttempts = 5
 )
 
 type IdentityService struct {
@@ -42,9 +51,12 @@ type IdentityService struct {
 	memberships     membershipInterfaces.GroupMembershipRepositoryInterface
 	identities      identityInterfaces.GoogleIdentityRepositoryInterface
 	refreshSessions refreshInterfaces.RefreshSessionRepositoryInterface
+	signupCodes     emailSignupInterfaces.EmailSignupCodeRepositoryInterface
 	jwt             appInterfaces.JwtServiceInterface
 	google          appInterfaces.GoogleIDTokenVerifierInterface
+	email           appInterfaces.EmailServiceInterface
 	now             func() time.Time
+	signupCode      func(digits int) (string, error)
 }
 
 func NewIdentityService(
@@ -54,10 +66,31 @@ func NewIdentityService(
 	memberships membershipInterfaces.GroupMembershipRepositoryInterface,
 	identities identityInterfaces.GoogleIdentityRepositoryInterface,
 	refreshSessions refreshInterfaces.RefreshSessionRepositoryInterface,
+	signupCodes emailSignupInterfaces.EmailSignupCodeRepositoryInterface,
 	jwt appInterfaces.JwtServiceInterface,
 	google appInterfaces.GoogleIDTokenVerifierInterface,
+	email appInterfaces.EmailServiceInterface,
 ) appInterfaces.IdentityServiceInterface {
-	return &IdentityService{BaseService: base, users: users, groups: groups, memberships: memberships, identities: identities, refreshSessions: refreshSessions, jwt: jwt, google: google, now: time.Now}
+	return &IdentityService{
+		BaseService: base, users: users, groups: groups, memberships: memberships, identities: identities,
+		refreshSessions: refreshSessions, signupCodes: signupCodes, jwt: jwt, google: google, email: email, now: time.Now,
+		signupCode: randomNumericCode,
+	}
+}
+
+// randomNumericCode generates a cryptographically random N-digit code as a
+// zero-padded string (e.g. "042917"), suitable for humans to type from an
+// email without confusing look-alike characters.
+func randomNumericCode(digits int) (string, error) {
+	max := big.NewInt(1)
+	for range digits {
+		max.Mul(max, big.NewInt(10))
+	}
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%0*d", digits, n.Int64()), nil
 }
 
 func identityError(status int, code, message string) error {
@@ -184,6 +217,107 @@ func (s *IdentityService) AuthenticateGoogle(ctx context.Context, request *messa
 		if errors.Is(err, appErrors.ErrConflict) {
 			return nil, identityError(http.StatusConflict, "IDENTITY_CONFLICT", "Esta conta já possui outro vínculo de identidade.")
 		}
+		return nil, err
+	}
+	return s.issueSession(ctx, user, "")
+}
+
+// SignupWithEmail sends a 6-digit code to the given email so it can be
+// exchanged for a session via VerifyEmailSignup — no pre-existing record
+// required, unlike the V1 flow which only works for documents a partner
+// webhook already pushed in. Always returns CODE_SENT regardless of whether
+// the email already owns an account, so the endpoint can't be used to
+// enumerate registered emails.
+func (s *IdentityService) SignupWithEmail(ctx context.Context, request *messages.EmailSignupRequestDTO) (*messages.EmailSignupResponseDTO, error) {
+	email := strings.ToLower(strings.TrimSpace(request.Email))
+	plainCode, err := s.signupCode(6)
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	now := s.now().UTC()
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		existing, err := s.signupCodes.FindByEmailForUpdate(txCtx, email)
+		if err != nil {
+			return err
+		}
+		if existing != nil && now.Before(existing.LastSentAt.Add(signupResendCooldown)) {
+			return identityError(http.StatusTooManyRequests, "RATE_LIMITED", "Aguarde antes de solicitar um novo código.")
+		}
+		hash := tokenHash(plainCode)
+		if existing != nil {
+			existing.CodeHash, existing.ExpiresAt, existing.LastSentAt, existing.Attempts, existing.ConsumedAt =
+				hash, now.Add(signupCodeTTL), now, 0, nil
+			_, err = s.signupCodes.Update(txCtx, existing)
+		} else {
+			_, err = s.signupCodes.Create(txCtx, &emailSignupEntities.EmailSignupCode{
+				Email: email, CodeHash: hash, ExpiresAt: now.Add(signupCodeTTL), LastSentAt: now,
+			})
+		}
+		if err != nil {
+			return appErrors.InternalError
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := s.email.SendVerificationCodeEmail(ctx, email, plainCode); err != nil {
+		return nil, appErrors.NewError("Erro ao enviar email de verificação. Tente novamente.", nil)
+	}
+	return &messages.EmailSignupResponseDTO{Status: "CODE_SENT"}, nil
+}
+
+// VerifyEmailSignup confirms the code and issues a session — creating a
+// DEFAULT, onboarding-incomplete user the first time this email verifies,
+// or linking to the existing account (Google or a prior signup) otherwise.
+func (s *IdentityService) VerifyEmailSignup(ctx context.Context, request *messages.VerifyEmailSignupRequestDTO) (*messages.IdentitySessionResponseDTO, error) {
+	email := strings.ToLower(strings.TrimSpace(request.Email))
+	code := strings.TrimSpace(request.Code)
+	var user *userEntities.User
+	err := s.WithTransaction(ctx, func(txCtx context.Context) error {
+		record, err := s.signupCodes.FindByEmailForUpdate(txCtx, email)
+		if err != nil {
+			return err
+		}
+		if record == nil || record.ConsumedAt != nil {
+			return identityError(http.StatusUnauthorized, "INVALID_CODE", "Código inválido.")
+		}
+		now := s.now().UTC()
+		if now.After(record.ExpiresAt) {
+			return identityError(http.StatusUnauthorized, "INVALID_CODE", "Código expirado.")
+		}
+		if record.Attempts >= signupMaxCodeAttempts {
+			return identityError(http.StatusUnauthorized, "INVALID_CODE", "Muitas tentativas. Solicite um novo código.")
+		}
+		if subtle.ConstantTimeCompare([]byte(tokenHash(code)), []byte(record.CodeHash)) != 1 {
+			record.Attempts++
+			if _, err := s.signupCodes.Update(txCtx, record); err != nil {
+				return appErrors.InternalError
+			}
+			return identityError(http.StatusUnauthorized, "INVALID_CODE", "Código inválido.")
+		}
+
+		found, err := s.users.FindByEmail(txCtx, email)
+		if err != nil {
+			return err
+		}
+		if found == nil {
+			found, err = s.users.Create(txCtx, &userEntities.User{
+				Email: email, Name: strings.Split(email, "@")[0], Role: userEntities.RoleDefault, OnboardingComplete: false,
+			})
+			if err != nil {
+				return appErrors.InternalError
+			}
+		}
+		record.ConsumedAt = &now
+		record.UserID = &found.ID
+		if _, err := s.signupCodes.Update(txCtx, record); err != nil {
+			return appErrors.InternalError
+		}
+		user = found
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	return s.issueSession(ctx, user, "")

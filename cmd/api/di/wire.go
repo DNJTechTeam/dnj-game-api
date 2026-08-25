@@ -23,6 +23,7 @@ func InitializeServer() *api.API {
 		repositories.ProvideUserRepository,
 		repositories.ProvideGoogleIdentityRepository,
 		repositories.ProvideRefreshSessionRepository,
+		repositories.ProvideEmailSignupCodeRepository,
 		repositories.ProvideTaskRepository,
 		repositories.ProvideGroupRepository,
 		repositories.ProvideGroupMembershipRepository,
