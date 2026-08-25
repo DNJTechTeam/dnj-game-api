@@ -7,6 +7,7 @@ import (
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	dbPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"gorm.io/gorm"
 )
@@ -22,6 +23,10 @@ func handleRepositoryError(err error) error {
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return appErrors.ErrNotFound
+	}
+	var postgresError *pgconn.PgError
+	if errors.As(err, &postgresError) && postgresError.Code == "23505" {
+		return appErrors.ErrConflict
 	}
 
 	return appErrors.InternalError

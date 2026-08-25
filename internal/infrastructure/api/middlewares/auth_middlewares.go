@@ -2,15 +2,15 @@ package middlewares
 
 import (
 	"context"
-	"time"
+	"net/http"
+	"strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	apiCookies "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/api/auth"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // AuthenticationMiddleware validates the identity JWT and puts the user id in
@@ -20,37 +20,34 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 
-		fromCookie, _ := c.Cookie(apiCookies.IdentityTokenName)
-		if fromCookie != "" {
+		if token == "" {
+			fromCookie, _ := c.Cookie(apiCookies.IdentityTokenName)
 			token = fromCookie
 		}
+		token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
 
 		if token == "" {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Token is required."))
-			c.Abort()
+			handlers.ResponseAPIError(c, http.StatusUnauthorized, "UNAUTHENTICATED", "Autenticação necessária.", nil)
 			return
 		}
 
 		identityClaims := &auth.IdentityClaims{}
 		claims, err := jwt.ParseWithClaims(token, identityClaims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(common.GetEnv("JWT_IDENTITY_SECRET")), nil
-		})
+		},
+			jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+			jwt.WithIssuer("dnj-game-api"),
+			jwt.WithAudience("dnj-v2"),
+			jwt.WithExpirationRequired(),
+		)
 
 		if err != nil {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Token is invalid."))
-			c.Abort()
+			handlers.ResponseAPIError(c, http.StatusUnauthorized, "UNAUTHENTICATED", "Autenticação necessária.", nil)
 			return
 		}
 
 		if !claims.Valid {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Token is invalid."))
-			c.Abort()
-			return
-		}
-
-		if time.Now().After(identityClaims.ExpiresAt.Time) {
-			handlers.ResponseUnauthorized(c, errors.NewSimpleError("Token is expired."))
-			c.Abort()
+			handlers.ResponseAPIError(c, http.StatusUnauthorized, "UNAUTHENTICATED", "Autenticação necessária.", nil)
 			return
 		}
 

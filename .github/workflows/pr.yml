@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: Vet
-        run: go vet ./...
+        run: make build vet
 
   test:
     name: Run Tests
@@ -40,7 +40,7 @@ jobs:
           cache: true
 
       - name: Run tests with coverage
-        run: make test-cover-check
+        run: make test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-iteration10-cover-check
 
   migrations-idempotency:
     name: Migrations Idempotency
@@ -57,6 +57,22 @@ jobs:
 
       - name: Run migrations idempotency test
         run: make test-migrations
+
+  race:
+    name: Race Detector
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run race detector
+        run: make test-race
 
   openapi:
     name: OpenAPI Contract
@@ -80,3 +96,22 @@ jobs:
             echo "::error::docs/openapi is out of date. Run 'make openapi' and commit the result."
             exit 1
           fi
+
+  loadtest-smoke:
+    name: Load Test Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Prepare local .env for the disposable Postgres/MinIO stack
+        run: cp .env.example .env
+
+      - name: Run the CI smoke load profile against GET /healthcheck
+        run: make loadtest-smoke

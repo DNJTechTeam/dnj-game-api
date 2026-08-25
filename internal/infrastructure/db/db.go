@@ -23,6 +23,18 @@ func SetConnection(db *gorm.DB) {
 }
 
 func Init() *gorm.DB {
+	return initConnection(false)
+}
+
+// InitAPI builds the pool without an eager ping. This allows the HTTP process
+// to expose liveness and a deterministic readiness=503 when PostgreSQL is
+// temporarily unavailable. Migration commands keep using Init, which remains
+// fail-fast and blocks unsafe deploys.
+func InitAPI() *gorm.DB {
+	return initConnection(true)
+}
+
+func initConnection(disableAutomaticPing bool) *gorm.DB {
 	if gormDbConnection != nil {
 		return gormDbConnection
 	}
@@ -37,6 +49,7 @@ func Init() *gorm.DB {
 
 	config := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		DisableAutomaticPing:                     disableAutomaticPing,
 	}
 	if !common.EnvironmentIs(common.EnvironmentLocalhost) {
 		config.Logger = logger.Default.LogMode(logger.Silent)

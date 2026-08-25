@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/group/entities"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -369,6 +370,80 @@ func (_c *MockGroupRepositoryInterface_Search_Call) Return(groups []*entities.Gr
 }
 
 func (_c *MockGroupRepositoryInterface_Search_Call) RunAndReturn(run func(ctx context.Context, query string, limit int) ([]*entities.Group, error)) *MockGroupRepositoryInterface_Search_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SearchPage provides a mock function for the type MockGroupRepositoryInterface
+func (_mock *MockGroupRepositoryInterface) SearchPage(ctx context.Context, query string, page uint64) (*messages.PaginatedResponse[entities.Group], error) {
+	ret := _mock.Called(ctx, query, page)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SearchPage")
+	}
+
+	var r0 *messages.PaginatedResponse[entities.Group]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) (*messages.PaginatedResponse[entities.Group], error)); ok {
+		return returnFunc(ctx, query, page)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64) *messages.PaginatedResponse[entities.Group]); ok {
+		r0 = returnFunc(ctx, query, page)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PaginatedResponse[entities.Group])
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, uint64) error); ok {
+		r1 = returnFunc(ctx, query, page)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGroupRepositoryInterface_SearchPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SearchPage'
+type MockGroupRepositoryInterface_SearchPage_Call struct {
+	*mock.Call
+}
+
+// SearchPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - query string
+//   - page uint64
+func (_e *MockGroupRepositoryInterface_Expecter) SearchPage(ctx interface{}, query interface{}, page interface{}) *MockGroupRepositoryInterface_SearchPage_Call {
+	return &MockGroupRepositoryInterface_SearchPage_Call{Call: _e.mock.On("SearchPage", ctx, query, page)}
+}
+
+func (_c *MockGroupRepositoryInterface_SearchPage_Call) Run(run func(ctx context.Context, query string, page uint64)) *MockGroupRepositoryInterface_SearchPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupRepositoryInterface_SearchPage_Call) Return(paginatedResponse *messages.PaginatedResponse[entities.Group], err error) *MockGroupRepositoryInterface_SearchPage_Call {
+	_c.Call.Return(paginatedResponse, err)
+	return _c
+}
+
+func (_c *MockGroupRepositoryInterface_SearchPage_Call) RunAndReturn(run func(ctx context.Context, query string, page uint64) (*messages.PaginatedResponse[entities.Group], error)) *MockGroupRepositoryInterface_SearchPage_Call {
 	_c.Call.Return(run)
 	return _c
 }

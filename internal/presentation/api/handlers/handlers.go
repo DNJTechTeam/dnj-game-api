@@ -5,8 +5,19 @@ package handlers
 type Handlers struct {
 	HealthcheckHandler         *HealthcheckHandler
 	AuthHandler                *AuthHandler
+	IdentityHandler            *IdentityHandler
+	ProfileHandler             *ProfileHandler
+	GroupInviteHandler         *GroupInviteHandler
 	SubscriptionWebhookHandler *SubscriptionWebhookHandler
 	GroupHandler               *GroupHandler
 	UserHandler                *UserHandler
 	TaskHandler                *TaskHandler
+	InstallationHandler        *InstallationHandler
+	AdminInstallationHandler   *AdminInstallationHandler
+	ContentHandler             *ContentHandler
+	FavoriteHandler            *FavoriteHandler
+	GameHandler                *GameHandler
+	MediaHandler               *MediaHandler
+	MomentHandler              *MomentHandler
+	NotificationHandler        *NotificationHandler
 }

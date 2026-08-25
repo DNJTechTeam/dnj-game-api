@@ -1,18 +1,49 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	infraCommon "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
 
 	"github.com/gin-gonic/gin"
 )
 
+type APIError struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Details   any    `json:"details,omitempty"`
+	RequestID string `json:"requestId"`
+}
+
+func ResponseAPIError(c *gin.Context, status int, code string, message string, details any) {
+	c.AbortWithStatusJSON(status, APIError{
+		Code:      code,
+		Message:   message,
+		Details:   details,
+		RequestID: infraCommon.ExtractRequestID(c.Request.Context()),
+	})
+}
+
 func ParseRequest(c *gin.Context, dto any) error {
 	if err := c.BindJSON(&dto); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ParseStrictRequest(c *gin.Context, dto any) error {
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dto); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.NewSimpleError("request body must contain one JSON object")
 	}
 	return nil
 }

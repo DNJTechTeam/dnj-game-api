@@ -22,12 +22,16 @@ func NewJwtService(baseService *BaseService) interfaces.JwtServiceInterface {
 }
 
 // GenerateIdentityToken issues an HS256 JWT carrying the user's identity.
-// The token is valid for 24 hours and is signed with JWT_IDENTITY_SECRET.
+// The token is short-lived and signed with JWT_IDENTITY_SECRET.
 func (s *JwtService) GenerateIdentityToken(ctx context.Context, user *uEntities.User) (string, error) {
 	claims := auth.IdentityClaims{
 		UserID: strconv.FormatUint(user.ID, 10),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+			Issuer:    "dnj-game-api",
+			Audience:  jwt.ClaimStrings{"dnj-v2"},
+			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+			NotBefore: jwt.NewNumericDate(time.Now().UTC()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(AccessTokenTTL)),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -37,6 +37,17 @@ func (c *contextKey) String() string {
 }
 
 func ProvideContainers(containersToStart ...string) *Containers {
+	return provideContainers(true, containersToStart...)
+}
+
+// ProvideUnmigratedContainers creates the same isolated infrastructure but
+// leaves PostgreSQL empty. Migration integration tests use it to prove clean
+// installs, legacy upgrades and concurrent runners independently of TestMain.
+func ProvideUnmigratedContainers(containersToStart ...string) *Containers {
+	return provideContainers(false, containersToStart...)
+}
+
+func provideContainers(runMigrations bool, containersToStart ...string) *Containers {
 	testContainers := &Containers{}
 	testContainers.Ctx = context.WithValue(context.Background(), &contextKey{}, "test-host")
 	testContainers.network = provideNetwork(testContainers.Ctx)
@@ -52,7 +63,7 @@ func ProvideContainers(containersToStart ...string) *Containers {
 	}
 
 	if slices.Contains(containersToStart, DbContainerName) {
-		dbConnection, dbContainer := provideDb(testContainers.Ctx, testContainers.network)
+		dbConnection, dbContainer := provideDb(testContainers.Ctx, testContainers.network, runMigrations)
 		testContainers.DbConn = dbConnection
 		testContainers.dbContainer = dbContainer
 	}

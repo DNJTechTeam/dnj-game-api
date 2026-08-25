@@ -11,6 +11,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db/repositories"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/services"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/storage"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 )
@@ -19,18 +20,39 @@ import (
 
 func InitializeServer() *api.API {
 	engine := api2.ProvideEngine()
-	healthcheckHandler := &handlers.HealthcheckHandler{}
 	gormDB := db.ProvideDB()
+	interfacesStorage := storage.ProvideMediaStorage()
+	healthcheckHandler := &handlers.HealthcheckHandler{
+		DB:           gormDB,
+		MediaStorage: interfacesStorage,
+	}
 	transactionManagerInterface := db.ProvideTransactionManager(gormDB)
 	baseService := services.ProvideBaseService(transactionManagerInterface)
 	subscriptionWebhookVerificationCodeRepositoryInterface := repositories.ProvideSubscriptionWebhookVerificationCodeRepository(gormDB)
 	userRepositoryInterface := repositories.ProvideUserRepository(gormDB)
 	groupRepositoryInterface := repositories.ProvideGroupRepository(gormDB)
+	groupMembershipRepositoryInterface := repositories.ProvideGroupMembershipRepository(gormDB)
 	jwtServiceInterface := services.ProvideJwtService(baseService)
 	emailServiceInterface := services.ProvideEmailService()
-	authServiceInterface := services.ProvideAuthService(baseService, subscriptionWebhookVerificationCodeRepositoryInterface, userRepositoryInterface, groupRepositoryInterface, jwtServiceInterface, emailServiceInterface)
+	authServiceInterface := services.ProvideAuthService(baseService, subscriptionWebhookVerificationCodeRepositoryInterface, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, jwtServiceInterface, emailServiceInterface)
 	authHandler := &handlers.AuthHandler{
 		AuthService: authServiceInterface,
+	}
+	googleIdentityRepositoryInterface := repositories.ProvideGoogleIdentityRepository(gormDB)
+	refreshSessionRepositoryInterface := repositories.ProvideRefreshSessionRepository(gormDB)
+	googleIDTokenVerifierInterface := services.ProvideGoogleIDTokenVerifier()
+	identityServiceInterface := services.ProvideIdentityService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, googleIdentityRepositoryInterface, refreshSessionRepositoryInterface, jwtServiceInterface, googleIDTokenVerifierInterface)
+	identityHandler := &handlers.IdentityHandler{
+		IdentityService: identityServiceInterface,
+	}
+	profileServiceInterface := services.ProvideProfileService(baseService, userRepositoryInterface, groupRepositoryInterface)
+	profileHandler := &handlers.ProfileHandler{
+		ProfileService: profileServiceInterface,
+	}
+	groupInviteRepositoryInterface := repositories.ProvideGroupInviteRepository(gormDB)
+	groupInviteServiceInterface := services.ProvideGroupInviteService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface, groupInviteRepositoryInterface)
+	groupInviteHandler := &handlers.GroupInviteHandler{
+		GroupInviteService: groupInviteServiceInterface,
 	}
 	subscriptionWebhookRepositoryInterface := repositories.ProvideSubscriptionWebhookRepository(gormDB)
 	webhookPayloadTranslatorInterface := services.ProvideWebhookPayloadTranslator()
@@ -38,11 +60,11 @@ func InitializeServer() *api.API {
 	subscriptionWebhookHandler := &handlers.SubscriptionWebhookHandler{
 		SubscriptionWebhookService: subscriptionWebhookServiceInterface,
 	}
-	groupServiceInterface := services.ProvideGroupService(baseService, groupRepositoryInterface)
+	groupServiceInterface := services.ProvideGroupService(baseService, groupRepositoryInterface, userRepositoryInterface, groupMembershipRepositoryInterface)
 	groupHandler := &handlers.GroupHandler{
 		GroupService: groupServiceInterface,
 	}
-	userServiceInterface := services.ProvideUserService(baseService, userRepositoryInterface, groupRepositoryInterface)
+	userServiceInterface := services.ProvideUserService(baseService, userRepositoryInterface, groupRepositoryInterface, groupMembershipRepositoryInterface)
 	userHandler := &handlers.UserHandler{
 		UserService: userServiceInterface,
 	}
@@ -51,13 +73,67 @@ func InitializeServer() *api.API {
 	taskHandler := &handlers.TaskHandler{
 		TaskService: taskServiceInterface,
 	}
+	spaceRepositoryInterface := repositories.ProvideSpaceRepository(gormDB)
+	spaceServiceInterface := services.ProvideSpaceService(spaceRepositoryInterface)
+	activityRepositoryInterface := repositories.ProvideActivityRepository(gormDB)
+	operationAuditRepositoryInterface := repositories.ProvideOperationAuditRepository(gormDB)
+	activityServiceInterface := services.ProvideActivityService(baseService, activityRepositoryInterface, operationAuditRepositoryInterface, userRepositoryInterface)
+	installationHandler := &handlers.InstallationHandler{
+		SpaceService:    spaceServiceInterface,
+		ActivityService: activityServiceInterface,
+	}
+	adminOperationRepositoryInterface := repositories.ProvideAdminOperationRepository(gormDB)
+	adminInstallationServiceInterface := services.ProvideAdminInstallationService(baseService, spaceRepositoryInterface, activityRepositoryInterface, operationAuditRepositoryInterface, adminOperationRepositoryInterface, userRepositoryInterface)
+	adminInstallationHandler := &handlers.AdminInstallationHandler{
+		AdminInstallationService: adminInstallationServiceInterface,
+	}
+	contentServiceInterface := services.ProvideContentService(activityRepositoryInterface, spaceRepositoryInterface)
+	contentHandler := &handlers.ContentHandler{
+		ContentService: contentServiceInterface,
+	}
+	favoriteRepositoryInterface := repositories.ProvideFavoriteRepository(gormDB)
+	favoriteServiceInterface := services.ProvideFavoriteService(baseService, favoriteRepositoryInterface, activityRepositoryInterface, userRepositoryInterface)
+	favoriteHandler := &handlers.FavoriteHandler{
+		FavoriteService: favoriteServiceInterface,
+	}
+	gameRepositoryInterface := repositories.ProvideGameRepository(gormDB)
+	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
+	gameHandler := &handlers.GameHandler{
+		GameService: gameServiceInterface,
+	}
+	repository := repositories.ProvideMediaRepository(gormDB)
+	mediaServiceInterface := services.ProvideMediaService(baseService, repository, interfacesStorage, userRepositoryInterface)
+	mediaHandler := &handlers.MediaHandler{
+		MediaService: mediaServiceInterface,
+	}
+	interfacesRepository := repositories.ProvideMomentRepository(gormDB)
+	momentServiceInterface := services.ProvideMomentService(baseService, interfacesRepository, repository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface)
+	momentHandler := &handlers.MomentHandler{
+		MomentService: momentServiceInterface,
+	}
+	repository2 := repositories.ProvideNotificationRepository(gormDB)
+	notificationServiceInterface := services.ProvideNotificationService(baseService, repository2, userRepositoryInterface)
+	notificationHandler := &handlers.NotificationHandler{
+		NotificationService: notificationServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
+		IdentityHandler:            identityHandler,
+		ProfileHandler:             profileHandler,
+		GroupInviteHandler:         groupInviteHandler,
 		SubscriptionWebhookHandler: subscriptionWebhookHandler,
 		GroupHandler:               groupHandler,
 		UserHandler:                userHandler,
 		TaskHandler:                taskHandler,
+		InstallationHandler:        installationHandler,
+		AdminInstallationHandler:   adminInstallationHandler,
+		ContentHandler:             contentHandler,
+		FavoriteHandler:            favoriteHandler,
+		GameHandler:                gameHandler,
+		MediaHandler:               mediaHandler,
+		MomentHandler:              momentHandler,
+		NotificationHandler:        notificationHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

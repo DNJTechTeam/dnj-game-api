@@ -1,0 +1,448 @@
+operations:
+  - operationId: getHealthcheck
+    method: GET
+    path: /healthcheck
+    statuses: ['200']
+    automatedTests: [internal/presentation/api/routers/healthcheck_router_test.go]
+  - operationId: getReadiness
+    method: GET
+    path: /readiness
+    statuses: ['200', '503']
+    automatedTests:
+      - internal/presentation/api/routers/healthcheck_router_test.go
+      - internal/presentation/api/handlers/healthcheck_handler_test.go
+  - operationId: authenticateWithGoogle
+    method: POST
+    path: /auth/google
+    statuses: ['200', '400', '401', '409', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+      - internal/infrastructure/google/id_token_verifier_test.go
+  - operationId: refreshIdentitySession
+    method: POST
+    path: /auth/refresh
+    statuses: ['200', '401', '403', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: logoutIdentitySession
+    method: POST
+    path: /auth/logout
+    statuses: ['200', '403', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: getCurrentIdentitySession
+    method: GET
+    path: /auth/session
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/infrastructure/api/middlewares/auth_middlewares_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: completeIdentityOnboarding
+    method: PATCH
+    path: /auth/onboarding
+    statuses: ['200', '400', '401', '404', '409', '500']
+    automatedTests:
+      - internal/presentation/api/handlers/identity_handler_test.go
+      - internal/app/services/identity_service_test.go
+  - operationId: getCurrentProfile
+    method: GET
+    path: /users/me
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/app/services/profile_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+      - internal/infrastructure/api/middlewares/auth_middlewares_test.go
+  - operationId: updateCurrentProfile
+    method: PATCH
+    path: /users/me
+    statuses: ['200', '400', '401', '500']
+    automatedTests:
+      - internal/app/services/profile_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: updateCurrentUserGroup
+    method: PATCH
+    path: /users/me/group
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: updateCurrentUserGroupCompatibility
+    method: POST
+    path: /users/me/group
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listGroups
+    method: GET
+    path: /groups
+    statuses: ['200', '400', '401', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: getCurrentGroup
+    method: GET
+    path: /groups/me
+    statuses: ['200', '401', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listCurrentGroupMembers
+    method: GET
+    path: /groups/me/members
+    statuses: ['200', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: consumeGroupInvite
+    method: POST
+    path: /groups/invites/consume
+    statuses: ['200', '400', '401', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listGroupInvites
+    method: GET
+    path: /admin/groups/{groupId}/invites
+    statuses: ['200', '401', '403', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: createGroupInvite
+    method: POST
+    path: /admin/groups/{groupId}/invites
+    statuses: ['201', '401', '403', '404', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: renewGroupInvite
+    method: POST
+    path: /admin/groups/{groupId}/invites/{inviteId}/renew
+    statuses: ['201', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: revokeGroupInvite
+    method: DELETE
+    path: /admin/groups/{groupId}/invites/{inviteId}
+    statuses: ['204', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/group_invite_service_test.go
+      - internal/presentation/api/handlers/iteration3_handler_test.go
+  - operationId: listSpaces
+    method: GET
+    path: /spaces
+    statuses: ['200', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/infrastructure/db/repositories/iteration4_repository_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: getSchedule
+    method: GET
+    path: /schedule
+    statuses: ['200', '400', '500']
+    automatedTests: &iteration5ContentTests
+      - internal/app/services/iteration5_service_test.go
+      - internal/app/services/iteration5_error_service_test.go
+      - internal/app/services/iteration5_http_integration_test.go
+      - internal/presentation/api/handlers/iteration5_handler_test.go
+      - internal/presentation/api/routers/iteration5_router_test.go
+  - operationId: listPublicActivities
+    method: GET
+    path: /activities
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration5ContentTests
+  - operationId: getPublicActivity
+    method: GET
+    path: /activities/{activityId}
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration5ContentTests
+  - operationId: listCurrentUserFavorites
+    method: GET
+    path: /users/me/favorites
+    statuses: ['200', '400', '401', '409', '500']
+    automatedTests: &iteration5FavoriteTests
+      - internal/app/services/iteration5_service_test.go
+      - internal/app/services/iteration5_error_service_test.go
+      - internal/app/services/iteration5_http_integration_test.go
+      - internal/infrastructure/db/migrations/migrations_integration_test.go
+      - internal/presentation/api/handlers/iteration5_handler_test.go
+      - internal/presentation/api/routers/iteration5_router_test.go
+  - operationId: putCurrentUserFavorite
+    method: PUT
+    path: /users/me/favorites/{activityId}
+    statuses: ['204', '400', '401', '404', '409', '500']
+    automatedTests: *iteration5FavoriteTests
+  - operationId: deleteCurrentUserFavorite
+    method: DELETE
+    path: /users/me/favorites/{activityId}
+    statuses: ['204', '400', '401', '409', '500']
+    automatedTests: *iteration5FavoriteTests
+  - operationId: startActivity
+    method: POST
+    path: /manager/activities/{activityId}/start
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: pauseActivity
+    method: POST
+    path: /manager/activities/{activityId}/pause
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: listAdminSpaces
+    method: GET
+    path: /admin/spaces
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: &adminInstallationTests
+      - internal/app/services/admin_installation_service_test.go
+      - internal/app/services/admin_installation_http_integration_test.go
+      - internal/infrastructure/db/repositories/iteration4_repository_test.go
+      - internal/presentation/api/handlers/admin_installation_handler_test.go
+      - internal/presentation/api/routers/admin_installation_router_test.go
+  - operationId: createAdminSpace
+    method: POST
+    path: /admin/spaces
+    statuses: ['201', '400', '401', '403', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminSpace
+    method: PATCH
+    path: /admin/spaces/{spaceId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminActivities
+    method: GET
+    path: /admin/activities
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: createAdminActivity
+    method: POST
+    path: /admin/activities
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminActivity
+    method: PATCH
+    path: /admin/activities/{activityId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminStaff
+    method: GET
+    path: /admin/staff
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: updateAdminUserRole
+    method: PATCH
+    path: /admin/users/{userId}/role
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listAdminActivityManagers
+    method: GET
+    path: /admin/activities/{activityId}/managers
+    statuses: ['200', '400', '401', '403', '404', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: assignAdminActivityManager
+    method: PUT
+    path: /admin/activities/{activityId}/managers/{userId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: removeAdminActivityManager
+    method: DELETE
+    path: /admin/activities/{activityId}/managers/{userId}
+    statuses: ['204', '400', '401', '403', '404', '409', '500']
+    automatedTests: *adminInstallationTests
+  - operationId: listGames
+    method: GET
+    path: /games
+    statuses: ['200', '400', '500']
+    automatedTests: &iteration6Tests
+      - internal/app/services/iteration6_service_test.go
+      - internal/app/services/iteration6_service_error_test.go
+      - internal/app/services/iteration6_http_integration_test.go
+      - internal/app/mappers/iteration6_game_mapper_test.go
+      - internal/infrastructure/db/migrations/migrations_integration_test.go
+      - internal/infrastructure/db/repositories/iteration6_game_repository_test.go
+      - internal/presentation/api/handlers/iteration6_handler_test.go
+      - internal/presentation/api/routers/iteration6_router_test.go
+  - operationId: getGame
+    method: GET
+    path: /games/{gameId}
+    statuses: ['200', '400', '404', '500']
+    automatedTests: *iteration6Tests
+  - operationId: listRankings
+    method: GET
+    path: /rankings
+    statuses: ['200', '400', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getGameOverview
+    method: GET
+    path: /game/overview
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getCurrentActivityRun
+    method: GET
+    path: /activity-runs/current
+    statuses: ['200', '204', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getCurrentParticipation
+    method: GET
+    path: /participations/current
+    statuses: ['200', '204', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: validateGameQR
+    method: POST
+    path: /qr/validate
+    statuses: ['200', '201', '400', '401', '403', '409', '410', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getManagerGameOverview
+    method: GET
+    path: /manager/game-overview
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: getManagerRun
+    method: GET
+    path: /manager/runs/{runId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: createManagerRun
+    method: POST
+    path: /manager/runs
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: rotateManagerRunQR
+    method: POST
+    path: /manager/runs/{runId}/qr
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: startManagerRun
+    method: POST
+    path: /manager/runs/{runId}/start
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: pauseManagerRun
+    method: POST
+    path: /manager/runs/{runId}/pause
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: resumeManagerRun
+    method: POST
+    path: /manager/runs/{runId}/resume
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: finalizeManagerRunResults
+    method: POST
+    path: /manager/runs/{runId}/results
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: cancelManagerRun
+    method: POST
+    path: /manager/runs/{runId}/cancel
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration6Tests
+  - operationId: createMediaUploadIntent
+    method: POST
+    path: /media/upload-intents
+    statuses: ['201', '400', '401', '403', '409', '413', '415', '500', '503']
+    automatedTests: &iteration7MediaTests
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_error_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/media_moment_helpers_unit_test.go
+      - internal/app/services/media_service_repository_failure_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: completeMediaUpload
+    method: POST
+    path: /media/{mediaAssetId}/complete
+    statuses: ['200', '400', '401', '403', '404', '409', '410', '413', '422', '500', '503']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_error_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/media_image_sanitizer_test.go
+      - internal/app/services/media_moment_wait_complete_test.go
+      - internal/app/services/media_service_finalize_failure_test.go
+      - internal/app/services/media_service_complete_upload_failure_test.go
+      - internal/infrastructure/storage/s3_media_storage_integration_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: listMoments
+    method: GET
+    path: /moments
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: &iteration7MomentTests
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_cursor_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: createMoment
+    method: POST
+    path: /moments
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/moment_create_repository_failure_test.go
+      - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: toggleMomentLike
+    method: POST
+    path: /moments/{momentId}/likes
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_interaction_service_repository_failure_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: listMomentModeration
+    method: GET
+    path: /admin/moments/moderation
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: moderateMoment
+    method: POST
+    path: /admin/moments/{momentId}/moderation
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_interaction_service_repository_failure_test.go
+      - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: getNotificationPreferences
+    method: GET
+    path: /notifications/preferences
+    statuses: ['200', '401', '403', '409', '500']
+    automatedTests: &iteration8NotificationTests
+      - internal/app/services/notification_service_test.go
+      - internal/app/services/notification_service_repository_failure_test.go
+      - internal/app/services/notification_http_integration_test.go
+      - internal/infrastructure/db/repositories/notification_sqlmock_error_test.go
+  - operationId: updateNotificationPreferences
+    method: PUT
+    path: /notifications/preferences
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: listNotifications
+    method: GET
+    path: /notifications
+    statuses: ['200', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: markNotificationRead
+    method: POST
+    path: /notifications/{notificationId}/read
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests: *iteration8NotificationTests
+  - operationId: sendAdminNotification
+    method: POST
+    path: /admin/notifications
+    statuses: ['201', '400', '401', '403', '409', '500']
+    automatedTests: *iteration8NotificationTests

@@ -30,10 +30,18 @@ jobs:
           cache: true
 
       - name: Vet
-        run: go vet ./...
+        run: make build vet
+
+      - name: Run race detector
+        run: make test-race
 
       - name: Run tests with coverage
-        run: make test-cover-check
+        run: make test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-iteration10-cover-check
+
+      - name: Validate migrations and committed OpenAPI contracts
+        run: |
+          make test-migrations openapi
+          git diff --exit-code -- docs/openapi
 
       - name: Run database migrations
         run: go run cmd/migrate/main.go
@@ -77,7 +85,18 @@ jobs:
             --image-uri $ECR_REGISTRY/$IMAGE_REPOSITORY_NAME:$IMAGE_TAG
 
       - name: Build OpenAPI docs site
-        run: ./scripts/publish-openapi-docs.sh docs/openapi/swagger.json "${{ secrets.API_BASE_URL }}" develop
+        run: ./scripts/publish-openapi-docs.sh docs/openapi/swagger.json "${{ secrets.API_BASE_URL }}" develop docs/openapi/dnj-v2.openapi.json
+
+      - name: Upload frontend handoff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dnj-v2-frontend-handoff-develop
+          path: |
+            public/develop/frontend-integration/
+            docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md
+            docs/handoff/dnj-v2-frontend-integration.json
+            docs/openapi/dnj-v2.openapi.yaml
+          retention-days: 90
 
       - name: Publish OpenAPI docs to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

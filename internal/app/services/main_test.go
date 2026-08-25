@@ -7,8 +7,18 @@ import (
 	"strconv"
 	"testing"
 
+	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	commonInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/common/interfaces"
+	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
+	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
 	groupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/group/interfaces"
+	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
+	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
+	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
+	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
+	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -27,8 +37,18 @@ type TestSuiteType struct {
 	UserRepository                uInterfaces.UserRepositoryInterface
 	TaskRepository                taskInterfaces.TaskRepositoryInterface
 	GroupRepository               groupInterfaces.GroupRepositoryInterface
+	GroupMembershipRepository     membershipInterfaces.GroupMembershipRepositoryInterface
+	GroupInviteRepository         inviteInterfaces.GroupInviteRepositoryInterface
 	SubscriptionWebhookRepository swInterfaces.SubscriptionWebhookRepositoryInterface
 	VerificationCodeRepository    svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface
+	GoogleIdentityRepository      identityInterfaces.GoogleIdentityRepositoryInterface
+	RefreshSessionRepository      refreshInterfaces.RefreshSessionRepositoryInterface
+	SpaceRepository               spaceInterfaces.SpaceRepositoryInterface
+	ActivityRepository            activityInterfaces.ActivityRepositoryInterface
+	OperationAuditRepository      auditInterfaces.OperationAuditRepositoryInterface
+	AdminOperationRepository      adminInterfaces.AdminOperationRepositoryInterface
+	FavoriteRepository            favoriteInterfaces.FavoriteRepositoryInterface
+	GameRepository                gameInterfaces.GameRepositoryInterface
 	BaseService                   *BaseService
 }
 
@@ -42,8 +62,18 @@ func initializeTestSuite() {
 	TestSuite.UserRepository = repositories.NewUserRepository(TestSuite.DbConn)
 	TestSuite.TaskRepository = repositories.NewTaskRepository(TestSuite.DbConn)
 	TestSuite.GroupRepository = repositories.NewGroupRepository(TestSuite.DbConn)
+	TestSuite.GroupMembershipRepository = repositories.NewGroupMembershipRepository(TestSuite.DbConn)
+	TestSuite.GroupInviteRepository = repositories.NewGroupInviteRepository(TestSuite.DbConn)
 	TestSuite.SubscriptionWebhookRepository = repositories.NewSubscriptionWebhookRepository(TestSuite.DbConn)
 	TestSuite.VerificationCodeRepository = repositories.NewSubscriptionWebhookVerificationCodeRepository(TestSuite.DbConn)
+	TestSuite.GoogleIdentityRepository = repositories.NewGoogleIdentityRepository(TestSuite.DbConn)
+	TestSuite.RefreshSessionRepository = repositories.NewRefreshSessionRepository(TestSuite.DbConn)
+	TestSuite.SpaceRepository = repositories.NewSpaceRepository(TestSuite.DbConn)
+	TestSuite.ActivityRepository = repositories.NewActivityRepository(TestSuite.DbConn)
+	TestSuite.OperationAuditRepository = repositories.NewOperationAuditRepository(TestSuite.DbConn)
+	TestSuite.AdminOperationRepository = repositories.NewAdminOperationRepository(TestSuite.DbConn)
+	TestSuite.FavoriteRepository = repositories.NewFavoriteRepository(TestSuite.DbConn)
+	TestSuite.GameRepository = repositories.NewGameRepository(TestSuite.DbConn)
 }
 
 func TestMain(m *testing.M) {
@@ -66,6 +96,8 @@ func (ts *TestSuiteType) DefaultSetup(t *testing.T) {
 	t.Setenv("SERVER_ENVIRONMENT", string(common.EnvironmentTest))
 	t.Setenv("GIN_MODE", "debug")
 	t.Setenv("JWT_IDENTITY_SECRET", "testIdentitySecret")
+	t.Setenv("GOOGLE_CLIENT_ID", "test-google-client")
+	t.Setenv("DOCUMENT_HMAC_SECRET", "test-document-hmac-secret")
 	t.Setenv("SUBSCRIPTION_WEBHOOK_SECRET", "testWebhookSecret")
 	t.Setenv("FRONTEND_URL", "https://app.example.com")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")

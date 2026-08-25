@@ -12,6 +12,7 @@ type Router struct {
 	engine   *gin.Engine
 	handlers *handlers.Handlers
 	group    *gin.RouterGroup
+	v2Group  *gin.RouterGroup
 }
 
 func NewRouter(engine *gin.Engine, handlers *handlers.Handlers) *Router {
@@ -19,6 +20,7 @@ func NewRouter(engine *gin.Engine, handlers *handlers.Handlers) *Router {
 		engine:   engine,
 		handlers: handlers,
 		group:    engine.Group(infraCommon.GetEnv("API_PREFIX")),
+		v2Group:  engine.Group("/v2"),
 	}
 }
 
@@ -34,10 +36,18 @@ func (r *Router) authProtected() []gin.HandlerFunc {
 func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterHealthcheckRoutes()
 	r.RegisterAuthRoutes()
+	r.RegisterIdentityRoutes()
+	r.RegisterProfileRoutes()
 	r.RegisterSubscriptionRoutes()
 	r.RegisterGroupRoutes()
 	r.RegisterUserRoutes()
 	r.RegisterTaskRoutes()
+	r.RegisterInstallationRoutes()
+	r.RegisterContentRoutes()
+	r.RegisterAdminInstallationRoutes()
+	r.RegisterGameRoutes()
+	r.RegisterMediaMomentRoutes()
+	r.RegisterNotificationRoutes()
 
 	return r.engine
 }

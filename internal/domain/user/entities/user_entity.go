@@ -25,13 +25,17 @@ var AllowedUserRoles = []UserRole{
 // scope for this template. Authentication is passwordless: a User is created
 // the first time a subscription webhook verification code is confirmed.
 type User struct {
-	ID          uint64
-	Email       string
-	Name        string
-	MobilePhone string
-	Document    string
-	Role        UserRole
-	GroupID     *uint64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                 uint64
+	Email              string
+	Name               string
+	MobilePhone        string
+	Document           string
+	DocumentHash       string
+	DocumentLast4      string
+	Role               UserRole
+	GroupID            *uint64
+	Points             int
+	OnboardingComplete bool
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }

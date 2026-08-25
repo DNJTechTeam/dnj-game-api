@@ -1,0 +1,6683 @@
+{
+  "components": {
+    "headers": {
+      "HasNextPage": {
+        "description": "Indica existência da próxima página",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "Limit": {
+        "description": "Quantidade máxima por página",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "Page": {
+        "description": "Página atual",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RequestID": {
+        "description": "Identificador seguro de correlação da requisição",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SessionCookies": {
+        "description": "identity_token e refresh_token são HttpOnly; csrf_token é legível pelo cliente. Em ambiente publicado todos são Secure e SameSite=None.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "ActivityID": {
+        "in": "path",
+        "name": "activityId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "CSRFHeader": {
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "required": true,
+        "schema": {
+          "minLength": 32,
+          "type": "string"
+        }
+      },
+      "GameID": {
+        "in": "path",
+        "name": "gameId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "GroupID": {
+        "in": "path",
+        "name": "groupId",
+        "required": true,
+        "schema": {
+          "pattern": "^[1-9][0-9]*$",
+          "type": "string"
+        }
+      },
+      "IdempotencyKey": {
+        "description": "UUID estável reutilizado somente no retry da mesma intenção pelo mesmo ator.",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "InviteID": {
+        "in": "path",
+        "name": "inviteId",
+        "required": true,
+        "schema": {
+          "pattern": "^[1-9][0-9]*$",
+          "type": "string"
+        }
+      },
+      "MediaAssetID": {
+        "in": "path",
+        "name": "mediaAssetId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "MomentID": {
+        "in": "path",
+        "name": "momentId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "NotificationID": {
+        "in": "path",
+        "name": "notificationId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "Page": {
+        "description": "Página 1-indexada; 0 é aceito como alias da primeira página.",
+        "in": "query",
+        "name": "page",
+        "required": false,
+        "schema": {
+          "default": 1,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "RunID": {
+        "in": "path",
+        "name": "runId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "SpaceID": {
+        "in": "path",
+        "name": "spaceId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "UserID": {
+        "in": "path",
+        "name": "userId",
+        "required": true,
+        "schema": {
+          "pattern": "^[1-9][0-9]*$",
+          "type": "string"
+        }
+      }
+    },
+    "requestBodies": {
+      "UpdateCurrentGroup": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateCurrentGroupRequest"
+            }
+          }
+        },
+        "required": true
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Requisição inválida",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Conflict": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Estado atual impede a operação",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "DependencyUnavailable": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Dependência obrigatória indisponível",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Proteção CSRF ou autorização rejeitou a requisição",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Gone": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Recurso temporal expirado",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "IdentitySession": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IdentitySessionResponse"
+            }
+          }
+        },
+        "description": "Sessão criada ou renovada",
+        "headers": {
+          "Set-Cookie": {
+            "$ref": "#/components/headers/SessionCookies"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "InternalError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Erro interno sem detalhes sensíveis",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Recurso relacionado não encontrado",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "TooLarge": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Corpo ou imagem excede o limite permitido",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Credencial ausente, inválida, expirada ou reutilizada",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Conteúdo malformado, disfarçado ou fora dos limites de sanitização",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Tipo de conteúdo não suportado",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ActivityState": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object"
+      },
+      "AdminActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Instante normalizado para UTC e serializado em RFC 3339 com Z; a exibição usa o fuso local do cliente.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "description": "Instante normalizado para UTC e serializado em RFC 3339 com Z; a exibição usa o fuso local do cliente.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "completed",
+              "archived"
+            ],
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "spaceId",
+          "slug",
+          "name",
+          "description",
+          "kind",
+          "status",
+          "startsAt",
+          "endsAt",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment"
+        ],
+        "type": "object"
+      },
+      "AdminManagerAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "activityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userId": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "activityId",
+          "userId"
+        ],
+        "type": "object"
+      },
+      "AdminSendNotificationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "targetUserIds": {
+            "ainda filtrado por elegibilidade e preferência; omitido faz broadcast geral.": null,
+            "description": "Restringe o broadcast a este conjunto",
+            "items": {
+              "pattern": "^[1-9][0-9]*$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "AdminSendNotificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "recipientCount": {
+            "description": "Contagem agregada de destinatários; a lista de destinatários nunca é exposta.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipientCount"
+        ],
+        "type": "object"
+      },
+      "AdminStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboardingComplete": {
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "EVENT_MANAGER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "onboardingComplete"
+        ],
+        "type": "object"
+      },
+      "AdminUserRole": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "DEFAULT",
+              "EVENT_MANAGER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role"
+        ],
+        "type": "object"
+      },
+      "CompleteOnboardingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "example": "52998224725",
+            "type": "string"
+          },
+          "groupId": {
+            "example": "12",
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "mobilePhone": {
+            "example": "5541999990000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "mobilePhone",
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "ConsumeGroupInviteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Código opaco recebido fora da API de listagem.",
+            "minLength": 20,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "CreateAdminActivityRequest": {
+        "additionalProperties": false,
+        "example": {
+          "allowsMoment": true,
+          "checkInPoints": 10,
+          "cooldownSeconds": 60,
+          "description": "Registre um momento no local.",
+          "endsAt": "2026-08-24T19:00:00Z",
+          "kind": "challenge",
+          "momentPoints": 20,
+          "name": "Desafio Foto",
+          "slug": "desafio-foto",
+          "spaceId": "11111111-1111-4111-8111-111111111111",
+          "startsAt": "2026-08-24T18:00:00Z"
+        },
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "description": "Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "kind",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment"
+        ],
+        "type": "object"
+      },
+      "CreateAdminSpaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mapReference": {
+            "example": "map:capela",
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "example": "Capela",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "example": "capela",
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateManagerRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gameId"
+        ],
+        "type": "object"
+      },
+      "CreateMomentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mediaAssetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "publishConsent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mediaAssetId",
+          "publishConsent"
+        ],
+        "type": "object"
+      },
+      "CreateUploadIntentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "maximum": 10485760,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "checksumSha256": {
+            "description": "SHA-256 do objeto em Base64 canônico (44 caracteres).",
+            "type": "string"
+          },
+          "contentType": {
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "contentType",
+          "bytes",
+          "checksumSha256"
+        ],
+        "type": "object"
+      },
+      "CurrentGroup": {
+        "properties": {
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "membership": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupMembership"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "group",
+          "membership"
+        ],
+        "type": "object"
+      },
+      "CurrentProfile": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "documentMasked": {
+            "description": "CPF integral e hashes nunca são retornados.",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "readOnly": true,
+            "type": "string"
+          },
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "mobilePhone": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          },
+          "onboardingComplete": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "points": {
+            "minimum": 0,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "rankPosition": {
+            "format": "int64",
+            "minimum": 1,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "role": {
+            "enum": [
+              "ADMIN",
+              "EVENT_MANAGER",
+              "DEFAULT"
+            ],
+            "readOnly": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "mobilePhone",
+          "documentMasked",
+          "role",
+          "group",
+          "points",
+          "rankPosition",
+          "onboardingComplete",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "CurrentSessionResponse": {
+        "properties": {
+          "onboardingRequired": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/IdentityUser"
+          }
+        },
+        "required": [
+          "onboardingRequired",
+          "user"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "example": "UNAUTHENTICATED",
+            "type": "string"
+          },
+          "details": {
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ],
+        "type": "object"
+      },
+      "FinalizeManagerRunResultsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RunResultRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "type": "object"
+      },
+      "Game": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "space": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "space",
+          "slug",
+          "name",
+          "description",
+          "startsAt",
+          "endsAt",
+          "allowsMoment",
+          "state"
+        ],
+        "type": "object"
+      },
+      "GameCurrent": {
+        "additionalProperties": false,
+        "properties": {
+          "groupId": {
+            "nullable": true,
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "groupRankPosition": {
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rankPosition": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "groupId",
+          "rankPosition",
+          "groupRankPosition",
+          "points"
+        ],
+        "type": "object"
+      },
+      "GameOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/GameCurrent"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupRanking"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "individual": {
+            "items": {
+              "$ref": "#/components/schemas/IndividualRanking"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "pointEntries": {
+            "items": {
+              "$ref": "#/components/schemas/PointEntry"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "individual",
+          "groups",
+          "pointEntries",
+          "current"
+        ],
+        "type": "object"
+      },
+      "GoogleAuthRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "idToken": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken"
+        ],
+        "type": "object"
+      },
+      "GroupInvite": {
+        "properties": {
+          "consumedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "consumedByUserId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "replacesInviteId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "EXPIRED",
+              "REVOKED",
+              "CONSUMED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "groupId",
+          "status",
+          "expiresAt",
+          "revokedAt",
+          "consumedAt",
+          "consumedByUserId",
+          "createdByUserId",
+          "replacesInviteId",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "GroupInviteWithCode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GroupInvite"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "Exibido somente na criação ou renovação.",
+                "minLength": 20,
+                "type": "string"
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "GroupMember": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "ADMIN",
+              "EVENT_MANAGER",
+              "DEFAULT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "joinedAt"
+        ],
+        "type": "object"
+      },
+      "GroupMembership": {
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "groupId",
+          "joinedAt"
+        ],
+        "type": "object"
+      },
+      "GroupRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "members": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "position": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "members",
+          "points",
+          "position"
+        ],
+        "type": "object"
+      },
+      "GroupRankingPage": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GroupRanking"
+            },
+            "type": "array"
+          },
+          "generatedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "generatedAt"
+        ],
+        "type": "object"
+      },
+      "GroupSummary": {
+        "properties": {
+          "groupName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "groupName"
+        ],
+        "type": "object"
+      },
+      "HealthcheckResponse": {
+        "properties": {
+          "service": {
+            "enum": [
+              "dnj-game-api"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "service"
+        ],
+        "type": "object"
+      },
+      "IdentitySessionResponse": {
+        "properties": {
+          "accessToken": {
+            "description": "JWT HS256 válido por 900 segundos",
+            "type": "string"
+          },
+          "csrfToken": {
+            "description": "Mesmo valor do cookie csrf_token",
+            "type": "string"
+          },
+          "expiresIn": {
+            "enum": [
+              900
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "onboardingRequired": {
+            "type": "boolean"
+          },
+          "tokenType": {
+            "enum": [
+              "Bearer"
+            ],
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/IdentityUser"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn",
+          "csrfToken",
+          "onboardingRequired",
+          "user"
+        ],
+        "type": "object"
+      },
+      "IdentityUser": {
+        "properties": {
+          "documentMasked": {
+            "description": "CPF integral nunca é retornado pela V2",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "group": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "mobilePhone": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onboardingComplete": {
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "ADMIN",
+              "EVENT_MANAGER",
+              "DEFAULT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "mobilePhone",
+          "documentMasked",
+          "role",
+          "group",
+          "onboardingComplete"
+        ],
+        "type": "object"
+      },
+      "IndividualRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "groupName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "position": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "groupName",
+          "points",
+          "position"
+        ],
+        "type": "object"
+      },
+      "IndividualRankingPage": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IndividualRanking"
+            },
+            "type": "array"
+          },
+          "generatedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "generatedAt"
+        ],
+        "type": "object"
+      },
+      "Like": {
+        "additionalProperties": false,
+        "properties": {
+          "liked": {
+            "type": "boolean"
+          },
+          "likesCount": {
+            "type": "integer"
+          },
+          "momentId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "momentId",
+          "liked",
+          "likesCount"
+        ],
+        "type": "object"
+      },
+      "LogoutResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "logged_out"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "ManagerDashboardRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "gameId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "gameName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/RunParticipant"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "checkin",
+              "running",
+              "paused",
+              "results"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "gameId",
+          "gameName",
+          "status",
+          "startedAt",
+          "endedAt",
+          "participants"
+        ],
+        "type": "object"
+      },
+      "ManagerGame": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "$ref": "#/components/schemas/PointRules"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "points"
+        ],
+        "type": "object"
+      },
+      "ManagerGameOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "$ref": "#/components/schemas/ManagerGameOverviewActions"
+          },
+          "scope": {
+            "enum": [
+              "actions"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "actions"
+        ],
+        "type": "object"
+      },
+      "ManagerGameOverviewActions": {
+        "additionalProperties": false,
+        "properties": {
+          "games": {
+            "items": {
+              "$ref": "#/components/schemas/ManagerGame"
+            },
+            "type": "array"
+          },
+          "run": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ManagerDashboardRun"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "games",
+          "run"
+        ],
+        "type": "object"
+      },
+      "ManagerQR": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "qrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "qrToken": {
+            "description": "Segredo opaco exibido somente nesta resposta; não registrar em logs.",
+            "minLength": 43,
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId",
+          "qrId",
+          "qrToken",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "ManagerRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "game": {
+            "$ref": "#/components/schemas/RunGame"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "description": "Ordenados por checkedInAt e userId.",
+            "items": {
+              "$ref": "#/components/schemas/RunParticipant"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "results",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "game",
+          "status",
+          "startedAt",
+          "endedAt",
+          "participants"
+        ],
+        "type": "object"
+      },
+      "MediaAsset": {
+        "additionalProperties": false,
+        "properties": {
+          "availableAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "contentType": {
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "retentionDueAt": {
+            "example": "2027-01-16T23:59:59Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending_upload",
+              "processing",
+              "available",
+              "failed",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "contentType",
+          "bytes",
+          "state",
+          "availableAt",
+          "retentionDueAt"
+        ],
+        "type": "object"
+      },
+      "Moderation": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "deny_points",
+              "delete_photo"
+            ],
+            "type": "string"
+          },
+          "moderationStatus": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "momentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "photoStatus": {
+            "enum": [
+              "available",
+              "deleted"
+            ],
+            "type": "string"
+          },
+          "pointsAwarded": {
+            "type": "integer"
+          },
+          "publicationStatus": {
+            "enum": [
+              "private",
+              "public"
+            ],
+            "type": "string"
+          },
+          "rewardStatus": {
+            "enum": [
+              "not_applicable",
+              "awarded",
+              "denied",
+              "reversed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "momentId",
+          "action",
+          "publicationStatus",
+          "moderationStatus",
+          "rewardStatus",
+          "photoStatus",
+          "pointsAwarded"
+        ],
+        "type": "object"
+      },
+      "ModerationActivitySummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ModerationMoment": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModerationActivitySummary"
+              }
+            ],
+            "nullable": true
+          },
+          "availableActions": {
+            "items": {
+              "enum": [
+                "deny_points",
+                "delete_photo"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "capturedAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "imageExpiresAt": {
+            "example": "2026-10-18T15:50:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "imageUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "moderationStatus": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "momentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participantName": {
+            "type": "string"
+          },
+          "photoStatus": {
+            "enum": [
+              "available",
+              "deleted"
+            ],
+            "type": "string"
+          },
+          "pointsAwarded": {
+            "type": "integer"
+          },
+          "publicationStatus": {
+            "enum": [
+              "private",
+              "public"
+            ],
+            "type": "string"
+          },
+          "rewardStatus": {
+            "enum": [
+              "not_applicable",
+              "awarded",
+              "denied",
+              "reversed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "momentId",
+          "imageUrl",
+          "imageExpiresAt",
+          "capturedAt",
+          "participantName",
+          "activity",
+          "pointsAwarded",
+          "publicationStatus",
+          "moderationStatus",
+          "rewardStatus",
+          "photoStatus",
+          "availableActions"
+        ],
+        "type": "object"
+      },
+      "ModerationPage": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ModerationMoment"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ModerationPagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "ModerationPagination": {
+        "additionalProperties": false,
+        "properties": {
+          "currentPage": {
+            "type": "string"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "limit": {
+            "enum": [
+              50
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currentPage",
+          "hasNextPage",
+          "limit"
+        ],
+        "type": "object"
+      },
+      "ModerationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "deny_points",
+              "delete_photo"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "Moment": {
+        "additionalProperties": false,
+        "properties": {
+          "authorName": {
+            "type": "string"
+          },
+          "capturedAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imageExpiresAt": {
+            "example": "2026-10-18T15:50:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "imageUrl": {
+            "description": "URL assinada de curta duração (até 5 minutos).",
+            "format": "uri",
+            "type": "string"
+          },
+          "likedByCurrentUser": {
+            "type": "boolean"
+          },
+          "likesCount": {
+            "type": "integer"
+          },
+          "moderationMessage": {
+            "description": "Mensagem derivada no servidor; nunca expõe motivo interno.",
+            "nullable": true,
+            "type": "string"
+          },
+          "moderationStatus": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "free",
+              "challenge"
+            ],
+            "type": "string"
+          },
+          "participationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "placeName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "pointsAwarded": {
+            "type": "integer"
+          },
+          "publicationStatus": {
+            "enum": [
+              "private",
+              "public"
+            ],
+            "type": "string"
+          },
+          "shareImageUrl": {
+            "description": "Aponta para a mesma versão sanitizada da imagem nesta iteração.",
+            "format": "uri",
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "description": "Aponta para a mesma versão sanitizada da imagem nesta iteração.",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "origin",
+          "participationId",
+          "imageUrl",
+          "thumbnailUrl",
+          "shareImageUrl",
+          "imageExpiresAt",
+          "placeName",
+          "authorName",
+          "capturedAt",
+          "publicationStatus",
+          "moderationStatus",
+          "pointsAwarded",
+          "likesCount",
+          "likedByCurrentUser"
+        ],
+        "type": "object"
+      },
+      "MomentPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Moment"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "Cursor opaco e assinado; ausente na última página.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "NamedGameReference": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "Notification": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "moment_moderation",
+              "points",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "readAt": {
+            "example": "2026-10-18T15:50:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "unread",
+              "read"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "state",
+          "title",
+          "body",
+          "sourceType",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "NotificationList": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          },
+          "unreadCount": {
+            "description": "Contagem agregada de notificações não lidas do ator",
+            "para o badge do app.": null,
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "unreadCount"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "announcementEnabled": {
+            "type": "boolean"
+          },
+          "momentModerationEnabled": {
+            "description": "Sempre true; não existe caminho de escrita para desabilitá-la.",
+            "type": "boolean"
+          },
+          "pointsEnabled": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "momentModerationEnabled",
+          "pointsEnabled",
+          "announcementEnabled",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "PaginatedAdminActivities": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdminActivity"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedAdminStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdminStaff"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedGames": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Game"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedGroupInvites": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GroupInvite"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedGroupMembers": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GroupMember"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedPublicActivities": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicActivity"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "PaginatedSpaces": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Space"
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "Pagination": {
+        "properties": {
+          "currentPage": {
+            "type": "string"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "limit": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currentPage",
+          "hasNextPage",
+          "limit"
+        ],
+        "type": "object"
+      },
+      "ParticipantRun": {
+        "additionalProperties": false,
+        "properties": {
+          "endedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "gameName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "points": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "type": "string"
+          },
+          "startedAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "results",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "gameName",
+          "startedAt",
+          "endedAt"
+        ],
+        "type": "object"
+      },
+      "ParticipantRunEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/ParticipantRun"
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "type": "object"
+      },
+      "Participation": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "$ref": "#/components/schemas/NamedGameReference"
+          },
+          "canShareMoment": {
+            "description": "Elegibilidade preservada para a Iteração 7; esta operação não cria Moment.",
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "description": "Scan não concede pontos.",
+            "enum": [
+              0
+            ],
+            "type": "integer"
+          },
+          "checkedInAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "newTotalPoints": {
+            "description": "Presente no scan/retry; omitido na leitura atual.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "place": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NamedGameReference"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "active",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "activity",
+          "place",
+          "checkedInAt",
+          "status",
+          "canShareMoment",
+          "checkInPoints"
+        ],
+        "type": "object"
+      },
+      "ParticipationEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "participation": {
+            "$ref": "#/components/schemas/Participation"
+          }
+        },
+        "required": [
+          "participation"
+        ],
+        "type": "object"
+      },
+      "PointEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "icon": {
+            "enum": [
+              "trophy",
+              "medal",
+              "game",
+              "points"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "example": "1º lugar em jogo",
+            "type": "string"
+          },
+          "points": {
+            "example": 50,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "points",
+          "icon",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "PointRules": {
+        "additionalProperties": false,
+        "properties": {
+          "first": {
+            "enum": [
+              50
+            ],
+            "type": "integer"
+          },
+          "participation": {
+            "enum": [
+              10
+            ],
+            "type": "integer"
+          },
+          "second": {
+            "enum": [
+              30
+            ],
+            "type": "integer"
+          },
+          "third": {
+            "enum": [
+              20
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first",
+          "second",
+          "third",
+          "participation"
+        ],
+        "type": "object"
+      },
+      "PublicActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "space": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "Instante UTC RFC 3339 com Z; offsets aceitos nas escritas administrativas preservam o instante.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "space",
+          "slug",
+          "name",
+          "description",
+          "kind",
+          "startsAt",
+          "endsAt",
+          "checkInPoints",
+          "momentPoints",
+          "cooldownSeconds",
+          "allowsMoment",
+          "state"
+        ],
+        "type": "object"
+      },
+      "PublicSpace": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ready"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "RunGame": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RunParticipant": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedInAt": {
+            "description": "UTC RFC 3339 com Z.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Nome de exibição; nenhum dado de contato é retornado.",
+            "type": "string"
+          },
+          "pointsAwarded": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "checkedInAt",
+          "result",
+          "pointsAwarded"
+        ],
+        "type": "object"
+      },
+      "RunResultRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "first",
+              "second",
+              "third",
+              "participation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "participantId",
+          "result"
+        ],
+        "type": "object"
+      },
+      "ScheduleItem": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Instante UTC RFC 3339 com Z.",
+            "example": "2026-10-18T16:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sector": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSpace"
+              }
+            ],
+            "nullable": true
+          },
+          "startsAt": {
+            "description": "Instante UTC RFC 3339 com Z.",
+            "example": "2026-10-18T15:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "description": "Prioridade: ended; live; upcoming quando 0 \u003c startsAt-generatedAt \u003c= 15 minutos; scheduled nos demais casos, inclusive pausa.",
+            "enum": [
+              "ended",
+              "live",
+              "upcoming",
+              "scheduled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "startsAt",
+          "endsAt",
+          "sector",
+          "state"
+        ],
+        "type": "object"
+      },
+      "ScheduleResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "generatedAt": {
+            "description": "Relógio do servidor em UTC RFC 3339 com Z.",
+            "example": "2026-10-18T14:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "generatedAt"
+        ],
+        "type": "object"
+      },
+      "Space": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "mapReference": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "mapReference"
+        ],
+        "type": "object"
+      },
+      "UpdateAdminActivityRequest": {
+        "additionalProperties": false,
+        "example": {
+          "status": "archived"
+        },
+        "minProperties": 1,
+        "properties": {
+          "allowsMoment": {
+            "type": "boolean"
+          },
+          "checkInPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cooldownSeconds": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "maxLength": 4000,
+            "nullable": true,
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "schedule",
+              "checkpoint",
+              "challenge",
+              "competitive",
+              "live"
+            ],
+            "type": "string"
+          },
+          "momentPoints": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "description": "Envie o instante em UTC/RFC 3339 Z; offsets válidos são normalizados para UTC.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "Única transição administrativa; start e pause não são aceitos aqui.",
+            "enum": [
+              "archived"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateAdminSpaceRequest": {
+        "additionalProperties": false,
+        "example": {
+          "mapReference": null,
+          "name": "Capela Central"
+        },
+        "minProperties": 1,
+        "properties": {
+          "mapReference": {
+            "maxLength": 1000,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 120,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateAdminUserRoleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "DEFAULT",
+              "EVENT_MANAGER"
+            ],
+            "example": "EVENT_MANAGER",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
+      "UpdateCurrentGroupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "groupId": {
+            "nullable": true,
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "groupId"
+        ],
+        "type": "object"
+      },
+      "UpdateCurrentProfileRequest": {
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "mobilePhone": {
+            "maxLength": 13,
+            "minLength": 11,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateNotificationPreferencesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "announcementEnabled": {
+            "type": "boolean"
+          },
+          "pointsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UploadIntent": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "description": "UTC RFC 3339 com Z; 10 minutos após a criação.",
+            "example": "2026-10-18T15:45:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers obrigatórios a assinar no PUT direto ao provedor.",
+            "type": "object"
+          },
+          "id": {
+            "description": "Identificador do media asset em pending_upload.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "PUT"
+            ],
+            "type": "string"
+          },
+          "uploadUrl": {
+            "description": "URL assinada de curta duração; nunca é persistida.",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "uploadUrl",
+          "method",
+          "headers",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "ValidateGameQRRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "qrToken": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "qrToken"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "csrfCookie": {
+        "in": "cookie",
+        "name": "csrf_token",
+        "type": "apiKey"
+      },
+      "identityCookie": {
+        "in": "cookie",
+        "name": "identity_token",
+        "type": "apiKey"
+      },
+      "refreshCookie": {
+        "in": "cookie",
+        "name": "refresh_token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Contrato canônico da V2; somente operações implementadas e testadas são publicadas.",
+    "title": "DNJ Game API V2",
+    "version": "2.7.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/activities": {
+      "get": {
+        "description": "Inclui schedule futuro em draft e Activities active, paused ou completed; exclui archived e drafts não-schedule. Ordenação fixa por startsAt NULLS LAST,name,id. Parâmetros não publicados são rejeitados.",
+        "operationId": "listPublicActivities",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "enum": [
+                "schedule",
+                "checkpoint",
+                "challenge",
+                "competitive",
+                "live"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID de um Space persistido.",
+            "in": "query",
+            "name": "spaceId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPublicActivities"
+                }
+              }
+            },
+            "description": "Página pública de Activities"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista Activities publicamente visíveis",
+        "tags": [
+          "Activities"
+        ]
+      }
+    },
+    "/activities/{activityId}": {
+      "get": {
+        "description": "Activity inexistente, arquivada ou invisível retorna o mesmo NOT_FOUND sem metadados administrativos.",
+        "operationId": "getPublicActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicActivity"
+                }
+              }
+            },
+            "description": "Activity pública"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Retorna uma Activity publicamente visível",
+        "tags": [
+          "Activities"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ]
+    },
+    "/activity-runs/current": {
+      "get": {
+        "description": "Sem runId escolhe deterministicamente a participação aberta mais recente. Com runId, inclusive terminal, só retorna a run se o usuário participa; ausência, UUID inválido, inexistente ou run alheia usa 204.",
+        "operationId": "getCurrentActivityRun",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "runId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantRunEnvelope"
+                }
+              }
+            },
+            "description": "Run do próprio participante"
+          },
+          "204": {
+            "description": "Nenhuma run relevante para este usuário"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna a run relevante do participante atual",
+        "tags": [
+          "Game participation"
+        ]
+      }
+    },
+    "/admin/activities": {
+      "get": {
+        "description": "Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.",
+        "operationId": "listAdminActivities",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminActivities"
+                }
+              }
+            },
+            "description": "Página de Activities"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista a configuração completa de Activities",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "post": {
+        "description": "status, eventId, papel, assignment e demais campos não publicados são rejeitados.",
+        "operationId": "createAdminActivity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminActivity"
+                }
+              }
+            },
+            "description": "Activity draft criada ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria uma Activity sempre em draft",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/activities/{activityId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ],
+      "patch": {
+        "description": "status aceita somente archived. active não pode ser arquivada sem pause; start e pause permanecem exclusivamente nas operações gerenciais.",
+        "operationId": "updateAdminActivity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminActivityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminActivity"
+                }
+              }
+            },
+            "description": "Activity atualizada",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Reconfigura uma Activity ou faz a transição validada para archived",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/activities/{activityId}/managers": {
+      "get": {
+        "operationId": "listAdminActivityManagers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminStaff"
+                }
+              }
+            },
+            "description": "Página determinística de gestores atribuídos"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista gestores atribuídos à Activity",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ]
+    },
+    "/admin/activities/{activityId}/managers/{userId}": {
+      "delete": {
+        "operationId": "removeAdminActivityManager",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Assignment removido",
+            "já ausente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Remove assignment de forma idempotente",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/UserID"
+        }
+      ],
+      "put": {
+        "description": "Usuário, onboarding, papel, Activity e assignment são validados exclusivamente no banco.",
+        "operationId": "assignAdminActivityManager",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminManagerAssignment"
+                }
+              }
+            },
+            "description": "Assignment criado",
+            "já existente ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Atribui gestor elegível de forma idempotente",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/groups/{groupId}/invites": {
+      "get": {
+        "operationId": "listGroupInvites",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGroupInvites"
+                }
+              }
+            },
+            "description": "Página de convites sem códigos"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista convites do grupo para administradores",
+        "tags": [
+          "Group invites"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GroupID"
+        }
+      ],
+      "post": {
+        "description": "O código aparece somente nesta resposta e nunca é persistido em claro.",
+        "operationId": "createGroupInvite",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupInviteWithCode"
+                }
+              }
+            },
+            "description": "Convite criado com código"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria convite de sete dias para administradores",
+        "tags": [
+          "Group invites"
+        ]
+      }
+    },
+    "/admin/groups/{groupId}/invites/{inviteId}": {
+      "delete": {
+        "operationId": "revokeGroupInvite",
+        "responses": {
+          "204": {
+            "description": "Convite revogado ou já revogado"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Revoga de forma idempotente um convite não consumido",
+        "tags": [
+          "Group invites"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GroupID"
+        },
+        {
+          "$ref": "#/components/parameters/InviteID"
+        }
+      ]
+    },
+    "/admin/groups/{groupId}/invites/{inviteId}/renew": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GroupID"
+        },
+        {
+          "$ref": "#/components/parameters/InviteID"
+        }
+      ],
+      "post": {
+        "operationId": "renewGroupInvite",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupInviteWithCode"
+                }
+              }
+            },
+            "description": "Novo convite e código"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Revoga o convite anterior e cria outro atomicamente",
+        "tags": [
+          "Group invites"
+        ]
+      }
+    },
+    "/admin/moments/moderation": {
+      "get": {
+        "description": "Exige ADMIN confirmado no banco; EVENT_MANAGER não recebe permissão global. queue é obrigatória e aceita somente general (Moments free públicos aprovados disponíveis) ou challenge (idem, de origem challenge). Ordena por capturedAt ASC, id ASC; 50 por página. Não expõe email, documento, telefone, grupo interno, chave de storage ou auditoria.",
+        "operationId": "listMomentModeration",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "queue",
+            "required": true,
+            "schema": {
+              "enum": [
+                "general",
+                "challenge"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModerationPage"
+                }
+              }
+            },
+            "description": "Página da fila de moderação"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista a fila de moderação corretiva de Moments",
+        "tags": [
+          "Moderation"
+        ]
+      }
+    },
+    "/admin/moments/{momentId}/moderation": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MomentID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Corpo estrito {action}, sem campo reason. Aceita somente deny_points (só válida quando houve premiação; reverte pontos atomicamente, torna o Moment privado e rejeitado, preserva a foto) ou delete_photo (torna o Moment privado e rejeitado, marca o asset removido logicamente, reverte pontos quando existirem, enfileira limpeza física assíncrona). deny_points sem premiação retorna 409. Decisão já aplicada com chave nova retorna o estado terminal seguro sem novo efeito; gera operation_audit mínimo sem imagem, URL assinada ou PII.",
+        "operationId": "moderateMoment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Moderation"
+                }
+              }
+            },
+            "description": "Estado resultante da moderação"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Aplica uma ação corretiva sobre um Moment",
+        "tags": [
+          "Moderation"
+        ]
+      }
+    },
+    "/admin/notifications": {
+      "post": {
+        "description": "Corpo estrito {title, body, targetUserIds opcional}. Única via de conteúdo livre desta iteração; sempre atribuída ao ator ADMIN autenticado, nunca a um usuário arbitrário. Exige ADMIN confirmado no banco; EVENT_MANAGER não recebe essa permissão. Sem targetUserIds, faz broadcast para todo usuário DEFAULT, existente, com onboarding completo e que não desabilitou announcementEnabled; com targetUserIds, restringe o broadcast a esse conjunto, ainda filtrado pelos mesmos critérios de elegibilidade e preferência. A resposta expõe somente a contagem agregada de destinatários — nunca a lista. Retry com a mesma Idempotency-Key replica o recipientCount original sem duplicar entrega.",
+        "operationId": "sendAdminNotification",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSendNotificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSendNotificationResponse"
+                }
+              }
+            },
+            "description": "Notificação(ões) enviada(s) ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Envia uma notificação administrativa de conteúdo livre",
+        "tags": [
+          "Notification administration"
+        ]
+      }
+    },
+    "/admin/spaces": {
+      "get": {
+        "description": "Exclusivo de ADMIN; ordenado por name,id e paginado em envelope.",
+        "operationId": "listAdminSpaces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSpaces"
+                }
+              }
+            },
+            "description": "Página de Spaces"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista Spaces para configuração administrativa",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "post": {
+        "description": "Retry da mesma intenção retorna o 201 e o corpo originais sem novo efeito ou audit.",
+        "operationId": "createAdminSpace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Space"
+                }
+              }
+            },
+            "description": "Space criado ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria um Space sem aceitar campos de escopo ou papel",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/spaces/{spaceId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SpaceID"
+        }
+      ],
+      "patch": {
+        "operationId": "updateAdminSpace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Space"
+                }
+              }
+            },
+            "description": "Space atualizado",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Altera estritamente slug, name ou mapReference",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/staff": {
+      "get": {
+        "operationId": "listAdminStaff",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "EVENT_MANAGER"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAdminStaff"
+                }
+              }
+            },
+            "description": "Página determinística de gestores"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista usuários com papel EVENT_MANAGER",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/admin/users/{userId}/role": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UserID"
+        }
+      ],
+      "patch": {
+        "description": "ADMIN nunca pode ser concedido ou removido; gestor com assignments ativos retorna MANAGER_HAS_ASSIGNMENTS.",
+        "operationId": "updateAdminUserRole",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserRole"
+                }
+              }
+            },
+            "description": "Papel resultante",
+            "no-op auditado ou resultado original do retry": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Alterna exclusivamente DEFAULT e EVENT_MANAGER",
+        "tags": [
+          "Installation administration"
+        ]
+      }
+    },
+    "/auth/google": {
+      "post": {
+        "description": "Valida assinatura, issuer, audience, expiração e email_verified. Uma conta nova permanece incompleta até receber CPF, telefone e grupo.",
+        "operationId": "authenticateWithGoogle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/IdentitySession"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Valida um ID token Google e inicia uma sessão",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutIdentitySession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CSRFHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            },
+            "description": "Sessão revogada",
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/SessionCookies"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "csrfCookie": [],
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Revoga a família da sessão atual e remove os cookies",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/onboarding": {
+      "patch": {
+        "operationId": "completeIdentityOnboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteOnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSessionResponse"
+                }
+              }
+            },
+            "description": "Perfil completo",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Completa CPF, telefone e grupo do perfil autenticado",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Requer os cookies refresh_token e csrf_token e o mesmo valor CSRF no header. Reuso de refresh token revoga toda a família.",
+        "operationId": "refreshIdentitySession",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CSRFHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/IdentitySession"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "csrfCookie": [],
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Rotaciona o refresh token e renova a sessão",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "getCurrentIdentitySession",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSessionResponse"
+                }
+              }
+            },
+            "description": "Sessão atual",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna o usuário e o estado atual do onboarding",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/game/overview": {
+      "get": {
+        "description": "Exige usuário DEFAULT existente e onboarding completo. Retorna até 30 pessoas, 10 grupos e os 50 lançamentos próprios mais recentes. Não expõe o reason interno do ledger.",
+        "operationId": "getGameOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameOverview"
+                }
+              }
+            },
+            "description": "Overview do usuário atual"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna rankings, extrato próprio e posição atual",
+        "tags": [
+          "Rankings"
+        ]
+      }
+    },
+    "/games": {
+      "get": {
+        "description": "Game é somente a projeção pública de Activity kind=competitive. Exclui draft, archived e Activities não visíveis; ordena por startsAt NULLS LAST, name, id e rejeita query desconhecida ou repetida.",
+        "operationId": "listGames",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGames"
+                }
+              }
+            },
+            "description": "Catálogo paginado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista Activities competitivas visíveis como jogos",
+        "tags": [
+          "Games"
+        ]
+      }
+    },
+    "/games/{gameId}": {
+      "get": {
+        "description": "Inexistente, invisível, draft ou archived retorna o mesmo 404 NOT_FOUND.",
+        "operationId": "getGame",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Game"
+                }
+              }
+            },
+            "description": "Jogo visível"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Retorna a projeção pública de um jogo",
+        "tags": [
+          "Games"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GameID"
+        }
+      ]
+    },
+    "/groups": {
+      "get": {
+        "operationId": "listGroups",
+        "parameters": [
+          {
+            "description": "Vazio lista todos; quando informado exige pelo menos 3 caracteres.",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GroupSummary"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Página de grupos; o corpo permanece um array para compatibilidade direta.",
+            "headers": {
+              "X-Has-Next-Page": {
+                "$ref": "#/components/headers/HasNextPage"
+              },
+              "X-Limit": {
+                "$ref": "#/components/headers/Limit"
+              },
+              "X-Page": {
+                "$ref": "#/components/headers/Page"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista ou pesquisa grupos em ordem determinística",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/groups/invites/consume": {
+      "post": {
+        "description": "Retry pelo mesmo consumidor é idempotente; todos os demais estados indisponíveis retornam o mesmo 404.",
+        "operationId": "consumeGroupInvite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeGroupInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentGroup"
+                }
+              }
+            },
+            "description": "Membership atualizada"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Consome uma vez um código de convite de alta entropia",
+        "tags": [
+          "Group invites"
+        ]
+      }
+    },
+    "/groups/me": {
+      "get": {
+        "operationId": "getCurrentGroup",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentGroup"
+                }
+              }
+            },
+            "description": "Grupo atual ou valores nulos"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna somente o grupo e a membership do solicitante",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/groups/me/members": {
+      "get": {
+        "operationId": "listCurrentGroupMembers",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGroupMembers"
+                }
+              }
+            },
+            "description": "Página de membros sem email",
+            "telefone ou documento": null
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista membros somente do grupo atual",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/healthcheck": {
+      "get": {
+        "operationId": "getHealthcheck",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthcheckResponse"
+                }
+              }
+            },
+            "description": "Processo ativo",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          }
+        },
+        "summary": "Confirma que o processo HTTP está ativo",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/manager/activities/{activityId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Possui o mesmo escopo de autorização, isolamento, atomicidade e idempotência da operação de início.",
+        "operationId": "pauseActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityState"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Pausa uma atividade ativa",
+        "tags": [
+          "Activity operations"
+        ]
+      }
+    },
+    "/manager/activities/{activityId}/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "ADMIN possui escopo global. EVENT_MANAGER só opera uma atividade com assignment persistido; atividade ausente ou fora do assignment usa o mesmo 404. Papel e assignment são sempre lidos do banco.",
+        "operationId": "startActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityState"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Inicia uma atividade em draft ou retoma uma atividade pausada",
+        "tags": [
+          "Activity operations"
+        ]
+      }
+    },
+    "/manager/game-overview": {
+      "get": {
+        "description": "ADMIN possui escopo global. EVENT_MANAGER vê somente Activities com assignment persistido. Papel e assignment são confirmados no banco.",
+        "operationId": "getManagerGameOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerGameOverview"
+                }
+              }
+            },
+            "description": "Dashboard compatível com o consumidor existente"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna catálogo gerenciável e no máximo uma run aberta",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs": {
+      "post": {
+        "description": "Corpo estrito {gameId}. Regras 50/30/20/10 são snapshot do servidor. Impede duas runs abertas na mesma Activity. Retry da mesma intenção devolve o resultado original e não duplica audit.",
+        "operationId": "createManagerRun",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManagerRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Run draft criada ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria uma run draft para uma Activity competitive gerenciável",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}": {
+      "get": {
+        "description": "Recurso inexistente e fora do assignment retornam o mesmo 404.",
+        "operationId": "getManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Run gerenciável sem dados de contato"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna estado e participantes da run no escopo atual",
+        "tags": [
+          "Game management"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        }
+      ]
+    },
+    "/manager/runs/{runId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; cancelled é terminal e endedAt vem do servidor.",
+        "operationId": "cancelManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cancela uma run aberta sem conceder pontos",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; estados incompatíveis retornam 409.",
+        "operationId": "pauseManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona active para paused",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/qr": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido.",
+        "operationId": "rotateManagerRunQR",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerQR"
+                }
+              }
+            },
+            "description": "Token novo ou token original reconstituído no retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria ou rotaciona o único QR ativo da run draft",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/results": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Corpo estrito com exatamente todos os participantes. first, second e third aceitam no máximo um usuário. Locks são ordenados; ledger, users.points, estado completed e audit formam uma única transação.",
+        "operationId": "finalizeManagerRunResults",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeManagerRunResultsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Valida resultados completos, premia atomicamente e conclui a run",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo; estados incompatíveis retornam 409.",
+        "operationId": "resumeManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona paused para active sem reescrever startedAt",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/manager/runs/{runId}/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RunID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. startedAt é definido pelo servidor uma única vez.",
+        "operationId": "startManagerRun",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Transiciona draft para active e fixa startedAt",
+        "tags": [
+          "Game management"
+        ]
+      }
+    },
+    "/media/upload-intents": {
+      "post": {
+        "description": "Corpo estrito {contentType, bytes, checksumSha256}. Aceita somente image/jpeg e image/png, até 10 MiB. checksumSha256 é SHA-256 em Base64 canônico. Gera uma staging key privada e aleatória sem PII; a intenção e a URL assinada expiram em 10 minutos. A URL assinada nunca é persistida; retry com a mesma Idempotency-Key reconstrói a mesma resposta a partir de metadados seguros e do instante original. Exige DEFAULT com onboarding completo; sem configuração de retenção válida retorna 503 sem afetar autenticação ou catálogo.",
+        "operationId": "createMediaUploadIntent",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadIntentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadIntent"
+                }
+              }
+            },
+            "description": "Intenção criada ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/DependencyUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria uma intenção de upload direto ao bucket privado",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/media/{mediaAssetId}/complete": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MediaAssetID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Valida ownership, estado e expiração; obtém metadados reais no provedor; baixa com limite estrito; valida magic bytes e configuração real da imagem (até 20 megapixels); decodifica e reencoda removendo EXIF/GPS; grava uma versão final privada e imutável distinta da staging key; só então marca o asset available e enfileira a remoção da staging key. Serializado por claim/lease durável que sobrevive a reinício do processo. Asset alheio ou inexistente retorna o mesmo 404.",
+        "operationId": "completeMediaUpload",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaAsset"
+                }
+              }
+            },
+            "description": "Asset confirmado ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/DependencyUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Confirma, sanitiza e publica o objeto enviado",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/moments": {
+      "get": {
+        "description": "scope é obrigatório e aceita somente feed, mine ou group; ausência ou repetição é inválida. cursor é opaco, assinado e sem PII; inválido retorna 400. feed e group exibem somente público, aprovado e com asset disponível de autores elegíveis; mine preserva todos os Moments próprios, inclusive privados ou rejeitados. group usa o grupo atual persistido do ator. Ordena por capturedAt DESC, id DESC; 20 por página.",
+        "operationId": "listMoments",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": true,
+            "schema": {
+              "enum": [
+                "feed",
+                "mine",
+                "group"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MomentPage"
+                }
+              }
+            },
+            "description": "Página de Moments no escopo solicitado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista Moments no escopo solicitado com paginação por cursor",
+        "tags": [
+          "Moments"
+        ]
+      },
+      "post": {
+        "description": "Corpo estrito {mediaAssetId, publishConsent, participationId opcional}. Sem participationId cria Moment free sem pontos; com participationId deriva origem challenge, exigindo Participation própria, elegível e dentro da janela operacional da Activity. Origem, pontos, ownership e timestamps são sempre derivados pelo servidor. publishConsent=true publica public e concede o snapshot de Activity.momentPoints quando challenge; publishConsent=false nunca concede pontos. Um asset e uma Participation não podem produzir mais de um Moment, mesmo sob concorrência.",
+        "operationId": "createMoment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMomentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Moment"
+                }
+              }
+            },
+            "description": "Moment criado ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Publica um Moment free ou challenge a partir de um asset disponível",
+        "tags": [
+          "Moments"
+        ]
+      }
+    },
+    "/moments/{momentId}/likes": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MomentID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Só é permitido em Moment público, aprovado e com asset disponível; inexistente ou invisível retorna o mesmo 404. Serializado por (momentId, userId); a mesma Idempotency-Key retorna exatamente o estado original. Não gera pontos nem auditoria.",
+        "operationId": "toggleMomentLike",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Like"
+                }
+              }
+            },
+            "description": "Estado do like após a alternância"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Alterna o like do ator atual em um Moment público e disponível",
+        "tags": [
+          "Moments"
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "description": "Ordena por createdAt DESC, id DESC; 10 por página (?page=N, 1-indexado). unreadCount é a contagem agregada de não lidas do ator, usada pelo badge do app. Nunca expõe notificação de outro usuário. Exige DEFAULT com onboarding completo.",
+        "operationId": "listNotifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            },
+            "description": "Página de notificações do ator"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista as notificações do ator atual com contagem de não lidas",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/preferences": {
+      "get": {
+        "description": "momentModerationEnabled é sempre true na resposta; não existe caminho de escrita para desabilitar notificações de moderação/segurança da própria conta. Um ator que nunca personalizou preferências recebe o padrão: todas habilitadas. Exige DEFAULT com onboarding completo.",
+        "operationId": "getNotificationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Preferências atuais do ator"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna as preferências de notificação do ator atual",
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "put": {
+        "description": "Corpo estrito {pointsEnabled opcional, announcementEnabled opcional}; qualquer outro campo, incluindo momentModerationEnabled, é rejeitado por decodificação estrita. Campos omitidos preservam o valor atual (ou o padrão, se ainda não existir preferência persistida). Exige DEFAULT com onboarding completo.",
+        "operationId": "updateNotificationPreferences",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Preferências atualizadas ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Atualiza as preferências de notificação do ator atual",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/{notificationId}/read": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/NotificationID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Não aceita corpo. Idempotente: reenviar a mesma chave, ou marcar uma notificação já lida, retorna o mesmo estado terminal — nunca reverte read para unread. Notificação alheia ou inexistente retorna o mesmo 404, sem permitir enumeração. Exige DEFAULT com onboarding completo.",
+        "operationId": "markNotificationRead",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
+              }
+            },
+            "description": "Notificação marcada como lida ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Marca uma notificação do ator atual como lida",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/participations/current": {
+      "get": {
+        "operationId": "getCurrentParticipation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Participação atual"
+          },
+          "204": {
+            "description": "Nenhuma participação aberta"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna a participação aberta do usuário atual",
+        "tags": [
+          "Game participation"
+        ]
+      }
+    },
+    "/qr/validate": {
+      "post": {
+        "description": "Aceita estritamente qrToken no corpo e Idempotency-Key no header. Não concede pontos nem cria audit privilegiado. QR inválido, revogado ou invisível retorna QR_UNAVAILABLE sem enumerar recurso; QR no instante exato de expiração retorna QR_EXPIRED.",
+        "operationId": "validateGameQR",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateGameQRRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Usuário já participava; intenção registrada"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationEnvelope"
+                }
+              }
+            },
+            "description": "Participação criada"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Valida QR e registra a entrada idempotente na run",
+        "tags": [
+          "Game participation"
+        ]
+      }
+    },
+    "/rankings": {
+      "get": {
+        "description": "Público. scope é obrigatório e aceita somente individual ou groups. Posição é ordinal; empates preservam a ordem determinística por pontos DESC, nome e id. Query desconhecida ou repetida é inválida.",
+        "operationId": "listRankings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": true,
+            "schema": {
+              "enum": [
+                "individual",
+                "groups"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/IndividualRankingPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GroupRankingPage"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Ranking persistido no escopo solicitado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista ranking individual ou de grupos",
+        "tags": [
+          "Rankings"
+        ]
+      }
+    },
+    "/readiness": {
+      "get": {
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Dependências prontas",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/DependencyUnavailable"
+          }
+        },
+        "summary": "Confirma que a API e o banco estão prontos",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/schedule": {
+      "get": {
+        "description": "Considera somente Activities schedule não arquivadas com janela válida. Sem view retorna no máximo 100 itens em ordem startsAt,name,id. view=home retorna todas as simultaneamente live e depois até três próximas. O instante generatedAt é capturado uma vez por request e serializado em UTC.",
+        "operationId": "getSchedule",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "home"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Slug persistido do Space; sector é apenas o nome compatível do DTO.",
+            "in": "query",
+            "name": "sector",
+            "required": false,
+            "schema": {
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            },
+            "description": "Agenda pública"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista a agenda pública com estado temporal derivado no servidor",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/spaces": {
+      "get": {
+        "description": "Retorna o array consumido pelo mapa do frontend, em ordem name,id. A paginação fica nos headers para preservar compatibilidade direta.",
+        "operationId": "listSpaces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Space"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Página de espaços; o corpo permanece um array.",
+            "headers": {
+              "X-Has-Next-Page": {
+                "$ref": "#/components/headers/HasNextPage"
+              },
+              "X-Limit": {
+                "$ref": "#/components/headers/Limit"
+              },
+              "X-Page": {
+                "$ref": "#/components/headers/Page"
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "summary": "Lista os locais físicos da instalação única do DNJ",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "getCurrentProfile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentProfile"
+                }
+              }
+            },
+            "description": "Perfil atual"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Retorna o perfil autenticado sem CPF integral ou hashes",
+        "tags": [
+          "Profile"
+        ]
+      },
+      "patch": {
+        "description": "Email, CPF, identidade, papel, pontos e grupo são somente leitura nesta operação.",
+        "operationId": "updateCurrentProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrentProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentProfile"
+                }
+              }
+            },
+            "description": "Perfil atualizado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Edita somente nome e telefone móvel do perfil atual",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/users/me/favorites": {
+      "get": {
+        "description": "Usuário e onboarding são revalidados no banco em cada request; a ordenação é startsAt NULLS LAST,name,id.",
+        "operationId": "listCurrentUserFavorites",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPublicActivities"
+                }
+              }
+            },
+            "description": "Página de Activities favoritas visíveis"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Lista somente favoritos que continuam publicamente visíveis",
+        "tags": [
+          "Favorites"
+        ]
+      }
+    },
+    "/users/me/favorites/{activityId}": {
+      "delete": {
+        "description": "Retorna 204 para favorito existente, ausente e Activity UUID inexistente; não consulta a visibilidade da Activity.",
+        "operationId": "deleteCurrentUserFavorite",
+        "responses": {
+          "204": {
+            "description": "Favorito removido",
+            "já ausente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Remove um favorito de forma idempotente e sem enumerar Activity",
+        "tags": [
+          "Favorites"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "put": {
+        "description": "Não cria duplicata nem operation_audit. Retry da mesma chave e intenção retorna o 204 original mesmo após mudança posterior da Activity; reutilização cruzada retorna IDEMPOTENCY_KEY_REUSED.",
+        "operationId": "putCurrentUserFavorite",
+        "responses": {
+          "204": {
+            "description": "Favorito criado",
+            "já existente ou retry concluído": null
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Favorita idempotentemente uma Activity publicamente visível",
+        "tags": [
+          "Favorites"
+        ]
+      }
+    },
+    "/users/me/group": {
+      "patch": {
+        "operationId": "updateCurrentUserGroup",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdateCurrentGroup"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentProfile"
+                }
+              }
+            },
+            "description": "Perfil com grupo atualizado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Entra, troca ou sai do grupo atual",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "post": {
+        "deprecated": true,
+        "operationId": "updateCurrentUserGroupCompatibility",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdateCurrentGroup"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentProfile"
+                }
+              }
+            },
+            "description": "Perfil com grupo atualizado"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Alias temporário compatível com o frontend atual",
+        "tags": [
+          "Groups"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Desenvolvimento local",
+      "url": "http://localhost:8081/v2"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Operations"
+    },
+    {
+      "name": "Identity"
+    },
+    {
+      "name": "Profile"
+    },
+    {
+      "name": "Groups"
+    },
+    {
+      "name": "Group invites"
+    },
+    {
+      "name": "Spaces"
+    },
+    {
+      "name": "Schedule"
+    },
+    {
+      "name": "Activities"
+    },
+    {
+      "name": "Favorites"
+    },
+    {
+      "name": "Activity operations"
+    },
+    {
+      "name": "Games"
+    },
+    {
+      "name": "Rankings"
+    },
+    {
+      "name": "Game participation"
+    },
+    {
+      "name": "Game management"
+    },
+    {
+      "name": "Installation administration"
+    },
+    {
+      "name": "Media"
+    },
+    {
+      "name": "Moments"
+    },
+    {
+      "name": "Moderation"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "Notification administration"
+    }
+  ]
+}

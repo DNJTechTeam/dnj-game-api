@@ -5,3 +5,14 @@ __debug_bin*
 # Test coverage outputs
 coverage.out
 coverage.html
+coverage.gate.out
+coverage.maintained.out
+
+# Local build artifacts left in the repo root by `go build ./...` (it writes
+# one binary per cmd/* main package to cwd unless -o is given)
+/loadtest
+/handoff-check
+/openapi-check
+/migrate
+/media-worker
+/api

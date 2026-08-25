@@ -8,6 +8,11 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
+  github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: admin_operation_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/app/interfaces:
     config:
       all: true
@@ -23,6 +28,49 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: user_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: space_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: activity_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: favorite_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: game_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: media_domain_mocks.go
+      structname: 'MockMedia{{.InterfaceName}}'
+  github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: moment_domain_mocks.go
+      structname: 'MockMoment{{.InterfaceName}}'
+  github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: notification_domain_mocks.go
+      structname: 'MockNotification{{.InterfaceName}}'
+  github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: operation_audit_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces:
     config:
       all: true
@@ -33,6 +81,26 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: group_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: group_membership_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: group_invite_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: identity_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: refresh_session_domain_mocks.go
   github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces:
     config:
       all: true

@@ -1,112 +1,140 @@
-# Authentication & Tokens
+# Authentication & tokens
 
-DNJ Game API uses a single, deliberately minimal token: an **identity JWT**.
-It proves *who* the user is and carries no tenant, roles or scopes. A richer
-authorization model is meant to be layered on top later.
+The V2 identity contract lives under `/v2/auth`. V1 passwordless email routes
+remain available while their consumers migrate; the new flow does not change
+the frontend repository.
 
-Authentication is **passwordless**. A `User` is only created the first time a
-subscriber confirms the 6-digit verification code sent by email — there is no
-register/login/forgot-password flow.
+## Google login and account linking
 
-## Passwordless onboarding flow
+`POST /v2/auth/google` receives `{ "idToken": "..." }`. The backend uses the
+official Google verifier and accepts the token only when all of these checks
+pass: signed Google certificate, `iss` in the Google allowlist, `aud` equal to
+`GOOGLE_CLIENT_ID`, valid expiration, non-empty subject and email, and
+`email_verified=true`. Tests replace the verifier and never call Google.
 
-1. The external event-subscription platform calls `POST /subscriptions/webhook`
-   (protected by a shared secret, see below). The raw payload is stored and
-   translated into one `subscription_webhook_verification_codes` row per
-   participant — with a fresh 6-digit `verification_code` — keyed by
-   `document` (CPF; `user_id` stays `null` at this point). Some participants
-   arrive with no email at all: when an order has several participants
-   sharing the buyer's email, only the buyer's row keeps it — companions are
-   stored with `email` empty (see `OrderPayloadTranslator`).
-2. The subscriber calls `POST /auth/onboarding` with **`document` required,
-   `email` optional**. The record is looked up by `document`:
-   - **Not found**: `400`, generic lookup-failed error (same shape as
-     before — doesn't reveal whether the document truly doesn't exist).
-   - **Found, already has an email on file**: the verification code is
-     emailed to that address (ignoring any `email` sent in the request —
-     the stored email always wins once set), and the response is `200`:
-     `{"status": "CODE_SENT", "email": "c***a@hotmail.com"}` (obfuscated:
-     first + last character of the local-part, full domain).
-   - **Found, no email on file, request has no `email` either**: nothing is
-     sent; response is `200 {"status": "EMAIL_REQUIRED"}`. The client is
-     expected to collect the email from the user and call this same
-     endpoint again with `document` + `email` filled in.
-   - **Found, no email on file, request provides one**: the record is
-     backfilled with that email (after a basic format check via
-     `net/mail.ParseAddress`), the code is sent to it, and the response is
-     `200 {"status": "CODE_SENT", "email": "<obfuscated>"}` — same as the
-     "already has an email" case from then on.
-3. The subscriber calls `POST /auth/verification-code` with `email` + the
-   code (the same email that just received it — either the one that was
-   already on file, or the one just backfilled in step 2). On the first
-   successful match, a `User` is created (role `DEFAULT`) and linked back to
-   the verification-code row; on subsequent calls the same `User` is reused
-   (idempotent). The response includes the `identityToken`.
+Linking follows these rules, in order:
 
-## The identity token
+1. `(provider=google, subject)` already linked: the token email must still equal
+   both the stored identity email and user email; any difference returns `409`.
+2. New subject with an existing email: link only to that exact, previously
+   verified email account. Existing V1 accounts reached this state through the
+   email verification-code flow.
+3. New subject and email: create a `DEFAULT` user with incomplete onboarding.
+4. Database uniqueness on `(provider, subject)`, user email and CPF hash closes
+   concurrent linking races; a conflict never silently changes ownership.
 
-- **Type**: `auth.IdentityClaims` (`internal/infrastructure/api/auth/jwt_claims.go`).
-- **Algorithm**: HS256, signed with `JWT_IDENTITY_SECRET`.
-- **Lifetime**: 24 hours.
-- **Claims**: `sub` — the user id. Nothing else — see "Adding authorization
-  later" below.
+## Session lifecycle
 
-Issued by `JwtService.GenerateIdentityToken` (`internal/app/services/jwt_service.go`)
-when a verification code is confirmed.
+- Access token: HS256 JWT, issuer `dnj-game-api`, audience `dnj-v2`, lifetime
+  15 minutes, returned in the response and in `identity_token`.
+- Refresh token: opaque random value, lifetime 30 days, sent only as
+  `refresh_token`; the database stores SHA-256 of the value, never the token.
+- Refresh rotation: every successful `POST /v2/auth/refresh` creates a new token
+  and revokes the previous row while preserving the family id.
+- Reuse detection: using a revoked token revokes the whole family and returns
+  `401 REFRESH_TOKEN_REUSE`.
+- Logout: `POST /v2/auth/logout` revokes the current family and expires all
+  identity cookies. It is idempotent when the refresh token is absent/unknown.
 
-## Header *and* cookie
+`GET /v2/auth/session` accepts `Authorization: Bearer <JWT>` first and falls
+back to `identity_token`. Validation requires HS256, issuer, audience and
+expiration. It returns the current user and `onboardingRequired`.
 
-`AuthenticationMiddleware` (`internal/infrastructure/api/middlewares/auth_middlewares.go`)
-accepts the token from either transport:
+## Cookies and CSRF
 
-1. The `Authorization` request header.
-2. Failing that, the `identity_token` cookie.
+| Cookie | HttpOnly | Path | Lifetime |
+|---|---:|---|---:|
+| `identity_token` | yes | `/` | 15 minutes |
+| `refresh_token` | yes | `/v2/auth` | 30 days |
+| `csrf_token` | no | `/v2/auth` | 30 days |
 
-`AuthHandler.VerifyCode` calls `apiHelpers.SetIdentityToken`, which sets
-`identity_token` as an `HttpOnly` cookie. The exact same token value is also
-returned in the response body for clients that prefer the header (mobile
-apps, server-to-server).
+On localhost cookies are `SameSite=Lax` without `Secure`. Published
+environments force `Secure` and `SameSite=None`; `COOKIE_DOMAIN` is optional.
+Refresh and logout use double-submit CSRF: the client reads `csrf_token` and
+sends the exact value as `X-CSRF-Token`. CORS must allow credentials and the
+specific origins in `CORS_ALLOWED_ORIGINS`.
 
-### Cookie attributes (`internal/infrastructure/api/cookies.go`)
+## Incomplete profile and onboarding
 
-| Attribute | localhost | deployed environments |
-|-----------|-----------|-----------------------|
-| `HttpOnly` | true | true |
-| `Secure` | false | true |
-| `SameSite` | `Lax` | `None` (cross-origin SPA + API) |
-| `Domain` | `COOKIE_DOMAIN` if set, else host-only |
-| `Path` | `/` | `/` |
+A Google account is incomplete until CPF, mobile phone and group are present.
+`PATCH /v2/auth/onboarding` validates CPF digits/checksum, mobile format and an
+existing group. The CPF is stored as HMAC-SHA256 using
+`DOCUMENT_HMAC_SECRET`, plus only its last four digits for masking. V2 never
+returns the full CPF. Duplicate CPF ownership returns
+`409 DOCUMENT_ALREADY_LINKED`.
 
-`SameSite=None` requires `Secure=true`, which is why deployed environments force
-both. CORS must allow credentials and the exact frontend origin
-(`CORS_ALLOWED_ORIGINS`).
+Legacy users are preserved. The expand migration adds nullable secure fields;
+no plaintext CPF is removed during this compatibility phase. Those users can
+complete the V2 onboarding to populate the hash. Dropping the legacy
+`users.document` column is the contract migration enabler after all V1
+consumers migrate.
 
-## What the middleware enforces
+## V2 operations and examples
 
-For a route wrapped with `authProtected()` / `AuthenticationMiddleware()`:
+```http
+POST /v2/auth/google
+Content-Type: application/json
 
-1. A token is present and valid (signature + not expired).
+{"idToken":"<google-id-token>"}
+```
 
-On success the user id (a string) is placed in the request context under
-`common.UserIDContextKey`. Services read it with
-`common.ExtractUserIdFromContext(ctx)`.
+```json
+{
+  "accessToken": "<15-minute-jwt>",
+  "tokenType": "Bearer",
+  "expiresIn": 900,
+  "csrfToken": "<same-value-as-csrf-cookie>",
+  "onboardingRequired": true,
+  "user": {
+    "id": "42",
+    "email": "ana@example.com",
+    "name": "Ana",
+    "mobilePhone": "",
+    "documentMasked": "",
+    "role": "DEFAULT",
+    "group": null,
+    "onboardingComplete": false
+  }
+}
+```
 
-## Routes (`internal/presentation/api/routers/`)
+```http
+POST /v2/auth/refresh
+Cookie: refresh_token=<opaque>; csrf_token=<csrf>
+X-CSRF-Token: <csrf>
+```
 
-| Method & path | Auth | Purpose |
-|---------------|------|---------|
-| `POST /subscriptions/webhook` | `X-Webhook-Secret` header (`SUBSCRIPTION_WEBHOOK_SECRET`) | Ingest a subscription webhook, upsert a pending verification code |
-| `POST /auth/onboarding` | public | Confirm document (+ email if not on file yet), (re)send the verification code |
-| `POST /auth/verification-code` | public | Confirm the code, create/reuse the user, issue the identity token |
-| `GET /groups` | token | Search groups by name (`?search=`, min 3 chars) |
-| `POST /users/{id}/update-group` | token | Link a user to an existing or newly-created group |
+```http
+PATCH /v2/auth/onboarding
+Authorization: Bearer <access-token>
+Content-Type: application/json
 
-## Adding authorization later
+{"document":"52998224725","mobilePhone":"5541999990000","groupId":"12"}
+```
 
-The natural extension point is `Router.authProtected()` in
-`internal/presentation/api/routers/router.go` — add role/scope middleware to
-that chain (`User.Role` already exists: `ADMIN`, `EVENT_MANAGER`, `DEFAULT`),
-and enrich `IdentityClaims` (or introduce a second token type) as needed. As
-of this version, `POST /users/{id}/update-group` is reachable by any
-authenticated user — gating it to `ADMIN`/`EVENT_MANAGER` is a known
-follow-up once that middleware exists.
+The frontend integration enabler is intentionally explicit: configure the
+Google client with the same client id, send its ID token to `/v2/auth/google`,
+include credentials on cookie requests, persist the returned CSRF value only
+in memory, and route `onboardingRequired=true` to the completion screen. No
+frontend contract is considered delivered until that consumer work is done.
+
+## Maintenance
+
+- Rotate `JWT_IDENTITY_SECRET` and `DOCUMENT_HMAC_SECRET` through the runtime
+  secret store; changing either invalidates existing access tokens or CPF
+  equality respectively, so rotation needs a planned dual-key migration.
+- Keep `GOOGLE_CLIENT_ID` equal to the deployed frontend client audience.
+- Investigate `REFRESH_TOKEN_REUSE` as a security event; never log tokens, ID
+  tokens, CPF, cookie values or raw Google claims.
+- Keep every published status synchronized between
+  `docs/openapi/dnj-v2.openapi.yaml`, its operation manifest and automated tests.
+- Profile, current-group, membership and invite authorization are documented in
+  `docs/profile-and-groups.md`. The frontend integration remains an explicit
+  final-stage enabler; this backend iteration does not alter the frontend.
+
+## Preserved V1 passwordless flow
+
+The existing `/v1/auth/onboarding` and `/v1/auth/verification-code` routes
+continue to use subscription verification codes and issue the same short-lived
+identity JWT. They remain compatibility endpoints and are not part of the V2
+OpenAPI contract.
