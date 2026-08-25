@@ -1,5 +1,5 @@
 {
-  "version": "2.7.0",
+  "version": "2.9.0",
   "generatedFrom": "docs/openapi/dnj-v2.openapi.yaml",
   "operationsManifest": "docs/openapi/dnj-v2.operations.yaml",
   "canonicalDoc": "docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md",
@@ -22,6 +22,20 @@
       "blockers": [],
       "acceptanceTest": "Login com conta Google nova cria sessão e retorna onboardingComplete=false quando CPF/telefone/grupo faltam; conta existente completa retorna sessão direta.",
       "evidence": "internal/app/services/identity_service_test.go, internal/app/services/iteration5_http_integration_test.go"
+    },
+    {
+      "id": "auth-email-signup",
+      "screen": "Tela de cadastro/login por email",
+      "scope": "frontend",
+      "iteration": 11,
+      "priority": "P0",
+      "state": "ready",
+      "dependencies": [],
+      "endpoints": ["signupWithEmail", "verifyEmailSignup"],
+      "owner": "frontend",
+      "blockers": [],
+      "acceptanceTest": "POST /auth/signup sempre responde CODE_SENT (mesmo email já cadastrado); reenvio antes do cooldown responde 429; POST /auth/signup/verify com código correto retorna a mesma sessão do login Google (accessToken, refreshToken, csrfToken, cookies), criando conta DEFAULT incompleta no primeiro uso ou vinculando a uma conta existente pelo email; código errado, expirado ou de email desconhecido retorna 401 sem consumir o código em caso de erro de digitação.",
+      "evidence": "internal/app/services/email_signup_service_test.go, internal/presentation/api/handlers/identity_handler_test.go"
     },
     {
       "id": "auth-session-bootstrap",
