@@ -281,12 +281,18 @@ func (r *MomentRepository) AwardMoment(
 	if err := r.getDB(ctx).Model(&models.User{}).Where("id=?", userID).Update("points", gorm.Expr("points + ?", points)).Error; err != nil {
 		return handleRepositoryError(err)
 	}
-	return handleRepositoryError(
-		r.getDB(ctx).
-			Model(&models.Moment{}).
-			Where("id=?", momentID).
-			Updates(map[string]any{"reward_status": string(momentEntities.RewardAwarded), "points_awarded": points, "updated_at": now}).
-			Error,
+	if err := r.getDB(ctx).
+		Model(&models.Moment{}).
+		Where("id=?", momentID).
+		Updates(map[string]any{"reward_status": string(momentEntities.RewardAwarded), "points_awarded": points, "updated_at": now}).
+		Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	return writeDerivedNotification(
+		r.getDB(ctx), userID, "points",
+		"Pontos concedidos",
+		"Você recebeu pontos por uma foto publicada.",
+		"moment", momentID, now,
 	)
 }
 
@@ -326,6 +332,14 @@ func (r *MomentRepository) ReverseMomentAward(
 	}
 	if err := r.getDB(ctx).Model(&models.Moment{}).Where("id=?", momentID).Updates(map[string]any{"reward_status": string(momentEntities.RewardReversed), "updated_at": now}).Error; err != nil {
 		return false, handleRepositoryError(err)
+	}
+	if err := writeDerivedNotification(
+		r.getDB(ctx), userID, "points",
+		"Pontos revertidos",
+		"Uma pontuação da sua foto foi revertida por moderação.",
+		"moment", momentID, now,
+	); err != nil {
+		return false, err
 	}
 	return true, nil
 }
@@ -393,6 +407,16 @@ func (r *MomentRepository) ApplyModeration(
 		row.UpdatedAt = now
 		if err := r.getDB(ctx).Save(&row).Error; err != nil {
 			return nil, nil, false, handleRepositoryError(err)
+		}
+		body := "Sua foto não atendeu às regras de publicação."
+		if action == "delete_photo" {
+			body = "Sua foto foi removida da galeria."
+		}
+		if err := writeDerivedNotification(
+			r.getDB(ctx), row.UserID, "moment_moderation",
+			"Sua foto foi moderada", body, "moment", row.ID, now,
+		); err != nil {
+			return nil, nil, false, err
 		}
 		changed = true
 	}

@@ -358,6 +358,10 @@ func TestIteration6_FinalizeResultsAwardsExactlyOnceAndRollsBackInvalidSets(t *t
 	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).Where("action = ?", "manager.activity-run.results.finalize").Count(&audits).Error)
 	assert.Equal(t, int64(2), entries)
 	assert.Equal(t, int64(1), audits)
+	var awardNotifications int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
+		Where("user_id = ? AND category = ?", firstUser.ID, "points").Count(&awardNotifications).Error)
+	assert.Equal(t, int64(1), awardNotifications)
 	mismatches, mismatchErr := TestSuite.GameRepository.ListPointBalanceMismatches(TestSuite.Ctx)
 	require.NoError(t, mismatchErr)
 	assert.Empty(t, mismatches)

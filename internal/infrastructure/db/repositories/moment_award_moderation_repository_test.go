@@ -74,6 +74,8 @@ func seedChallengeMoment(
 // the moment's reward_status is already "reversed").
 func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T) {
 	ctx := context.Background()
+	TestSuite.TruncateTable(t, &models.Notification{})
+	TestSuite.TruncateTable(t, &models.NotificationPreference{})
 	TestSuite.TruncateTable(t, &models.MomentModerationDecision{})
 	TestSuite.TruncateTable(t, &models.MomentLike{})
 	TestSuite.TruncateTable(t, &models.Moment{})
@@ -106,6 +108,12 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	assert.Equal(t, momentEntities.RewardAwarded, afterAward.RewardStatus)
 	assert.Equal(t, 30, afterAward.PointsAwarded)
 
+	var awardNotification models.Notification
+	require.NoError(t, TestSuite.DbConn.
+		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "points", moment.ID).
+		Take(&awardNotification).Error)
+	assert.Equal(t, "unread", awardNotification.State)
+
 	err = momentRepo.AwardMoment(ctx, moment.ID, owner.ID, activityID, 30, now)
 	assert.ErrorIs(t, err, appErrors.ErrConflict)
 
@@ -120,6 +128,11 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	userAfterReverse, err := TestSuite.UserRepository.FindByID(ctx, owner.ID)
 	require.NoError(t, err)
 	assert.Equal(t, userBeforeReverse.Points-30, userAfterReverse.Points)
+
+	var reversalNotification models.Notification
+	require.NoError(t, TestSuite.DbConn.
+		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "points", moment.ID).
+		Order("created_at DESC").Take(&reversalNotification).Error)
 
 	// Reversing an already-reversed award is a safe, durable no-op — not a double-decrement.
 	reversedAgain, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, now)
@@ -140,6 +153,12 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	assert.Equal(t, momentEntities.PublicationPrivate, denied.PublicationStatus)
 	assert.Equal(t, momentEntities.ModerationRejected, denied.ModerationStatus)
 	assert.Equal(t, mediaEntities.AssetAvailable, deniedAsset.State)
+
+	var moderationNotification models.Notification
+	require.NoError(t, TestSuite.DbConn.
+		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "moment_moderation", moderationMoment.ID).
+		Take(&moderationNotification).Error)
+	assert.Equal(t, "unread", moderationNotification.State)
 
 	// deny_points on a moment with no award in effect is a conflict.
 	_, _, _, err = momentRepo.ApplyModeration(ctx, zeroMoment.ID, "deny_points", 0, uuid.NewString(), now)
@@ -182,4 +201,53 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	})
 	require.NoError(t, err)
 	assert.False(t, createdAgain)
+}
+
+// TestNotifications_PointsNotificationRespectsPreferenceOptOut confirms a user who
+// disabled the "points" category never receives an AwardMoment-derived notification,
+// while moment_moderation (which cannot be disabled) still reaches the same account.
+func TestNotifications_PointsNotificationRespectsPreferenceOptOut(t *testing.T) {
+	ctx := context.Background()
+	TestSuite.TruncateTable(t, &models.Notification{})
+	TestSuite.TruncateTable(t, &models.NotificationPreference{})
+	TestSuite.TruncateTable(t, &models.MomentModerationDecision{})
+	TestSuite.TruncateTable(t, &models.MomentLike{})
+	TestSuite.TruncateTable(t, &models.Moment{})
+	TestSuite.TruncateTable(t, &models.MediaAsset{})
+	TestSuite.TruncateTable(t, &models.Participation{})
+	TestSuite.TruncateTable(t, &models.ActivityRunQRCode{})
+	TestSuite.TruncateTable(t, &models.ActivityRun{})
+	TestSuite.TruncateTable(t, &models.Activity{})
+	TestSuite.TruncateTable(t, &models.User{})
+
+	mediaRepo := &MediaRepository{BaseRepository: NewBaseRepository[models.MediaAsset](TestSuite.DbConn)}
+	momentRepo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](TestSuite.DbConn)}
+	owner := seedUser(t, ctx, "moment-award-optout@example.com")
+	now := time.Now().UTC()
+	require.NoError(t, TestSuite.DbConn.Create(&models.NotificationPreference{
+		UserID: owner.ID, PointsEnabled: false, AnnouncementEnabled: true, UpdatedAt: now,
+	}).Error)
+
+	activityID, participationID := seedChallengeParticipationRepo(t, ctx, owner.ID, 25)
+	moment := seedChallengeMoment(t, ctx, mediaRepo, momentRepo, owner.ID, activityID, participationID, "public")
+	require.NoError(t, momentRepo.AwardMoment(ctx, moment.ID, owner.ID, activityID, 25, now))
+
+	var pointsCount int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
+		Where("user_id = ? AND category = ?", owner.ID, "points").Count(&pointsCount).Error)
+	assert.Zero(t, pointsCount)
+
+	_, _, changed, err := momentRepo.ApplyModeration(ctx, moment.ID, "deny_points", 0, uuid.NewString(), now)
+	require.NoError(t, err)
+	assert.True(t, changed)
+
+	var moderationCount int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
+		Where("user_id = ? AND category = ?", owner.ID, "moment_moderation").Count(&moderationCount).Error)
+	assert.Equal(t, int64(1), moderationCount)
+
+	var reversalCount int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
+		Where("user_id = ? AND category = ?", owner.ID, "points").Count(&reversalCount).Error)
+	assert.Zero(t, reversalCount)
 }

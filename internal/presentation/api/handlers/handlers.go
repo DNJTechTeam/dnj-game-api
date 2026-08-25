@@ -19,4 +19,5 @@ type Handlers struct {
 	GameHandler                *GameHandler
 	MediaHandler               *MediaHandler
 	MomentHandler              *MomentHandler
+	NotificationHandler        *NotificationHandler
 }
