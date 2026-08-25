@@ -66,6 +66,7 @@ type PointEntry struct {
 	ActivityID      *string   `gorm:"type:uuid;index;default:null"`
 	ActivityRunID   *string   `gorm:"type:uuid;index;default:null"`
 	ParticipationID *string   `gorm:"type:uuid;index;default:null"`
+	MomentID        *string   `gorm:"type:uuid;index;default:null"`
 	Origin          string    `gorm:"not null"`
 	Reason          string    `gorm:"not null"`
 	Delta           int       `gorm:"not null"`

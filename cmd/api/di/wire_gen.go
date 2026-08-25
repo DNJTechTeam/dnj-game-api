@@ -11,6 +11,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db/repositories"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/services"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/storage"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 )
@@ -20,8 +21,10 @@ import (
 func InitializeServer() *api.API {
 	engine := api2.ProvideEngine()
 	gormDB := db.ProvideDB()
+	interfacesStorage := storage.ProvideMediaStorage()
 	healthcheckHandler := &handlers.HealthcheckHandler{
-		DB: gormDB,
+		DB:           gormDB,
+		MediaStorage: interfacesStorage,
 	}
 	transactionManagerInterface := db.ProvideTransactionManager(gormDB)
 	baseService := services.ProvideBaseService(transactionManagerInterface)
@@ -98,6 +101,16 @@ func InitializeServer() *api.API {
 	gameHandler := &handlers.GameHandler{
 		GameService: gameServiceInterface,
 	}
+	repository := repositories.ProvideMediaRepository(gormDB)
+	mediaServiceInterface := services.ProvideMediaService(baseService, repository, interfacesStorage, userRepositoryInterface)
+	mediaHandler := &handlers.MediaHandler{
+		MediaService: mediaServiceInterface,
+	}
+	interfacesRepository := repositories.ProvideMomentRepository(gormDB)
+	momentServiceInterface := services.ProvideMomentService(baseService, interfacesRepository, repository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface)
+	momentHandler := &handlers.MomentHandler{
+		MomentService: momentServiceInterface,
+	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
 		AuthHandler:                authHandler,
@@ -113,6 +126,8 @@ func InitializeServer() *api.API {
 		ContentHandler:             contentHandler,
 		FavoriteHandler:            favoriteHandler,
 		GameHandler:                gameHandler,
+		MediaHandler:               mediaHandler,
+		MomentHandler:              momentHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

@@ -48,6 +48,18 @@ packages:
       all: true
       dir: './internal/mocks'
       filename: game_domain_mocks.go
+  github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: media_domain_mocks.go
+      structname: 'MockMedia{{.InterfaceName}}'
+  github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces:
+    config:
+      all: true
+      dir: './internal/mocks'
+      filename: moment_domain_mocks.go
+      structname: 'MockMoment{{.InterfaceName}}'
   github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces:
     config:
       all: true

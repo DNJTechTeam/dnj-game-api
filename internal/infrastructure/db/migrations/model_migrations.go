@@ -927,4 +927,164 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "expand_media_moments_v2",
+		Description: "Create private media lifecycle, Moments, durable idempotency, processing claims and cleanup jobs",
+		Version:     "2.6.0",
+		Definition:  "media-moments-v2-expand-v2",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`,
+				`CREATE TABLE IF NOT EXISTS media_assets (
+					id UUID PRIMARY KEY, owner_user_id BIGINT NOT NULL, provider VARCHAR(24) NOT NULL,
+					bucket TEXT NOT NULL, staging_object_key TEXT NOT NULL, staging_version_id TEXT,
+					final_object_key TEXT NOT NULL, final_version_id TEXT, content_type VARCHAR(64) NOT NULL,
+					bytes BIGINT NOT NULL, checksum_sha256 VARCHAR(44) NOT NULL, state VARCHAR(32) NOT NULL,
+					upload_expires_at TIMESTAMPTZ NOT NULL, retention_due_at TIMESTAMPTZ NOT NULL,
+					available_at TIMESTAMPTZ, failed_at TIMESTAMPTZ, deleted_at TIMESTAMPTZ,
+					created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS media_processing_claims (
+					media_asset_id UUID PRIMARY KEY, claim_token UUID NOT NULL, operation_key UUID NOT NULL,
+					stage VARCHAR(32) NOT NULL, staging_version_id TEXT, final_version_id TEXT,
+					lease_expires_at TIMESTAMPTZ NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+					last_error_category VARCHAR(64), completed_at TIMESTAMPTZ,
+					created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS idempotency_operations (
+					id UUID PRIMARY KEY, actor_user_id BIGINT NOT NULL, idempotency_key UUID NOT NULL,
+					operation VARCHAR(120) NOT NULL, resource_ref VARCHAR(120), intent_hash VARCHAR(64) NOT NULL,
+					state VARCHAR(24) NOT NULL, result_ref VARCHAR(120), result_boolean BOOLEAN, result_count INTEGER,
+					response_snapshot JSONB NOT NULL DEFAULT '{}'::JSONB, http_status INTEGER NOT NULL DEFAULT 0,
+					created_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+				)`,
+				`CREATE TABLE IF NOT EXISTS media_cleanup_jobs (
+					id UUID PRIMARY KEY, media_asset_id UUID NOT NULL, kind VARCHAR(40) NOT NULL,
+					state VARCHAR(24) NOT NULL, due_at TIMESTAMPTZ NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+					max_attempts INTEGER NOT NULL, next_attempt_at TIMESTAMPTZ NOT NULL, claim_token UUID,
+					lease_expires_at TIMESTAMPTZ, last_error_code VARCHAR(64), completed_at TIMESTAMPTZ,
+					created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS moments (
+					id UUID PRIMARY KEY, user_id BIGINT NOT NULL, participation_id UUID, activity_id UUID,
+					media_asset_id UUID NOT NULL, origin VARCHAR(24) NOT NULL, publication_status VARCHAR(24) NOT NULL,
+					moderation_status VARCHAR(24) NOT NULL, reward_status VARCHAR(24) NOT NULL,
+					points_awarded INTEGER NOT NULL DEFAULT 0, captured_at TIMESTAMPTZ NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE TABLE IF NOT EXISTS moment_likes (
+					moment_id UUID NOT NULL, user_id BIGINT NOT NULL, created_at TIMESTAMPTZ NOT NULL,
+					PRIMARY KEY (moment_id, user_id)
+				)`,
+				`CREATE TABLE IF NOT EXISTS moment_moderation_decisions (
+					id UUID PRIMARY KEY, moment_id UUID NOT NULL, actor_user_id BIGINT NOT NULL,
+					action VARCHAR(32) NOT NULL, idempotency_key UUID NOT NULL, created_at TIMESTAMPTZ NOT NULL
+				)`,
+				`ALTER TABLE point_entries ADD COLUMN IF NOT EXISTS moment_id UUID`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS idempotency_operations_actor_key_unique ON idempotency_operations (actor_user_id, idempotency_key)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "backfill_global_idempotency_registry",
+		Description: "Register prior participant, manager and admin keys without copying bodies or personal data",
+		Version:     "2.6.0",
+		Definition:  "global-idempotency-registry-backfill-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`INSERT INTO idempotency_operations (id, actor_user_id, idempotency_key, operation, resource_ref, intent_hash, state, result_ref, response_snapshot, http_status, created_at, completed_at)
+				 SELECT id, actor_user_id, idempotency_key, operation, activity_id, intent_hash, 'completed', result_ref, '{}'::JSONB, http_status, created_at, created_at FROM participant_operations ON CONFLICT (actor_user_id, idempotency_key) DO NOTHING`,
+				`INSERT INTO idempotency_operations (id, actor_user_id, idempotency_key, operation, resource_ref, intent_hash, state, result_ref, response_snapshot, http_status, created_at, completed_at)
+				 SELECT id, actor_user_id, idempotency_key, operation, activity_id, intent_hash, 'completed', result_ref, '{}'::JSONB, http_status, created_at, created_at FROM manager_operations ON CONFLICT (actor_user_id, idempotency_key) DO NOTHING`,
+				`INSERT INTO idempotency_operations (id, actor_user_id, idempotency_key, operation, resource_ref, intent_hash, state, result_ref, response_snapshot, http_status, created_at, completed_at)
+				 SELECT id, actor_user_id, idempotency_key, operation, NULL, request_hash, 'completed', NULL, '{}'::JSONB, http_status, created_at, created_at FROM admin_operations ON CONFLICT (actor_user_id, idempotency_key) DO NOTHING`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "contract_media_moments_v2",
+		Description: "Enforce ownership, immutable history, one asset/participation per Moment, media leases and Moment ledger rules",
+		Version:     "2.6.0",
+		Definition:  "media-moments-v2-contract-v2",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("point_entries", "point_entries_origin_check") {
+				if err := db.Migrator().DropConstraint("point_entries", "point_entries_origin_check"); err != nil {
+					return err
+				}
+			}
+			statements := []string{
+				`CREATE INDEX IF NOT EXISTS users_deleted_at_idx ON users (deleted_at)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS media_assets_staging_key_unique ON media_assets (staging_object_key)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS media_assets_final_key_unique ON media_assets (final_object_key)`,
+				`CREATE INDEX IF NOT EXISTS media_assets_expiration_idx ON media_assets (state, upload_expires_at, id)`,
+				`CREATE INDEX IF NOT EXISTS media_assets_retention_idx ON media_assets (state, retention_due_at, id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS idempotency_operations_actor_key_unique ON idempotency_operations (actor_user_id, idempotency_key)`,
+				`CREATE INDEX IF NOT EXISTS idempotency_operations_processing_idx ON idempotency_operations (state, created_at, id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS media_cleanup_jobs_asset_kind_unique ON media_cleanup_jobs (media_asset_id, kind)`,
+				`CREATE INDEX IF NOT EXISTS media_cleanup_jobs_claim_idx ON media_cleanup_jobs (state, next_attempt_at, due_at, id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS moments_media_asset_unique ON moments (media_asset_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS moments_participation_unique ON moments (participation_id) WHERE participation_id IS NOT NULL`,
+				`CREATE INDEX IF NOT EXISTS moments_feed_idx ON moments (captured_at DESC, id DESC) WHERE publication_status = 'public' AND moderation_status = 'approved'`,
+				`CREATE INDEX IF NOT EXISTS moments_user_idx ON moments (user_id, captured_at DESC, id DESC)`,
+				`CREATE INDEX IF NOT EXISTS moment_likes_user_idx ON moment_likes (user_id, moment_id)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS moment_moderation_decisions_actor_key_unique ON moment_moderation_decisions (actor_user_id, idempotency_key)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS point_entries_moment_user_reason_unique ON point_entries (moment_id, user_id, reason) WHERE moment_id IS NOT NULL`,
+				`CREATE INDEX IF NOT EXISTS point_entries_moment_idx ON point_entries (moment_id, created_at, id) WHERE moment_id IS NOT NULL`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			constraints := []struct{ table, name, definition string }{
+				{"media_assets", "media_assets_owner_fk", `FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"media_assets", "media_assets_provider_check", `CHECK (provider = 's3')`},
+				{"media_assets", "media_assets_content_check", `CHECK (content_type IN ('image/jpeg','image/png') AND bytes > 0 AND bytes <= 10485760)`},
+				{"media_assets", "media_assets_state_check", `CHECK (state IN ('pending_upload','processing','available','failed','deleted'))`},
+				{"media_processing_claims", "media_processing_claim_asset_fk", `FOREIGN KEY (media_asset_id) REFERENCES media_assets(id) ON DELETE RESTRICT`},
+				{"idempotency_operations", "idempotency_operations_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"idempotency_operations", "idempotency_operations_state_check", `CHECK (state IN ('processing','completed'))`},
+				{"media_cleanup_jobs", "media_cleanup_jobs_asset_fk", `FOREIGN KEY (media_asset_id) REFERENCES media_assets(id) ON DELETE RESTRICT`},
+				{"media_cleanup_jobs", "media_cleanup_jobs_state_check", `CHECK (state IN ('pending','processing','retry','failed','completed'))`},
+				{"moments", "moments_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"moments", "moments_participation_fk", `FOREIGN KEY (participation_id) REFERENCES participations(id) ON DELETE RESTRICT`},
+				{"moments", "moments_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"moments", "moments_media_asset_fk", `FOREIGN KEY (media_asset_id) REFERENCES media_assets(id) ON DELETE RESTRICT`},
+				{"moments", "moments_origin_status_check", `CHECK ((origin = 'free' AND participation_id IS NULL AND activity_id IS NULL AND points_awarded = 0 AND reward_status = 'not_applicable') OR (origin = 'challenge' AND participation_id IS NOT NULL AND activity_id IS NOT NULL AND points_awarded >= 0 AND reward_status IN ('awarded','denied','reversed')))`},
+				{"moments", "moments_publication_check", `CHECK (publication_status IN ('private','public'))`},
+				{"moments", "moments_moderation_check", `CHECK (moderation_status IN ('approved','rejected'))`},
+				{"moment_likes", "moment_likes_moment_fk", `FOREIGN KEY (moment_id) REFERENCES moments(id) ON DELETE RESTRICT`},
+				{"moment_likes", "moment_likes_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"moment_moderation_decisions", "moment_moderation_moment_fk", `FOREIGN KEY (moment_id) REFERENCES moments(id) ON DELETE RESTRICT`},
+				{"moment_moderation_decisions", "moment_moderation_actor_fk", `FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"moment_moderation_decisions", "moment_moderation_action_check", `CHECK (action IN ('deny_points','delete_photo'))`},
+				{"point_entries", "point_entries_moment_fk", `FOREIGN KEY (moment_id) REFERENCES moments(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_origin_check", `CHECK ((origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL AND moment_id IS NULL) OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL) OR (origin = 'moment' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND participation_id IS NOT NULL AND moment_id IS NOT NULL))`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

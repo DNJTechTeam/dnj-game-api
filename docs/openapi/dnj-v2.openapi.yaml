@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DNJ Game API V2
-  version: 2.5.0
+  version: 2.6.0
   description: Contrato canônico da V2; somente operações implementadas e testadas são publicadas.
 servers:
   - url: http://localhost:8081/v2
@@ -22,6 +22,9 @@ tags:
   - name: Game participation
   - name: Game management
   - name: Installation administration
+  - name: Media
+  - name: Moments
+  - name: Moderation
 paths:
   /healthcheck:
     get:
@@ -909,6 +912,198 @@ paths:
       description: Não aceita corpo; cancelled é terminal e endedAt vem do servidor.
       security: [{bearerAuth: []}, {identityCookie: []}]
       responses: *managerRunMutationResponses
+  /media/upload-intents:
+    post:
+      tags: [Media]
+      operationId: createMediaUploadIntent
+      summary: Cria uma intenção de upload direto ao bucket privado
+      description: >-
+        Corpo estrito {contentType, bytes, checksumSha256}. Aceita somente
+        image/jpeg e image/png, até 10 MiB. checksumSha256 é SHA-256 em
+        Base64 canônico. Gera uma staging key privada e aleatória sem PII; a
+        intenção e a URL assinada expiram em 10 minutos. A URL assinada nunca
+        é persistida; retry com a mesma Idempotency-Key reconstrói a mesma
+        resposta a partir de metadados seguros e do instante original.
+        Exige DEFAULT com onboarding completo; sem configuração de retenção
+        válida retorna 503 sem afetar autenticação ou catálogo.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CreateUploadIntentRequest'}}}
+      responses:
+        '201': {description: Intenção criada ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/UploadIntent'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '413': {$ref: '#/components/responses/TooLarge'}
+        '415': {$ref: '#/components/responses/UnsupportedMediaType'}
+        '500': {$ref: '#/components/responses/InternalError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailable'}
+  /media/{mediaAssetId}/complete:
+    parameters:
+      - {$ref: '#/components/parameters/MediaAssetID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Media]
+      operationId: completeMediaUpload
+      summary: Confirma, sanitiza e publica o objeto enviado
+      description: >-
+        Não aceita corpo. Valida ownership, estado e expiração; obtém
+        metadados reais no provedor; baixa com limite estrito; valida magic
+        bytes e configuração real da imagem (até 20 megapixels); decodifica
+        e reencoda removendo EXIF/GPS; grava uma versão final privada e
+        imutável distinta da staging key; só então marca o asset available e
+        enfileira a remoção da staging key. Serializado por claim/lease
+        durável que sobrevive a reinício do processo. Asset alheio ou
+        inexistente retorna o mesmo 404.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Asset confirmado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/MediaAsset'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '410': {$ref: '#/components/responses/Gone'}
+        '413': {$ref: '#/components/responses/TooLarge'}
+        '422': {$ref: '#/components/responses/UnprocessableEntity'}
+        '500': {$ref: '#/components/responses/InternalError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailable'}
+  /moments:
+    get:
+      tags: [Moments]
+      operationId: listMoments
+      summary: Lista Moments no escopo solicitado com paginação por cursor
+      description: >-
+        scope é obrigatório e aceita somente feed, mine ou group; ausência ou
+        repetição é inválida. cursor é opaco, assinado e sem PII; inválido
+        retorna 400. feed e group exibem somente público, aprovado e com
+        asset disponível de autores elegíveis; mine preserva todos os Moments
+        próprios, inclusive privados ou rejeitados. group usa o grupo atual
+        persistido do ator. Ordena por capturedAt DESC, id DESC; 20 por
+        página.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema: {type: string, enum: [feed, mine, group]}
+        - name: cursor
+          in: query
+          required: false
+          schema: {type: string}
+      responses:
+        '200': {description: Página de Moments no escopo solicitado, content: {application/json: {schema: {$ref: '#/components/schemas/MomentPage'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Moments]
+      operationId: createMoment
+      summary: Publica um Moment free ou challenge a partir de um asset disponível
+      description: >-
+        Corpo estrito {mediaAssetId, publishConsent, participationId
+        opcional}. Sem participationId cria Moment free sem pontos; com
+        participationId deriva origem challenge, exigindo Participation
+        própria, elegível e dentro da janela operacional da Activity. Origem,
+        pontos, ownership e timestamps são sempre derivados pelo servidor.
+        publishConsent=true publica public e concede o snapshot de
+        Activity.momentPoints quando challenge; publishConsent=false nunca
+        concede pontos. Um asset e uma Participation não podem produzir mais
+        de um Moment, mesmo sob concorrência.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CreateMomentRequest'}}}
+      responses:
+        '201': {description: Moment criado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/Moment'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /moments/{momentId}/likes:
+    parameters:
+      - {$ref: '#/components/parameters/MomentID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Moments]
+      operationId: toggleMomentLike
+      summary: Alterna o like do ator atual em um Moment público e disponível
+      description: >-
+        Não aceita corpo. Só é permitido em Moment público, aprovado e com
+        asset disponível; inexistente ou invisível retorna o mesmo 404.
+        Serializado por (momentId, userId); a mesma Idempotency-Key retorna
+        exatamente o estado original. Não gera pontos nem auditoria.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Estado do like após a alternância, content: {application/json: {schema: {$ref: '#/components/schemas/Like'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/moments/moderation:
+    get:
+      tags: [Moderation]
+      operationId: listMomentModeration
+      summary: Lista a fila de moderação corretiva de Moments
+      description: >-
+        Exige ADMIN confirmado no banco; EVENT_MANAGER não recebe permissão
+        global. queue é obrigatória e aceita somente general (Moments free
+        públicos aprovados disponíveis) ou challenge (idem, de origem
+        challenge). Ordena por capturedAt ASC, id ASC; 50 por página. Não
+        expõe email, documento, telefone, grupo interno, chave de storage ou
+        auditoria.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      parameters:
+        - name: queue
+          in: query
+          required: true
+          schema: {type: string, enum: [general, challenge]}
+        - {$ref: '#/components/parameters/Page'}
+      responses:
+        '200': {description: Página da fila de moderação, content: {application/json: {schema: {$ref: '#/components/schemas/ModerationPage'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /admin/moments/{momentId}/moderation:
+    parameters:
+      - {$ref: '#/components/parameters/MomentID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Moderation]
+      operationId: moderateMoment
+      summary: Aplica uma ação corretiva sobre um Moment
+      description: >-
+        Corpo estrito {action}, sem campo reason. Aceita somente deny_points
+        (só válida quando houve premiação; reverte pontos atomicamente,
+        torna o Moment privado e rejeitado, preserva a foto) ou delete_photo
+        (torna o Moment privado e rejeitado, marca o asset removido
+        logicamente, reverte pontos quando existirem, enfileira limpeza
+        física assíncrona). deny_points sem premiação retorna 409. Decisão já
+        aplicada com chave nova retorna o estado terminal seguro sem novo
+        efeito; gera operation_audit mínimo sem imagem, URL assinada ou PII.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ModerationRequest'}}}
+      responses:
+        '200': {description: Estado resultante da moderação, content: {application/json: {schema: {$ref: '#/components/schemas/Moderation'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
@@ -980,6 +1175,16 @@ components:
       required: true
       description: UUID estável reutilizado somente no retry da mesma intenção pelo mesmo ator.
       schema: {type: string, format: uuid}
+    MediaAssetID:
+      name: mediaAssetId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    MomentID:
+      name: momentId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
   requestBodies:
     UpdateCurrentGroup:
       required: true
@@ -1046,6 +1251,27 @@ components:
           schema: {$ref: '#/components/schemas/Error'}
     DependencyUnavailable:
       description: Dependência obrigatória indisponível
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    TooLarge:
+      description: Corpo ou imagem excede o limite permitido
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    UnsupportedMediaType:
+      description: Tipo de conteúdo não suportado
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    UnprocessableEntity:
+      description: Conteúdo malformado, disfarçado ou fora dos limites de sanitização
       headers:
         X-Request-ID: {$ref: '#/components/headers/RequestID'}
       content:
@@ -1657,3 +1883,161 @@ components:
         message: {type: string}
         details: {nullable: true}
         requestId: {type: string}
+    CreateUploadIntentRequest:
+      type: object
+      additionalProperties: false
+      required: [contentType, bytes, checksumSha256]
+      properties:
+        contentType: {type: string, enum: [image/jpeg, image/png]}
+        bytes: {type: integer, minimum: 1, maximum: 10485760}
+        checksumSha256: {type: string, description: SHA-256 do objeto em Base64 canônico (44 caracteres).}
+    UploadIntent:
+      type: object
+      additionalProperties: false
+      required: [id, uploadUrl, method, headers, expiresAt]
+      properties:
+        id: {type: string, format: uuid, description: Identificador do media asset em pending_upload.}
+        uploadUrl: {type: string, format: uri, description: URL assinada de curta duração; nunca é persistida.}
+        method: {type: string, enum: [PUT]}
+        headers: {type: object, additionalProperties: {type: string}, description: Headers obrigatórios a assinar no PUT direto ao provedor.}
+        expiresAt: {type: string, format: date-time, description: UTC RFC 3339 com Z; 10 minutos após a criação., example: '2026-10-18T15:45:00Z'}
+    MediaAsset:
+      type: object
+      additionalProperties: false
+      required: [id, contentType, bytes, state, availableAt, retentionDueAt]
+      properties:
+        id: {type: string, format: uuid}
+        contentType: {type: string, enum: [image/jpeg, image/png]}
+        bytes: {type: integer}
+        state: {type: string, enum: [pending_upload, processing, available, failed, deleted]}
+        availableAt: {type: string, format: date-time, nullable: true, example: '2026-10-18T15:45:00Z'}
+        retentionDueAt: {type: string, format: date-time, example: '2027-01-16T23:59:59Z'}
+    CreateMomentRequest:
+      type: object
+      additionalProperties: false
+      required: [mediaAssetId, publishConsent]
+      properties:
+        mediaAssetId: {type: string, format: uuid}
+        publishConsent: {type: boolean}
+        participationId: {type: string, format: uuid}
+    Moment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - origin
+        - participationId
+        - imageUrl
+        - thumbnailUrl
+        - shareImageUrl
+        - imageExpiresAt
+        - placeName
+        - authorName
+        - capturedAt
+        - publicationStatus
+        - moderationStatus
+        - pointsAwarded
+        - likesCount
+        - likedByCurrentUser
+      properties:
+        id: {type: string, format: uuid}
+        origin: {type: string, enum: [free, challenge]}
+        participationId: {type: string, format: uuid, nullable: true}
+        imageUrl: {type: string, format: uri, description: URL assinada de curta duração (até 5 minutos).}
+        thumbnailUrl: {type: string, format: uri, description: Aponta para a mesma versão sanitizada da imagem nesta iteração.}
+        shareImageUrl: {type: string, format: uri, description: Aponta para a mesma versão sanitizada da imagem nesta iteração.}
+        imageExpiresAt: {type: string, format: date-time, nullable: true, example: '2026-10-18T15:50:00Z'}
+        placeName: {type: string, nullable: true}
+        authorName: {type: string}
+        capturedAt: {type: string, format: date-time, example: '2026-10-18T15:45:00Z'}
+        publicationStatus: {type: string, enum: [private, public]}
+        moderationStatus: {type: string, enum: [approved, rejected]}
+        pointsAwarded: {type: integer}
+        moderationMessage: {type: string, nullable: true, description: Mensagem derivada no servidor; nunca expõe motivo interno.}
+        likesCount: {type: integer}
+        likedByCurrentUser: {type: boolean}
+        groupId: {type: string, nullable: true}
+    MomentPage:
+      type: object
+      additionalProperties: false
+      required: [items, nextCursor]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Moment'}}
+        nextCursor: {type: string, nullable: true, description: Cursor opaco e assinado; ausente na última página.}
+    Like:
+      type: object
+      additionalProperties: false
+      required: [momentId, liked, likesCount]
+      properties:
+        momentId: {type: string, format: uuid}
+        liked: {type: boolean}
+        likesCount: {type: integer}
+    ModerationRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: {type: string, enum: [deny_points, delete_photo]}
+    ModerationActivitySummary:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+    ModerationMoment:
+      type: object
+      additionalProperties: false
+      required:
+        - momentId
+        - imageUrl
+        - imageExpiresAt
+        - capturedAt
+        - participantName
+        - activity
+        - pointsAwarded
+        - publicationStatus
+        - moderationStatus
+        - rewardStatus
+        - photoStatus
+        - availableActions
+      properties:
+        momentId: {type: string, format: uuid}
+        imageUrl: {type: string, format: uri}
+        imageExpiresAt: {type: string, format: date-time, nullable: true, example: '2026-10-18T15:50:00Z'}
+        capturedAt: {type: string, format: date-time, example: '2026-10-18T15:45:00Z'}
+        participantName: {type: string}
+        activity: {nullable: true, allOf: [{$ref: '#/components/schemas/ModerationActivitySummary'}]}
+        pointsAwarded: {type: integer}
+        publicationStatus: {type: string, enum: [private, public]}
+        moderationStatus: {type: string, enum: [approved, rejected]}
+        rewardStatus: {type: string, enum: [not_applicable, awarded, denied, reversed]}
+        photoStatus: {type: string, enum: [available, deleted]}
+        availableActions: {type: array, items: {type: string, enum: [deny_points, delete_photo]}}
+    ModerationPagination:
+      type: object
+      additionalProperties: false
+      required: [currentPage, hasNextPage, limit]
+      properties:
+        currentPage: {type: string}
+        hasNextPage: {type: boolean}
+        limit: {type: integer, enum: [50]}
+    ModerationPage:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/ModerationMoment'}}
+        pagination: {$ref: '#/components/schemas/ModerationPagination'}
+    Moderation:
+      type: object
+      additionalProperties: false
+      required: [momentId, action, publicationStatus, moderationStatus, rewardStatus, photoStatus, pointsAwarded]
+      properties:
+        momentId: {type: string, format: uuid}
+        action: {type: string, enum: [deny_points, delete_photo]}
+        publicationStatus: {type: string, enum: [private, public]}
+        moderationStatus: {type: string, enum: [approved, rejected]}
+        rewardStatus: {type: string, enum: [not_applicable, awarded, denied, reversed]}
+        photoStatus: {type: string, enum: [available, deleted]}
+        pointsAwarded: {type: integer}

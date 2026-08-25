@@ -20,7 +20,11 @@ func NewAdminOperationRepository(db *gorm.DB) adminInterfaces.AdminOperationRepo
 	return &AdminOperationRepository{BaseRepository: NewBaseRepository[models.AdminOperation](db)}
 }
 
-func (r *AdminOperationRepository) FindByActorAndIdempotencyKey(ctx context.Context, actorUserID uint64, key string) (*entities.AdminOperation, error) {
+func (r *AdminOperationRepository) FindByActorAndIdempotencyKey(
+	ctx context.Context,
+	actorUserID uint64,
+	key string,
+) (*entities.AdminOperation, error) {
 	var row models.AdminOperation
 	err := r.getDB(ctx).Where("actor_user_id = ? AND idempotency_key = ?", actorUserID, key).First(&row).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -32,7 +36,26 @@ func (r *AdminOperationRepository) FindByActorAndIdempotencyKey(ctx context.Cont
 	return mappers.MapAdminOperationToEntity(&row), nil
 }
 
-func (r *AdminOperationRepository) Create(ctx context.Context, operation *entities.AdminOperation) (*entities.AdminOperation, error) {
+func (r *AdminOperationRepository) Create(
+	ctx context.Context,
+	operation *entities.AdminOperation,
+) (*entities.AdminOperation, error) {
+	resourceRef := operation.EntityRef
+	if err := reserveGlobalIdempotencyKey(
+		ctx,
+		r.getDB(ctx),
+		operation.ID,
+		operation.ActorUserID,
+		operation.IdempotencyKey,
+		operation.Operation,
+		&resourceRef,
+		operation.RequestHash,
+		&resourceRef,
+		operation.HTTPStatus,
+		operation.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
 	row := mappers.MapAdminOperationEntityToModel(operation)
 	if err := r.BaseRepository.Create(ctx, row); err != nil {
 		return nil, err

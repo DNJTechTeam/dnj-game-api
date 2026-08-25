@@ -17,4 +17,6 @@ type Handlers struct {
 	ContentHandler             *ContentHandler
 	FavoriteHandler            *FavoriteHandler
 	GameHandler                *GameHandler
+	MediaHandler               *MediaHandler
+	MomentHandler              *MomentHandler
 }

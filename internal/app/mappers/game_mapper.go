@@ -31,6 +31,10 @@ func pointPresentation(reason string) (string, string) {
 		return "3º lugar em jogo", "medal"
 	case "activity_run_participation":
 		return "Participação em jogo", "game"
+	case "moment_challenge_award":
+		return "Momento em desafio", "camera"
+	case "moment_moderation_reversal":
+		return "Ajuste de Momento", "shield"
 	default:
 		return "Pontos DNJ", "points"
 	}

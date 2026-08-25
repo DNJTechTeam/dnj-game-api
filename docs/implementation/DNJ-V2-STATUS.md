@@ -50,7 +50,7 @@ automatizado e evidência no ambiente `develop`.
 | 4 | Configuração da instalação | descoberta/operação de Activities e configuração administrativa de Spaces, Activities, staff e assignments | spaces, activities, assignments, auditoria, idempotência administrativa | Concluída; enabler administrativo publicado em develop |
 | 5 | Agenda e conteúdo | agenda, atividades, detalhes, favoritos | activities, user_favorites, participant_operations | Concluída e publicada em develop |
 | 6 | Jogos e ranking | catálogo, runs, QR, participações, pontuação e ranking | Activities competitivas, activity_runs, participations, point_entries | Concluída e publicada em develop |
-| 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | assets, uploads, moderação, jobs de retenção | Pendente |
+| 7 | Mídia | upload assinado, confirmação, galeria, moderação, retenção | media_assets, moments, moment_likes, moderação, jobs de retenção | Concluída localmente; validação de publicação em develop em andamento |
 | 8 | Notificações | preferências, listagem, leitura e envio administrativo | notificações, preferências, deliveries | Pendente |
 | 9 | Operação e carga | observabilidade final, segurança e soak/spike/stress baseados nos grafos reais de requests do frontend | perfis de carga, métricas e relatórios, sem novo domínio | Pendente |
 | 10 | Handoff final | OpenAPI publicado, página única de integração do frontend, manifesto, exemplos e checklist de release | documentação versionada e artefato publicado pelo CI | Pendente |
@@ -419,6 +419,29 @@ de produção para fabricar smoke mutante.
 | Esquema | Seis tabelas da Iteração 6 presentes; nenhuma tabela `games`/`events`, coluna `event_id` ou cascata destrutiva introduzida. |
 | Contrato/handoff | OpenAPI 3.0.3 `2.5.0`, 16 operações, manifesto operação→testes, `docs/games-runs-scoring.md` e `docs/game-frontend-handoff.md`. |
 | Frontend | Clone consultado somente em leitura; nenhum arquivo, commit ou push produzido. Handoff registra rotas, grafos, orçamento, polling e perfis futuros de carga. |
+
+## Evidência local da Iteração 7
+
+| Controle | Evidência em 2026-08-24 |
+|---|---|
+| Domínio | Moment é a entidade persistida; galeria é somente consulta. Sem tabelas `gallery`/`events`, sem `event_id`. `media_assets` guarda metadados; conteúdo permanece em bucket privado S3/MinIO. |
+| Upload | `POST /media/upload-intents` aceita só `contentType/bytes/checksumSha256`; JPEG/PNG até 10 MiB; staging key aleatória sem PII; intenção e URL assinada expiram em 10 minutos; URL nunca persistida; retry reconstrói a resposta a partir de metadados seguros. |
+| Confirmação/sanitização | `POST /media/{id}/complete` sem corpo; valida ownership/estado/expiração; HEAD real no provider; download limitado; valida magic bytes e configuração real (até 20 megapixels); reencoda removendo EXIF/GPS; grava versão final distinta da staging key; claim/lease durável serializa confirmações concorrentes sem transação de banco aberta durante chamadas ao S3; 409/410/503 conforme especificado; asset alheio/inexistente é sempre o mesmo 404. |
+| Moments | `POST /moments` deriva origem, pontos, ownership e timestamps no servidor; free nunca pontua; challenge público concede o snapshot de `Activity.momentPoints`; unicidade de asset e de Participation impede duplicidade mesmo sob concorrência. |
+| Galeria | `GET /moments` aceita só `scope` (`feed|mine|group`) e `cursor` opaco assinado (HMAC, sem PII); paginação de 20 por `capturedAt DESC,id DESC`; `mine` preserva histórico completo; `feed`/`group` só público+aprovado+disponível de autores elegíveis; mudança de grupo reflete imediatamente. |
+| Likes | `POST /moments/{id}/likes` alterna sem corpo, serializado por `(momentId,userId)`, idempotente, sem pontos nem `operation_audit`. |
+| Moderação corretiva | `GET/POST /admin/moments/...` exigem ADMIN confirmado no banco; `deny_points`/`delete_photo` revertem pontos atomicamente, preservam a foto/histórico, geram `operation_audit` mínimo sem imagem/URL/PII; decisão já aplicada com chave nova retorna o estado terminal sem novo efeito. |
+| Retenção/worker | `DNJ_MEDIA_RETENTION_ANCHOR_AT` obrigatório (RFC 3339 com offset, normalizado para UTC); `retentionDueAt = anchor + 90 dias`, nunca menor que 90 dias desde a criação; ausência/config inválida bloqueia novas intenções com 503 sem afetar healthcheck/catálogo/auth; worker interno (`cmd/media-worker`) expira uploads pendentes, reclama jobs de limpeza com lease persistido e retry com backoff+jitter, sem endpoint administrativo de disparo. |
+| Idempotência | Toda escrita HTTP exige `Idempotency-Key` UUID; chave+intenção iguais repetem o resultado original; reuso para operação/recurso/payload diferente retorna 409 `IDEMPOTENCY_KEY_REUSED`; unicidade unificada (`idempotency_operations`) atravessa também as escritas de participante, gestor e admin das Iterações 1–6 (não é só backfill de dados — `admin_operation_repository.go`, `favorite_repository.go` e `game_repository.go` gravam nela). |
+| Bug corrigido | `MediaRepository.Metrics` quebrava sempre que a fila de limpeza estava vazia (`MIN(due_at)` retornando `NULL` escaneado para `*time.Time`) e sempre que chamava as duas primeiras agregações (parâmetro extra passado a uma query sem placeholder); ambos corrigidos e cobertos por teste de integração real com Postgres antes da publicação. |
+| HTTP real | `TestMediaMomentsHTTP_MiddlewareHandlerServiceRepositoryAndDatabase` atravessa middleware→handler→service→repository→PostgreSQL. |
+| Concorrência | Testes cobrem confirmações concorrentes com a mesma chave (espera e replay), duas confirmações do mesmo asset, dois Moments para o mesmo asset/Participation, likes simultâneos, moderações concorrentes, claim/lease abandonado e retomado por outro worker, e falha entre S3 e banco. |
+| Cobertura | Services da Iteração 7: 93,1% (650/698); fatia integrada (handlers/services/mappers/repositories): 92,0% (968/1052). Gate permanente `db/mappers`+`db/repositories`: 90,6% (1046/1155); cobertura mantida: 83,0% (4575/5515). Gates administrativos (91,4%/92,2%) e da Iteração 5 (97,4%/97,3%) preservados após a unificação de idempotência. |
+| Gate agregado | `make validate` verde: Wire, build, vet, race sob `TZ=UTC`, cobertura (geral + todos os gates permanentes 1–7), migrations PostgreSQL e CockroachDB reais, testes HTTP reais, OpenAPI. |
+| Migrations PostgreSQL/CockroachDB | Três migrations novas (`expand_media_moments_v2`, `backfill_global_idempotency_registry`, `contract_media_moments_v2`), sem editar as migrations já aplicadas; instalação limpa e upgrade exato verdes em ambos os bancos; dados das Iterações 1–6 preservados. |
+| MinIO/S3 | `docker-compose.yml` provisiona bucket privado com versionamento habilitado e lifecycle de defesa em profundidade (`staging/` expira em 2 dias); version ID confirmado persistido internamente para impedir que um PUT tardio substitua o conteúdo do Moment. |
+| Contrato/handoff | OpenAPI 3.0.3 `2.6.0` com as 7 operações novas; manifesto operação→testes atualizado; `docs/game-frontend-handoff.md` atualizado. |
+| Frontend | Clone consultado somente em leitura para descoberta de contrato; nenhum arquivo, commit ou push produzido no repositório do frontend. |
 
 ## Publicação da Iteração 6 em develop
 

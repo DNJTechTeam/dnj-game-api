@@ -129,6 +129,7 @@ type PointEntry struct {
 	ActivityID      string
 	ActivityRunID   *string
 	ParticipationID *string
+	MomentID        *string
 	Origin          string
 	Reason          string
 	Delta           int

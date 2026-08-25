@@ -12,6 +12,8 @@ import (
 	inviteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupinvite/interfaces"
 	membershipInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/groupmembership/interfaces"
 	identityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/identity/interfaces"
+	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
+	momentInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
@@ -24,28 +26,87 @@ import (
 	webhookPkg "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/webhook"
 )
 
-func ProvideAdminInstallationService(baseService *services.BaseService, spaceRepository spaceInterfaces.SpaceRepositoryInterface, activityRepository activityInterfaces.ActivityRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface, adminOperationRepository adminInterfaces.AdminOperationRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.AdminInstallationServiceInterface {
-	return services.NewAdminInstallationService(baseService, spaceRepository, activityRepository, auditRepository, adminOperationRepository, userRepository)
+func ProvideAdminInstallationService(
+	baseService *services.BaseService,
+	spaceRepository spaceInterfaces.SpaceRepositoryInterface,
+	activityRepository activityInterfaces.ActivityRepositoryInterface,
+	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+	adminOperationRepository adminInterfaces.AdminOperationRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.AdminInstallationServiceInterface {
+	return services.NewAdminInstallationService(
+		baseService,
+		spaceRepository,
+		activityRepository,
+		auditRepository,
+		adminOperationRepository,
+		userRepository,
+	)
 }
 
 func ProvideSpaceService(spaceRepository spaceInterfaces.SpaceRepositoryInterface) appInterfaces.SpaceServiceInterface {
 	return services.NewSpaceService(spaceRepository)
 }
 
-func ProvideActivityService(baseService *services.BaseService, activityRepository activityInterfaces.ActivityRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.ActivityServiceInterface {
+func ProvideActivityService(
+	baseService *services.BaseService,
+	activityRepository activityInterfaces.ActivityRepositoryInterface,
+	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.ActivityServiceInterface {
 	return services.NewActivityService(baseService, activityRepository, auditRepository, userRepository)
 }
 
-func ProvideContentService(activityRepository activityInterfaces.ActivityRepositoryInterface, spaceRepository spaceInterfaces.SpaceRepositoryInterface) appInterfaces.ContentServiceInterface {
+func ProvideContentService(
+	activityRepository activityInterfaces.ActivityRepositoryInterface,
+	spaceRepository spaceInterfaces.SpaceRepositoryInterface,
+) appInterfaces.ContentServiceInterface {
 	return services.NewContentService(activityRepository, spaceRepository)
 }
 
-func ProvideFavoriteService(baseService *services.BaseService, favoriteRepository favoriteInterfaces.FavoriteRepositoryInterface, activityRepository activityInterfaces.ActivityRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.FavoriteServiceInterface {
+func ProvideFavoriteService(
+	baseService *services.BaseService,
+	favoriteRepository favoriteInterfaces.FavoriteRepositoryInterface,
+	activityRepository activityInterfaces.ActivityRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.FavoriteServiceInterface {
 	return services.NewFavoriteService(baseService, favoriteRepository, activityRepository, userRepository)
 }
 
-func ProvideGameService(baseService *services.BaseService, gameRepository gameInterfaces.GameRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface, auditRepository auditInterfaces.OperationAuditRepositoryInterface) appInterfaces.GameServiceInterface {
+func ProvideGameService(
+	baseService *services.BaseService,
+	gameRepository gameInterfaces.GameRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+) appInterfaces.GameServiceInterface {
 	return services.NewGameService(baseService, gameRepository, userRepository, auditRepository)
+}
+
+func ProvideMediaService(
+	baseService *services.BaseService,
+	mediaRepository mediaInterfaces.Repository,
+	mediaStorage mediaInterfaces.Storage,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.MediaServiceInterface {
+	return services.NewMediaService(baseService, mediaRepository, mediaStorage, userRepository)
+}
+
+func ProvideMomentService(
+	baseService *services.BaseService,
+	momentRepository momentInterfaces.Repository,
+	mediaRepository mediaInterfaces.Repository,
+	mediaStorage mediaInterfaces.Storage,
+	userRepository uInterfaces.UserRepositoryInterface,
+	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+) appInterfaces.MomentServiceInterface {
+	return services.NewMomentService(
+		baseService,
+		momentRepository,
+		mediaRepository,
+		mediaStorage,
+		userRepository,
+		auditRepository,
+	)
 }
 
 func ProvideBaseService(transactionManager commonInterfaces.TransactionManagerInterface) *services.BaseService {
@@ -74,7 +135,16 @@ func ProvideIdentityService(
 	jwtService appInterfaces.JwtServiceInterface,
 	googleVerifier appInterfaces.GoogleIDTokenVerifierInterface,
 ) appInterfaces.IdentityServiceInterface {
-	return services.NewIdentityService(baseService, userRepository, groupRepository, membershipRepository, identityRepository, refreshRepository, jwtService, googleVerifier)
+	return services.NewIdentityService(
+		baseService,
+		userRepository,
+		groupRepository,
+		membershipRepository,
+		identityRepository,
+		refreshRepository,
+		jwtService,
+		googleVerifier,
+	)
 }
 
 func ProvideWebhookPayloadTranslator() appInterfaces.WebhookPayloadTranslatorInterface {
@@ -95,7 +165,13 @@ func ProvideSubscriptionWebhookService(
 	groupRepository groupInterfaces.GroupRepositoryInterface,
 	translator appInterfaces.WebhookPayloadTranslatorInterface,
 ) appInterfaces.SubscriptionWebhookServiceInterface {
-	return services.NewSubscriptionWebhookService(baseService, subscriptionWebhookRepository, verificationCodeRepository, groupRepository, translator)
+	return services.NewSubscriptionWebhookService(
+		baseService,
+		subscriptionWebhookRepository,
+		verificationCodeRepository,
+		groupRepository,
+		translator,
+	)
 }
 
 func ProvideAuthService(
@@ -107,7 +183,15 @@ func ProvideAuthService(
 	jwtService appInterfaces.JwtServiceInterface,
 	emailService appInterfaces.EmailServiceInterface,
 ) appInterfaces.AuthServiceInterface {
-	return services.NewAuthService(baseService, verificationCodeRepository, userRepository, groupRepository, membershipRepository, jwtService, emailService)
+	return services.NewAuthService(
+		baseService,
+		verificationCodeRepository,
+		userRepository,
+		groupRepository,
+		membershipRepository,
+		jwtService,
+		emailService,
+	)
 }
 
 func ProvideGroupService(
@@ -119,12 +203,28 @@ func ProvideGroupService(
 	return services.NewGroupService(baseService, groupRepository, userRepository, membershipRepository)
 }
 
-func ProvideProfileService(baseService *services.BaseService, userRepository uInterfaces.UserRepositoryInterface, groupRepository groupInterfaces.GroupRepositoryInterface) appInterfaces.ProfileServiceInterface {
+func ProvideProfileService(
+	baseService *services.BaseService,
+	userRepository uInterfaces.UserRepositoryInterface,
+	groupRepository groupInterfaces.GroupRepositoryInterface,
+) appInterfaces.ProfileServiceInterface {
 	return services.NewProfileService(baseService, userRepository, groupRepository)
 }
 
-func ProvideGroupInviteService(baseService *services.BaseService, userRepository uInterfaces.UserRepositoryInterface, groupRepository groupInterfaces.GroupRepositoryInterface, membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface, inviteRepository inviteInterfaces.GroupInviteRepositoryInterface) appInterfaces.GroupInviteServiceInterface {
-	return services.NewGroupInviteService(baseService, userRepository, groupRepository, membershipRepository, inviteRepository)
+func ProvideGroupInviteService(
+	baseService *services.BaseService,
+	userRepository uInterfaces.UserRepositoryInterface,
+	groupRepository groupInterfaces.GroupRepositoryInterface,
+	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
+	inviteRepository inviteInterfaces.GroupInviteRepositoryInterface,
+) appInterfaces.GroupInviteServiceInterface {
+	return services.NewGroupInviteService(
+		baseService,
+		userRepository,
+		groupRepository,
+		membershipRepository,
+		inviteRepository,
+	)
 }
 
 func ProvideUserService(

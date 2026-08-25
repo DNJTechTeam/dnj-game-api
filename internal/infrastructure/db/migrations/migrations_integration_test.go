@@ -1,9 +1,11 @@
 package migrations_test
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/migrations"
 	testinfra "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/test"
@@ -19,6 +21,80 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	testinfra.HandleShutdown(migrationSuite)
 	os.Exit(code)
+}
+
+func TestMigrations_MediaMomentsUpgradePreservesPriorDataAndEnforcesHistory(t *testing.T) {
+	resetSchema(t)
+	registered := registeredMigrations()
+	for _, migration := range registered {
+		if migration.Name == "expand_media_moments_v2" {
+			break
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name)
+	}
+	var userID uint64
+	require.NoError(t, migrationSuite.DbConn.Raw(`
+		INSERT INTO users (email,name,role,points,onboarding_complete,created_at,updated_at)
+		VALUES ('media-upgrade@example.com','Media Upgrade','DEFAULT',0,TRUE,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+		RETURNING id
+	`).Scan(&userID).Error)
+	legacyKey := uuid.NewString()
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO admin_operations
+		(id,actor_user_id,idempotency_key,operation,entity_type,entity_ref,request_hash,http_status,response,created_at)
+		VALUES (?, ?, ?, 'admin.user.role.update', 'user', ?, ?, 200, '{}'::JSONB, CURRENT_TIMESTAMP)
+	`, uuid.NewString(), userID, legacyKey, fmt.Sprint(userID), "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").Error)
+
+	for _, migration := range registered {
+		if migration.Name != "expand_media_moments_v2" &&
+			migration.Name != "backfill_global_idempotency_registry" &&
+			migration.Name != "contract_media_moments_v2" {
+			continue
+		}
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" first replay")
+		require.NoError(t, migration.Up(migrationSuite.DbConn), migration.Name+" second replay")
+	}
+
+	assetID := uuid.NewString()
+	now := time.Now().UTC()
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO media_assets
+		(id,owner_user_id,provider,bucket,staging_object_key,final_object_key,content_type,bytes,checksum_sha256,state,upload_expires_at,retention_due_at,created_at,updated_at)
+		VALUES (?, ?, 's3', 'private', ?, ?, 'image/jpeg', 1, ?, 'available', ?, ?, ?, ?)
+	`, assetID, userID, "staging/"+uuid.NewString(), "media/"+uuid.NewString(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", now, now.Add(90*24*time.Hour), now, now).Error)
+	momentID := uuid.NewString()
+	require.NoError(t, migrationSuite.DbConn.Exec(`
+		INSERT INTO moments
+		(id,user_id,media_asset_id,origin,publication_status,moderation_status,reward_status,points_awarded,captured_at,created_at,updated_at)
+		VALUES (?, ?, ?, 'free', 'public', 'approved', 'not_applicable', 0, ?, ?, ?)
+	`, momentID, userID, assetID, now, now, now).Error)
+	duplicateAssetErr := migrationSuite.DbConn.Exec(`
+		INSERT INTO moments
+		(id,user_id,media_asset_id,origin,publication_status,moderation_status,reward_status,points_awarded,captured_at,created_at,updated_at)
+		VALUES (?, ?, ?, 'free', 'private', 'approved', 'not_applicable', 0, ?, ?, ?)
+	`, uuid.NewString(), userID, assetID, now, now, now).Error
+	badFreeRewardErr := migrationSuite.DbConn.Exec(`
+		UPDATE moments SET points_awarded=1 WHERE id=?
+	`, momentID).Error
+	require.NoError(t, migrationSuite.DbConn.Exec(`UPDATE users SET deleted_at=? WHERE id=?`, now, userID).Error)
+
+	var history int64
+	require.NoError(t, migrationSuite.DbConn.Table("moments").Where("id=?", momentID).Count(&history).Error)
+	var legacyRegistry int64
+	require.NoError(t, migrationSuite.DbConn.Table("idempotency_operations").
+		Where("actor_user_id=? AND idempotency_key=?", userID, legacyKey).Count(&legacyRegistry).Error)
+	require.Error(t, duplicateAssetErr)
+	require.Error(t, badFreeRewardErr)
+	assert.EqualValues(t, 1, history)
+	assert.EqualValues(t, 1, legacyRegistry)
+	for _, table := range []string{
+		"media_assets", "moments", "moment_likes", "idempotency_operations",
+		"media_processing_claims", "media_cleanup_jobs", "moment_moderation_decisions",
+	} {
+		assert.True(t, migrationSuite.DbConn.Migrator().HasTable(table), table)
+	}
+	assert.False(t, migrationSuite.DbConn.Migrator().HasTable("gallery"))
+	assert.False(t, migrationSuite.DbConn.Migrator().HasTable("events"))
 }
 
 func resetSchema(t *testing.T) {

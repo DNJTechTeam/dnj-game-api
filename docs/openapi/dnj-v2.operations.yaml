@@ -347,3 +347,73 @@ operations:
     path: /manager/runs/{runId}/cancel
     statuses: ['200', '400', '401', '403', '404', '409', '500']
     automatedTests: *iteration6Tests
+  - operationId: createMediaUploadIntent
+    method: POST
+    path: /media/upload-intents
+    statuses: ['201', '400', '401', '403', '409', '413', '415', '500', '503']
+    automatedTests: &iteration7MediaTests
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_error_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/media_moment_helpers_unit_test.go
+      - internal/app/services/media_service_repository_failure_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: completeMediaUpload
+    method: POST
+    path: /media/{mediaAssetId}/complete
+    statuses: ['200', '400', '401', '403', '404', '409', '410', '413', '422', '500', '503']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_error_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/media_image_sanitizer_test.go
+      - internal/app/services/media_moment_wait_complete_test.go
+      - internal/app/services/media_service_finalize_failure_test.go
+      - internal/app/services/media_service_complete_upload_failure_test.go
+      - internal/infrastructure/storage/s3_media_storage_integration_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: listMoments
+    method: GET
+    path: /moments
+    statuses: ['200', '400', '401', '403', '409', '500']
+    automatedTests: &iteration7MomentTests
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_cursor_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: createMoment
+    method: POST
+    path: /moments
+    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/media_moment_http_integration_test.go
+      - internal/app/services/moment_create_repository_failure_test.go
+      - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: toggleMomentLike
+    method: POST
+    path: /moments/{momentId}/likes
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_interaction_service_repository_failure_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: listMomentModeration
+    method: GET
+    path: /admin/moments/moderation
+    statuses: ['200', '400', '401', '403', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: moderateMoment
+    method: POST
+    path: /admin/moments/{momentId}/moderation
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/app/services/moment_interaction_service_repository_failure_test.go
+      - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
+      - internal/infrastructure/db/repositories/media_moment_sqlmock_error_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go

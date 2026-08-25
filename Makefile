@@ -14,6 +14,9 @@ ITERATION5_SLICE_COVER_MIN ?= 96.0
 ITERATION6_COVER_PROFILE ?= /tmp/dnj-iteration6-coverage.out
 ITERATION6_SERVICE_COVER_MIN ?= 90
 ITERATION6_SLICE_COVER_MIN ?= 90
+ITERATION7_COVER_PROFILE ?= /tmp/dnj-iteration7-coverage.out
+ITERATION7_SERVICE_COVER_MIN ?= 90
+ITERATION7_SLICE_COVER_MIN ?= 90
 COVER_PKGS=./...
 COVER_TEST_PKGS=./internal/...
 COVER_IGNORE_REGEX=^github.com/dnjtechteam/dnj-game-api/cmd/|/internal/mocks/|/internal/infrastructure/di/|/internal/infrastructure/api/runner.go:|/internal/domain/.*/(entities|interfaces)/|/internal/infrastructure/db/models/|/internal/presentation/api/routers/
@@ -21,9 +24,9 @@ COVER_GATE_REGEX=^github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db
 
 OPENAPI_DIR=docs/openapi
 
-.PHONY: wire build run run-api vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
+.PHONY: wire build run run-api media-worker vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
-        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check \
+        test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check \
         db-up db-down db-reset s3-up local-up local-down docker-build
 
 # ── Build ──────────────────────────────────────────────────────────────────
@@ -61,6 +64,9 @@ run:
 	go run cmd/api/main.go
 
 run-api: migrate run
+
+media-worker:
+	go run cmd/media-worker/main.go
 
 migrate:
 	go run cmd/migrate/main.go
@@ -118,7 +124,14 @@ test-iteration6-cover-check:
 		-coverpkg=./internal/app/services,./internal/app/mappers,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
 	bash scripts/check-iteration6-coverage.sh $(ITERATION6_COVER_PROFILE) $(ITERATION6_SERVICE_COVER_MIN) $(ITERATION6_SLICE_COVER_MIN)
 
-validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-migrations openapi
+test-iteration7-cover-check:
+	TZ=UTC go test ./internal/app/services ./internal/presentation/api/handlers ./internal/infrastructure/db/mappers ./internal/infrastructure/db/repositories \
+		-run 'TestMediaMoments' -count=1 \
+		-coverprofile=$(ITERATION7_COVER_PROFILE) \
+		-coverpkg=./internal/app/services,./internal/presentation/api/handlers,./internal/infrastructure/db/mappers,./internal/infrastructure/db/repositories
+	bash scripts/check-iteration7-coverage.sh $(ITERATION7_COVER_PROFILE) $(ITERATION7_SERVICE_COVER_MIN) $(ITERATION7_SLICE_COVER_MIN)
+
+validate: wire build vet test-race test-cover-check test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-migrations openapi
 
 # ── Docker / Database ──────────────────────────────────────────────────────
 db-up:

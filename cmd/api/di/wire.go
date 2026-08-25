@@ -8,6 +8,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/db/repositories"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/services"
+	diStorage "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/di/storage"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 
@@ -30,6 +31,8 @@ func InitializeServer() *api.API {
 		repositories.ProvideActivityRepository,
 		repositories.ProvideFavoriteRepository,
 		repositories.ProvideGameRepository,
+		repositories.ProvideMediaRepository,
+		repositories.ProvideMomentRepository,
 		repositories.ProvideOperationAuditRepository,
 		repositories.ProvideAdminOperationRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
@@ -53,9 +56,12 @@ func InitializeServer() *api.API {
 		services.ProvideContentService,
 		services.ProvideFavoriteService,
 		services.ProvideGameService,
+		services.ProvideMediaService,
+		services.ProvideMomentService,
 		services.ProvideAdminInstallationService,
 
 		diApi.ProvideEngine,
+		diStorage.ProvideMediaStorage,
 		diApi.ProvideRouter,
 
 		wire.Struct(new(handlers.HealthcheckHandler), "*"),
@@ -72,6 +78,8 @@ func InitializeServer() *api.API {
 		wire.Struct(new(handlers.ContentHandler), "*"),
 		wire.Struct(new(handlers.FavoriteHandler), "*"),
 		wire.Struct(new(handlers.GameHandler), "*"),
+		wire.Struct(new(handlers.MediaHandler), "*"),
+		wire.Struct(new(handlers.MomentHandler), "*"),
 		wire.Struct(new(handlers.Handlers), "*"),
 		wire.Struct(new(api.API), "*"),
 	)

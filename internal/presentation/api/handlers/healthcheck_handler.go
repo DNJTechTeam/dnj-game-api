@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type HealthcheckHandler struct {
-	DB *gorm.DB
+	DB           *gorm.DB
+	MediaStorage mediaInterfaces.Storage
 }
 
 // Get godoc
@@ -42,6 +44,10 @@ func (h *HealthcheckHandler) Ready(c *gin.Context) {
 	defer cancel()
 	if err := sqlDB.PingContext(ctx); err != nil {
 		ResponseAPIError(c, http.StatusServiceUnavailable, "DEPENDENCY_UNAVAILABLE", "Database is unavailable.", nil)
+		return
+	}
+	if h.MediaStorage != nil && h.MediaStorage.ValidateConfiguration() != nil {
+		ResponseAPIError(c, http.StatusServiceUnavailable, "DEPENDENCY_UNAVAILABLE", "Media configuration is unavailable.", nil)
 		return
 	}
 

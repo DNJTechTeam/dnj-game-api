@@ -24,9 +24,19 @@ func NewFavoriteRepository(db *gorm.DB) favoriteInterfaces.FavoriteRepositoryInt
 	return &FavoriteRepository{BaseRepository: NewBaseRepository[models.UserFavorite](db)}
 }
 
-func (r *FavoriteRepository) ListVisible(ctx context.Context, userID uint64, generatedAt time.Time, page uint64) (*messages.PaginatedResponse[activityEntities.PublicActivity], error) {
+func (r *FavoriteRepository) ListVisible(
+	ctx context.Context,
+	userID uint64,
+	generatedAt time.Time,
+	page uint64,
+) (*messages.PaginatedResponse[activityEntities.PublicActivity], error) {
 	const limit = 10
-	query := publiclyVisibleActivities(publicActivityQuery(r.getDB(ctx)).Joins("JOIN user_favorites ON user_favorites.activity_id = activities.id AND user_favorites.user_id = ?", userID), generatedAt)
+	query := publiclyVisibleActivities(
+		publicActivityQuery(
+			r.getDB(ctx),
+		).Joins("JOIN user_favorites ON user_favorites.activity_id = activities.id AND user_favorites.user_id = ?", userID),
+		generatedAt,
+	)
 	var rows []publicActivityRow
 	if err := orderPublicActivities(query).Limit(limit + 1).Offset(int(page) * limit).Find(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
@@ -39,7 +49,14 @@ func (r *FavoriteRepository) ListVisible(ctx context.Context, userID uint64, gen
 	for index := range rows {
 		items[index] = mapPublicActivityRow(&rows[index])
 	}
-	return &messages.PaginatedResponse[activityEntities.PublicActivity]{Data: items, Pagination: messages.Pagination{CurrentPage: messages.Uint64StringFromUint64(page + 1), HasNextPage: hasNext, Limit: limit}}, nil
+	return &messages.PaginatedResponse[activityEntities.PublicActivity]{
+		Data: items,
+		Pagination: messages.Pagination{
+			CurrentPage: messages.Uint64StringFromUint64(page + 1),
+			HasNextPage: hasNext,
+			Limit:       limit,
+		},
+	}, nil
 }
 
 func (r *FavoriteRepository) Create(ctx context.Context, favorite *entities.Favorite) (bool, error) {
@@ -59,9 +76,16 @@ func (r *FavoriteRepository) Delete(ctx context.Context, userID uint64, activity
 	return result.RowsAffected == 1, nil
 }
 
-func (r *FavoriteRepository) FindOperation(ctx context.Context, actorUserID uint64, idempotencyKey string) (*entities.ParticipantOperation, error) {
+func (r *FavoriteRepository) FindOperation(
+	ctx context.Context,
+	actorUserID uint64,
+	idempotencyKey string,
+) (*entities.ParticipantOperation, error) {
 	var row models.ParticipantOperation
-	err := r.getDB(ctx).Where("actor_user_id = ? AND idempotency_key = ?", actorUserID, idempotencyKey).First(&row).Error
+	err := r.getDB(ctx).
+		Where("actor_user_id = ? AND idempotency_key = ?", actorUserID, idempotencyKey).
+		First(&row).
+		Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, appErrors.ErrNotFound
 	}
@@ -71,7 +95,26 @@ func (r *FavoriteRepository) FindOperation(ctx context.Context, actorUserID uint
 	return mappers.MapParticipantOperationToEntity(&row), nil
 }
 
-func (r *FavoriteRepository) CreateOperation(ctx context.Context, operation *entities.ParticipantOperation) (*entities.ParticipantOperation, error) {
+func (r *FavoriteRepository) CreateOperation(
+	ctx context.Context,
+	operation *entities.ParticipantOperation,
+) (*entities.ParticipantOperation, error) {
+	resourceRef := operation.ActivityID
+	if err := reserveGlobalIdempotencyKey(
+		ctx,
+		r.getDB(ctx),
+		operation.ID,
+		operation.ActorUserID,
+		operation.IdempotencyKey,
+		operation.Operation,
+		&resourceRef,
+		operation.IntentHash,
+		operation.ResultRef,
+		operation.HTTPStatus,
+		operation.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
 	row := mappers.MapParticipantOperationEntityToModel(operation)
 	if err := r.getDB(ctx).Create(row).Error; err != nil {
 		return nil, handleRepositoryError(err)
