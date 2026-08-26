@@ -353,7 +353,7 @@
       "priority": "P2",
       "state": "ready",
       "dependencies": [],
-      "endpoints": ["listAdminSpaces", "createAdminSpace", "updateAdminSpace", "listAdminActivities", "createAdminActivity", "updateAdminActivity", "listAdminStaff", "updateAdminUserRole", "listAdminActivityManagers", "assignAdminActivityManager", "removeAdminActivityManager", "startActivity", "pauseActivity"],
+      "endpoints": ["listAdminSpaces", "createAdminSpace", "updateAdminSpace", "listAdminActivities", "createAdminActivity", "updateAdminActivity", "listAdminStaff", "updateAdminUserRole", "listAdminActivityManagers", "assignAdminActivityManager", "removeAdminActivityManager", "startActivity", "pauseActivity", "concludeActivity"],
       "owner": "admin-panel",
       "blockers": [],
       "acceptanceTest": "Ver docs/installation-activities.md — fora do escopo do app do jogador; consumido só pelo painel administrativo.",

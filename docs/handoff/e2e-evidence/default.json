@@ -1,0 +1,905 @@
+[
+  {
+    "journey": "default",
+    "step": 1,
+    "label": "admin promove usuário a EVENT_MANAGER",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/32/role",
+    "status": 200,
+    "request": {
+      "role": "EVENT_MANAGER"
+    },
+    "response": {
+      "id": "32",
+      "role": "EVENT_MANAGER"
+    },
+    "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
+  },
+  {
+    "journey": "default",
+    "step": 2,
+    "label": "jogador pede o signup por e-mail",
+    "role": "PUBLIC",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/auth/signup",
+    "status": 200,
+    "request": {
+      "email": "e2e-default-player@example.com"
+    },
+    "response": {
+      "status": "CODE_SENT"
+    },
+    "proves": "POST /v2/auth/signup dispara um código de verificação por e-mail (200)."
+  },
+  {
+    "journey": "default",
+    "step": 3,
+    "label": "jogador confirma o código",
+    "role": "PUBLIC",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/auth/signup/verify",
+    "status": 200,
+    "request": {
+      "email": "e2e-default-player@example.com",
+      "code": "482910"
+    },
+    "response": {
+      "accessToken": "[redacted]",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "csrfToken": "[redacted]",
+      "onboardingRequired": true,
+      "user": {
+        "id": "33",
+        "email": "e2e-default-player@example.com",
+        "name": "e2e-default-player",
+        "mobilePhone": "",
+        "documentMasked": "",
+        "role": "DEFAULT",
+        "group": null,
+        "onboardingComplete": false
+      }
+    },
+    "proves": "POST /v2/auth/signup/verify troca o código por uma sessão (accessToken) e cria a conta (200)."
+  },
+  {
+    "journey": "default",
+    "step": 4,
+    "label": "jogador confere a própria sessão",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/auth/session",
+    "status": 200,
+    "response": {
+      "onboardingRequired": true,
+      "user": {
+        "id": "33",
+        "email": "e2e-default-player@example.com",
+        "name": "e2e-default-player",
+        "mobilePhone": "",
+        "documentMasked": "",
+        "role": "DEFAULT",
+        "group": null,
+        "onboardingComplete": false
+      }
+    },
+    "proves": "GET /v2/auth/session confirma a identidade (200)."
+  },
+  {
+    "journey": "default",
+    "step": 5,
+    "label": "jogador completa o onboarding (sem grupo)",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "PATCH",
+    "path": "/v2/auth/onboarding",
+    "status": 200,
+    "request": {
+      "document": "52998224725",
+      "mobilePhone": "5541999990000"
+    },
+    "response": {
+      "onboardingRequired": false,
+      "user": {
+        "id": "33",
+        "email": "e2e-default-player@example.com",
+        "name": "e2e-default-player",
+        "mobilePhone": "5541999990000",
+        "documentMasked": "***.***.*47-25",
+        "role": "DEFAULT",
+        "group": null,
+        "onboardingComplete": true
+      }
+    },
+    "proves": "PATCH /v2/auth/onboarding aceita groupId omitido -- escolher um grupo é opcional e pode vir depois (200)."
+  },
+  {
+    "journey": "default",
+    "step": 6,
+    "label": "admin cria um convite para o grupo",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/groups/3/invites",
+    "status": 201,
+    "response": {
+      "id": "3",
+      "groupId": "3",
+      "status": "ACTIVE",
+      "expiresAt": "2026-09-02T04:03:41.475701033Z",
+      "revokedAt": null,
+      "consumedAt": null,
+      "consumedByUserId": null,
+      "createdByUserId": "31",
+      "replacesInviteId": null,
+      "createdAt": "2026-08-26T01:03:41.47595349-03:00",
+      "code": "gb0DQsFA2mXAdaJASacQNQ"
+    },
+    "proves": "POST .../invites cria um convite de uso único (201)."
+  },
+  {
+    "journey": "default",
+    "step": 7,
+    "label": "jogador consome o convite e entra no grupo",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/groups/invites/consume",
+    "status": 200,
+    "request": {
+      "code": "gb0DQsFA2mXAdaJASacQNQ"
+    },
+    "response": {
+      "group": {
+        "id": "3",
+        "groupName": "E2E Default Journey Group"
+      },
+      "membership": {
+        "id": "2",
+        "userId": "33",
+        "groupId": "3",
+        "joinedAt": "2026-08-26T01:03:41.480362-03:00"
+      }
+    },
+    "proves": "POST /v2/groups/invites/consume vincula o jogador ao grupo do convite (200)."
+  },
+  {
+    "journey": "default",
+    "step": 8,
+    "label": "jogador vê o próprio grupo",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/groups/me",
+    "status": 200,
+    "response": {
+      "group": {
+        "id": "3",
+        "groupName": "E2E Default Journey Group"
+      },
+      "membership": {
+        "id": "2",
+        "userId": "33",
+        "groupId": "3",
+        "joinedAt": "2026-08-26T01:03:41.480362-03:00"
+      }
+    },
+    "proves": "GET /v2/groups/me confirma a associação (200)."
+  },
+  {
+    "journey": "default",
+    "step": 9,
+    "label": "jogador lista os membros do grupo",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/groups/me/members",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "33",
+          "name": "e2e-default-player",
+          "role": "DEFAULT",
+          "joinedAt": "2026-08-26T01:03:41.480362-03:00"
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      }
+    },
+    "proves": "GET /v2/groups/me/members lista o próprio jogador como membro (200)."
+  },
+  {
+    "journey": "default",
+    "step": 10,
+    "label": "jogador atualiza o próprio perfil",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "PATCH",
+    "path": "/v2/users/me",
+    "status": 200,
+    "request": {
+      "name": "Jogador E2E"
+    },
+    "response": {
+      "id": "33",
+      "email": "e2e-default-player@example.com",
+      "name": "Jogador E2E",
+      "mobilePhone": "5541999990000",
+      "documentMasked": "***.***.*47-25",
+      "role": "DEFAULT",
+      "group": {
+        "id": "3",
+        "groupName": "E2E Default Journey Group"
+      },
+      "points": 0,
+      "rankPosition": 3,
+      "onboardingComplete": true,
+      "createdAt": "2026-08-26T01:03:41.459661-03:00",
+      "updatedAt": "2026-08-26T01:03:41.494919637-03:00"
+    },
+    "proves": "PATCH /v2/users/me só permite editar name e mobilePhone (200)."
+  },
+  {
+    "journey": "default",
+    "step": 11,
+    "label": "admin cria o espaço default-journey",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/spaces",
+    "status": 201,
+    "request": {
+      "slug": "default-journey-space",
+      "name": "Espaço default-journey",
+      "mapReference": "map:default-journey"
+    },
+    "response": {
+      "id": "b9558421-7b5a-47ce-954f-69d31927f043",
+      "name": "Espaço default-journey",
+      "slug": "default-journey-space",
+      "mapReference": "map:default-journey"
+    },
+    "proves": "POST /v2/admin/spaces cria um espaço com sucesso (201)."
+  },
+  {
+    "journey": "default",
+    "step": 12,
+    "label": "admin cria a activity default-journey",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/activities",
+    "status": 201,
+    "request": {
+      "spaceId": "b9558421-7b5a-47ce-954f-69d31927f043",
+      "slug": "default-journey",
+      "name": "Atividade default-journey",
+      "description": null,
+      "kind": "competitive",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "response": {
+      "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+      "spaceId": "b9558421-7b5a-47ce-954f-69d31927f043",
+      "slug": "default-journey",
+      "name": "Atividade default-journey",
+      "description": null,
+      "kind": "competitive",
+      "status": "draft",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "proves": "POST /v2/admin/activities cria uma activity em draft (201)."
+  },
+  {
+    "journey": "default",
+    "step": 13,
+    "label": "admin atribui o gestor à activity default-journey",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/v2/admin/activities/51df01f7-07b8-429b-86b0-0e0ebd185e0c/managers/32",
+    "status": 200,
+    "response": {
+      "activityId": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+      "userId": "32"
+    },
+    "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
+  },
+  {
+    "journey": "default",
+    "step": 14,
+    "label": "gestor inicia a activity default-journey",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/activities/51df01f7-07b8-429b-86b0-0e0ebd185e0c/start",
+    "status": 200,
+    "response": {
+      "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+      "status": "active"
+    },
+    "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
+  },
+  {
+    "journey": "default",
+    "step": 15,
+    "label": "jogador vê a agenda pública",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/schedule",
+    "status": 200,
+    "response": {
+      "items": [],
+      "generatedAt": "2026-08-26T04:03:41.526167754Z"
+    },
+    "proves": "GET /v2/schedule lista activities publicadas, sem exigir autenticação (200)."
+  },
+  {
+    "journey": "default",
+    "step": 16,
+    "label": "jogador lista activities",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/activities",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+          "space": {
+            "id": "b9558421-7b5a-47ce-954f-69d31927f043",
+            "name": "Espaço default-journey",
+            "slug": "default-journey-space"
+          },
+          "slug": "default-journey",
+          "name": "Atividade default-journey",
+          "description": null,
+          "kind": "competitive",
+          "startsAt": null,
+          "endsAt": null,
+          "checkInPoints": 10,
+          "momentPoints": 20,
+          "cooldownSeconds": 60,
+          "allowsMoment": true,
+          "state": null
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      }
+    },
+    "proves": "GET /v2/activities lista o catálogo público (200)."
+  },
+  {
+    "journey": "default",
+    "step": 17,
+    "label": "jogador favorita a activity",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "PUT",
+    "path": "/v2/users/me/favorites/51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+    "status": 204,
+    "proves": "PUT .../favorites/:activityId marca a activity como favorita (204)."
+  },
+  {
+    "journey": "default",
+    "step": 18,
+    "label": "jogador lista os favoritos",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/users/me/favorites?page=1",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+          "space": {
+            "id": "b9558421-7b5a-47ce-954f-69d31927f043",
+            "name": "Espaço default-journey",
+            "slug": "default-journey-space"
+          },
+          "slug": "default-journey",
+          "name": "Atividade default-journey",
+          "description": null,
+          "kind": "competitive",
+          "startsAt": null,
+          "endsAt": null,
+          "checkInPoints": 10,
+          "momentPoints": 20,
+          "cooldownSeconds": 60,
+          "allowsMoment": true,
+          "state": null
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      }
+    },
+    "proves": "GET .../favorites confirma a activity favoritada (200)."
+  },
+  {
+    "journey": "default",
+    "step": 19,
+    "label": "gestor cria o run para o jogador entrar",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/runs",
+    "status": 201,
+    "request": {
+      "gameId": "51df01f7-07b8-429b-86b0-0e0ebd185e0c"
+    },
+    "response": {
+      "id": "5f68ac28-0f30-47d1-9649-7d886ab511e8",
+      "game": {
+        "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+        "name": "Atividade default-journey"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST /v2/manager/runs cria o run que o jogador vai escanear (201)."
+  },
+  {
+    "journey": "default",
+    "step": 20,
+    "label": "gestor gera o QR do run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/runs/5f68ac28-0f30-47d1-9649-7d886ab511e8/qr",
+    "status": 201,
+    "response": {
+      "runId": "5f68ac28-0f30-47d1-9649-7d886ab511e8",
+      "qrId": "9a73d2da-c004-4f35-8883-76eb833779b6",
+      "qrToken": "6FgiNLdDwz9oiwr3xZSKJoIt5d0zOa2MNGyTDQ1w8iY",
+      "expiresAt": "2026-08-26T04:48:41.563336717Z"
+    },
+    "proves": "POST .../qr emite o QR que o jogador vai validar (201)."
+  },
+  {
+    "journey": "default",
+    "step": 21,
+    "label": "jogador faz check-in via QR",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/qr/validate",
+    "status": 201,
+    "request": {
+      "qrToken": "6FgiNLdDwz9oiwr3xZSKJoIt5d0zOa2MNGyTDQ1w8iY"
+    },
+    "response": {
+      "participation": {
+        "id": "1e197ad5-57f4-4465-9548-faec80847ce0",
+        "activity": {
+          "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+          "name": "Atividade default-journey"
+        },
+        "place": {
+          "id": "b9558421-7b5a-47ce-954f-69d31927f043",
+          "name": "Espaço default-journey"
+        },
+        "checkedInAt": "2026-08-26T04:03:41.568174Z",
+        "status": "active",
+        "canShareMoment": true,
+        "checkInPoints": 0,
+        "newTotalPoints": 0
+      }
+    },
+    "proves": "POST /v2/qr/validate cria a Participation do jogador no run (201)."
+  },
+  {
+    "journey": "default",
+    "step": 22,
+    "label": "jogador vê o próprio run atual",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/activity-runs/current",
+    "status": 200,
+    "response": {
+      "run": {
+        "id": "5f68ac28-0f30-47d1-9649-7d886ab511e8",
+        "status": "draft",
+        "gameName": "Atividade default-journey",
+        "startedAt": null,
+        "endedAt": null
+      }
+    },
+    "proves": "GET /v2/activity-runs/current mostra o run em que o jogador está participando (200)."
+  },
+  {
+    "journey": "default",
+    "step": 23,
+    "label": "jogador vê a própria participação atual",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/participations/current",
+    "status": 200,
+    "response": {
+      "participation": {
+        "id": "1e197ad5-57f4-4465-9548-faec80847ce0",
+        "activity": {
+          "id": "51df01f7-07b8-429b-86b0-0e0ebd185e0c",
+          "name": "Atividade default-journey"
+        },
+        "place": {
+          "id": "b9558421-7b5a-47ce-954f-69d31927f043",
+          "name": "Espaço default-journey"
+        },
+        "checkedInAt": "2026-08-26T04:03:41.568174Z",
+        "status": "active",
+        "canShareMoment": true,
+        "checkInPoints": 0
+      }
+    },
+    "proves": "GET /v2/participations/current mostra a Participation recém-criada (200)."
+  },
+  {
+    "journey": "default",
+    "step": 24,
+    "label": "player pede uma intenção de upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/upload-intents",
+    "status": 201,
+    "request": {
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+    },
+    "response": {
+      "id": "85b92927-e0e0-48fe-a62f-8b792cfb8bb4",
+      "uploadUrl": "https://storage.example/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+      "method": "PUT",
+      "headers": {
+        "Content-Type": "image/jpeg",
+        "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+      },
+      "expiresAt": "2026-08-26T04:13:41.589905183Z"
+    },
+    "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
+  },
+  {
+    "journey": "default",
+    "step": 25,
+    "label": "player confirma o upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/85b92927-e0e0-48fe-a62f-8b792cfb8bb4/complete",
+    "status": 200,
+    "response": {
+      "id": "85b92927-e0e0-48fe-a62f-8b792cfb8bb4",
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "state": "available",
+      "availableAt": "2026-08-26T04:03:41.611509843Z",
+      "retentionDueAt": "2026-11-24T04:03:41.589905Z"
+    },
+    "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
+  },
+  {
+    "journey": "default",
+    "step": 26,
+    "label": "player publica um moment",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/moments",
+    "status": 201,
+    "request": {
+      "mediaAssetId": "85b92927-e0e0-48fe-a62f-8b792cfb8bb4",
+      "publishConsent": true,
+      "participationId": "1e197ad5-57f4-4465-9548-faec80847ce0"
+    },
+    "response": {
+      "id": "4b405082-6898-453d-8461-4fd69a918a1e",
+      "origin": "challenge",
+      "participationId": "1e197ad5-57f4-4465-9548-faec80847ce0",
+      "imageUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+      "imageExpiresAt": "2026-08-26T04:08:41.617099626Z",
+      "placeName": "Espaço default-journey",
+      "authorName": "Jogador E2E",
+      "capturedAt": "2026-08-26T04:03:41.617099Z",
+      "publicationStatus": "public",
+      "moderationStatus": "pending",
+      "pointsAwarded": 20,
+      "likesCount": 0,
+      "likedByCurrentUser": false,
+      "groupId": "3"
+    },
+    "proves": "POST /v2/moments nasce pending e já aparece no feed (201)."
+  },
+  {
+    "journey": "default",
+    "step": 27,
+    "label": "jogador vê o próprio moment no feed",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/moments?scope=feed",
+    "status": 200,
+    "response": {
+      "items": [
+        {
+          "id": "4b405082-6898-453d-8461-4fd69a918a1e",
+          "origin": "challenge",
+          "participationId": "1e197ad5-57f4-4465-9548-faec80847ce0",
+          "imageUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+          "thumbnailUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+          "shareImageUrl": "https://storage.example/read/85b92927-e0e0-48fe-a62f-8b792cfb8bb4?signed=redacted",
+          "imageExpiresAt": "2026-08-26T04:08:41.641786157Z",
+          "placeName": "Espaço default-journey",
+          "authorName": "Jogador E2E",
+          "capturedAt": "2026-08-26T04:03:41.617099Z",
+          "publicationStatus": "public",
+          "moderationStatus": "pending",
+          "pointsAwarded": 20,
+          "likesCount": 0,
+          "likedByCurrentUser": false,
+          "groupId": "3"
+        }
+      ],
+      "nextCursor": null
+    },
+    "proves": "GET /v2/moments?scope=feed já mostra o moment (pending e approved aparecem -- só rejected some)."
+  },
+  {
+    "journey": "default",
+    "step": 28,
+    "label": "jogador curte o próprio moment",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/moments/4b405082-6898-453d-8461-4fd69a918a1e/likes",
+    "status": 200,
+    "response": {
+      "momentId": "4b405082-6898-453d-8461-4fd69a918a1e",
+      "liked": true,
+      "likesCount": 1
+    },
+    "proves": "POST /v2/moments/:momentId/likes alterna a curtida (200)."
+  },
+  {
+    "journey": "default",
+    "step": 29,
+    "label": "jogador vê seu overview no jogo",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/game/overview",
+    "status": 200,
+    "response": {
+      "individual": [
+        {
+          "id": "33",
+          "name": "Jogador E2E",
+          "groupName": "E2E Default Journey Group",
+          "points": 20,
+          "position": 1
+        }
+      ],
+      "groups": [
+        {
+          "id": "3",
+          "name": "E2E Default Journey Group",
+          "members": 1,
+          "points": 20,
+          "position": 1
+        }
+      ],
+      "pointEntries": [
+        {
+          "id": "c484f824-416c-46f5-9526-ca2981389ee9",
+          "label": "Momento em desafio",
+          "points": 20,
+          "icon": "camera",
+          "createdAt": "2026-08-26T04:03:41.617099Z"
+        }
+      ],
+      "current": {
+        "groupId": "3",
+        "rankPosition": 1,
+        "groupRankPosition": 1,
+        "points": 20
+      }
+    },
+    "proves": "GET /v2/game/overview mostra rankings e o histórico de pontos do jogador (200)."
+  },
+  {
+    "journey": "default",
+    "step": 30,
+    "label": "jogador vê o ranking individual",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/rankings?scope=individual\u0026page=1",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "33",
+          "name": "Jogador E2E",
+          "groupName": "E2E Default Journey Group",
+          "points": 20,
+          "position": 1
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      },
+      "generatedAt": "2026-08-26T04:03:41.677081283Z"
+    },
+    "proves": "GET /v2/rankings é público mas também acessível autenticado (200)."
+  },
+  {
+    "journey": "default",
+    "step": 31,
+    "label": "jogador vê as preferências de notificação",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/notifications/preferences",
+    "status": 200,
+    "response": {
+      "momentModerationEnabled": true,
+      "pointsEnabled": true,
+      "announcementEnabled": true,
+      "updatedAt": "2026-08-26T04:03:41.680302402Z"
+    },
+    "proves": "GET /v2/notifications/preferences retorna os defaults (200)."
+  },
+  {
+    "journey": "default",
+    "step": 32,
+    "label": "jogador desliga notificações de pontos",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "PUT",
+    "path": "/v2/notifications/preferences",
+    "status": 200,
+    "request": {
+      "pointsEnabled": false
+    },
+    "response": {
+      "momentModerationEnabled": true,
+      "pointsEnabled": false,
+      "announcementEnabled": true,
+      "updatedAt": "2026-08-26T04:03:41.681451075Z"
+    },
+    "proves": "PUT /v2/notifications/preferences aceita atualização parcial (200)."
+  },
+  {
+    "journey": "default",
+    "step": 33,
+    "label": "admin avisa a todos (para o jogador ler)",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/notifications",
+    "status": 201,
+    "request": {
+      "title": "Bem-vindo",
+      "body": "Sua jornada começou."
+    },
+    "response": {
+      "recipientCount": "1"
+    },
+    "proves": "POST /v2/admin/notifications alcança o jogador recém-cadastrado (201)."
+  },
+  {
+    "journey": "default",
+    "step": 34,
+    "label": "jogador lista as próprias notificações",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/notifications",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "7745c160-84b5-4f71-a9ff-d268e64be4c6",
+          "category": "announcement",
+          "state": "unread",
+          "title": "Bem-vindo",
+          "body": "Sua jornada começou.",
+          "sourceType": "admin_broadcast",
+          "sourceId": "036926c4-a944-4c92-b453-c360108c24b9",
+          "createdAt": "2026-08-26T04:03:41.688309Z"
+        },
+        {
+          "id": "75aa0b42-940d-4d08-8919-5dbff4f9c27e",
+          "category": "points",
+          "state": "unread",
+          "title": "Pontos concedidos",
+          "body": "Você recebeu pontos por uma foto publicada.",
+          "sourceType": "moment",
+          "sourceId": "4b405082-6898-453d-8461-4fd69a918a1e",
+          "createdAt": "2026-08-26T04:03:41.617099Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      },
+      "unreadCount": "2"
+    },
+    "proves": "GET /v2/notifications mostra o aviso do admin, ainda não lido (200)."
+  },
+  {
+    "journey": "default",
+    "step": 35,
+    "label": "jogador marca a notificação como lida",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/notifications/7745c160-84b5-4f71-a9ff-d268e64be4c6/read",
+    "status": 200,
+    "response": {
+      "id": "7745c160-84b5-4f71-a9ff-d268e64be4c6",
+      "category": "announcement",
+      "state": "read",
+      "title": "Bem-vindo",
+      "body": "Sua jornada começou.",
+      "sourceType": "admin_broadcast",
+      "sourceId": "036926c4-a944-4c92-b453-c360108c24b9",
+      "createdAt": "2026-08-26T04:03:41.688309Z",
+      "readAt": "2026-08-26T04:03:41.69709Z"
+    },
+    "proves": "POST .../read marca a notificação como lida (200)."
+  },
+  {
+    "journey": "default",
+    "step": 36,
+    "label": "jogador tenta acessar a tela de staff",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/admin/staff",
+    "status": 403,
+    "response": {
+      "code": "FORBIDDEN",
+      "message": "Operação permitida somente para ADMIN.",
+      "requestId": ""
+    },
+    "proves": "GET /v2/admin/staff rejeita um jogador comum com 403 FORBIDDEN."
+  }
+]

@@ -12,6 +12,7 @@ const (
 	OriginChallenge     Origin            = "challenge"
 	PublicationPrivate  PublicationStatus = "private"
 	PublicationPublic   PublicationStatus = "public"
+	ModerationPending   ModerationStatus  = "pending"
 	ModerationApproved  ModerationStatus  = "approved"
 	ModerationRejected  ModerationStatus  = "rejected"
 	RewardNotApplicable RewardStatus      = "not_applicable"

@@ -9,4 +9,5 @@ import (
 type ActivityServiceInterface interface {
 	Start(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)
 	Pause(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)
+	Conclude(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)
 }

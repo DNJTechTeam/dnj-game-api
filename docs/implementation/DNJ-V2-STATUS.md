@@ -281,8 +281,10 @@ O contrato administrativo mínimo foi aprovado e implementado em 2026-08-24.
 Ele publica sob `/v2/admin` CRUD sem exclusão física para configuração de
 Spaces/Activities, listagem de `EVENT_MANAGER`, transição restrita de papel e
 assignments idempotentes. `ADMIN` continua impossível de conceder/remover pela
-API, Activity nasce `draft`, somente `archived` é aceito como transição no PATCH
-administrativo e start/pause permanecem nas operações gerenciais.
+API, Activity nasce `draft` (exceto `schedule`/`checkpoint`, que nascem
+`active` — ajuste posterior, ver `docs/installation-activities.md`), somente
+`archived` é aceito como transição no PATCH administrativo e start/pause/
+conclude permanecem nas operações gerenciais.
 
 Enabler preservado para as etapas finais: o frontend deve integrar em conjunto
 os contratos das Iterações 2–4, migrar `/api/v1/spaces` para `/v2/spaces` e

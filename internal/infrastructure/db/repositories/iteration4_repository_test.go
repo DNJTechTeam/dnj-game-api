@@ -58,7 +58,7 @@ func TestIteration4AdminRepositories_FullPersistenceSurface(t *testing.T) {
 	assignmentCount, countErr := activities.CountManagerAssignments(ctx, manager.ID)
 	removed, removeErr := activities.DeleteManagerAssignment(ctx, activityID, manager.ID)
 	removedNoOp, removeNoOpErr := activities.DeleteManagerAssignment(ctx, activityID, manager.ID)
-	staff, staffErr := users.ListByRole(ctx, userEntities.RoleEventManager, 0)
+	staff, staffErr := users.ListByRole(ctx, []userEntities.UserRole{userEntities.RoleEventManager}, 0)
 	roleErr := users.UpdateRole(ctx, manager.ID, userEntities.RoleDefault)
 	key := uuid.NewString()
 	operation := &adminEntities.AdminOperation{ID: uuid.NewString(), ActorUserID: admin.ID, IdempotencyKey: key, Operation: "admin.space.create", EntityType: "space", EntityRef: spaceID, RequestHash: "hash", HTTPStatus: 201, Response: json.RawMessage(`{"id":"` + spaceID + `"}`), CreatedAt: now}

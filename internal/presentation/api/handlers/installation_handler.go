@@ -34,6 +34,10 @@ func (h *InstallationHandler) PauseActivity(c *gin.Context) {
 	h.transitionActivity(c, h.ActivityService.Pause)
 }
 
+func (h *InstallationHandler) ConcludeActivity(c *gin.Context) {
+	h.transitionActivity(c, h.ActivityService.Conclude)
+}
+
 func (h *InstallationHandler) transitionActivity(c *gin.Context, operation func(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) {
 	result, err := operation(c.Request.Context(), c.Param("id"), c.GetHeader("Idempotency-Key"))
 	if err != nil {

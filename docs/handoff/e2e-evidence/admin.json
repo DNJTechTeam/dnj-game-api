@@ -1,0 +1,838 @@
+[
+  {
+    "journey": "admin",
+    "step": 1,
+    "label": "smoke check de healthcheck",
+    "role": "PUBLIC",
+    "actor": "-",
+    "method": "GET",
+    "path": "/v2/healthcheck",
+    "status": 200,
+    "response": {
+      "service": "dnj-game-api",
+      "status": "ok"
+    },
+    "proves": "GET /v2/healthcheck responde sem autenticação (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 2,
+    "label": "admin promove usuário a EVENT_MANAGER",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/28/role",
+    "status": 200,
+    "request": {
+      "role": "EVENT_MANAGER"
+    },
+    "response": {
+      "id": "28",
+      "role": "EVENT_MANAGER"
+    },
+    "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 3,
+    "label": "admin promove usuário a EVENT_MANAGER",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/29/role",
+    "status": 200,
+    "request": {
+      "role": "EVENT_MANAGER"
+    },
+    "response": {
+      "id": "29",
+      "role": "EVENT_MANAGER"
+    },
+    "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 4,
+    "label": "admin lista todo o staff (sem filtro)",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/staff",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "27",
+          "name": "E2E Admin Journey Admin",
+          "role": "ADMIN",
+          "onboardingComplete": true
+        },
+        {
+          "id": "28",
+          "name": "E2E Admin Journey Manager X",
+          "role": "EVENT_MANAGER",
+          "onboardingComplete": true
+        },
+        {
+          "id": "29",
+          "name": "E2E Admin Journey Manager Y",
+          "role": "EVENT_MANAGER",
+          "onboardingComplete": true
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 20
+      }
+    },
+    "proves": "GET /v2/admin/staff sem role lista ADMIN + EVENT_MANAGER juntos."
+  },
+  {
+    "journey": "admin",
+    "step": 5,
+    "label": "admin filtra staff por role=ADMIN",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/staff?role=ADMIN",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "27",
+          "name": "E2E Admin Journey Admin",
+          "role": "ADMIN",
+          "onboardingComplete": true
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 20
+      }
+    },
+    "proves": "GET /v2/admin/staff?role=ADMIN só lista administradores."
+  },
+  {
+    "journey": "admin",
+    "step": 6,
+    "label": "admin cria o espaço admin-journey-y",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/spaces",
+    "status": 201,
+    "request": {
+      "slug": "admin-journey-y-space",
+      "name": "Espaço admin-journey-y",
+      "mapReference": "map:admin-journey-y"
+    },
+    "response": {
+      "id": "5a88d192-40a7-4b2a-a83d-925be5fa336c",
+      "name": "Espaço admin-journey-y",
+      "slug": "admin-journey-y-space",
+      "mapReference": "map:admin-journey-y"
+    },
+    "proves": "POST /v2/admin/spaces cria um espaço com sucesso (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 7,
+    "label": "admin cria a activity admin-journey-y",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/activities",
+    "status": 201,
+    "request": {
+      "spaceId": "5a88d192-40a7-4b2a-a83d-925be5fa336c",
+      "slug": "admin-journey-y",
+      "name": "Atividade admin-journey-y",
+      "description": null,
+      "kind": "competitive",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "response": {
+      "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+      "spaceId": "5a88d192-40a7-4b2a-a83d-925be5fa336c",
+      "slug": "admin-journey-y",
+      "name": "Atividade admin-journey-y",
+      "description": null,
+      "kind": "competitive",
+      "status": "draft",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "proves": "POST /v2/admin/activities cria uma activity em draft (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 8,
+    "label": "admin atribui o gestor à activity admin-journey-y",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/v2/admin/activities/b10155fa-b81e-40a2-9477-eb9e9b32aa5c/managers/29",
+    "status": 200,
+    "response": {
+      "activityId": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+      "userId": "29"
+    },
+    "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 9,
+    "label": "gestor inicia a activity admin-journey-y",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/activities/b10155fa-b81e-40a2-9477-eb9e9b32aa5c/start",
+    "status": 200,
+    "response": {
+      "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+      "status": "active"
+    },
+    "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 10,
+    "label": "gestor Y cria um run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-y",
+    "method": "POST",
+    "path": "/v2/manager/runs",
+    "status": 201,
+    "request": {
+      "gameId": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c"
+    },
+    "response": {
+      "id": "508b44e5-9282-4fad-9f5e-f47e78855220",
+      "game": {
+        "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+        "name": "Atividade admin-journey-y"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST /v2/manager/runs cria um run próprio do gestor Y (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 11,
+    "label": "admin acessa o run do gestor Y sem estar atribuído",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/manager/runs/508b44e5-9282-4fad-9f5e-f47e78855220",
+    "status": 200,
+    "response": {
+      "id": "508b44e5-9282-4fad-9f5e-f47e78855220",
+      "game": {
+        "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+        "name": "Atividade admin-journey-y"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "GET /v2/manager/runs/:id retorna 200 para Admin mesmo sem atribuição -- alçada global, o espelho do 404 que um gestor par recebe."
+  },
+  {
+    "journey": "admin",
+    "step": 12,
+    "label": "gestor Y gera QR do run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-y",
+    "method": "POST",
+    "path": "/v2/manager/runs/508b44e5-9282-4fad-9f5e-f47e78855220/qr",
+    "status": 201,
+    "response": {
+      "runId": "508b44e5-9282-4fad-9f5e-f47e78855220",
+      "qrId": "86eac384-9795-436f-a833-073bf70405d1",
+      "qrToken": "y6EWxuyLoNGDh7bsCbgh6witf0AK3sP6qybwoLcj3xg",
+      "expiresAt": "2026-08-26T04:48:40.908570808Z"
+    },
+    "proves": "POST .../qr emite um QR para check-in de jogadores (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 13,
+    "label": "admin lista gestores da activity Y",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/activities/b10155fa-b81e-40a2-9477-eb9e9b32aa5c/managers",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "29",
+          "name": "E2E Admin Journey Manager Y",
+          "role": "EVENT_MANAGER",
+          "onboardingComplete": true
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 20
+      }
+    },
+    "proves": "GET .../managers lista o gestor Y como responsável."
+  },
+  {
+    "journey": "admin",
+    "step": 14,
+    "label": "admin remove o gestor Y da activity",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "DELETE",
+    "path": "/v2/admin/activities/b10155fa-b81e-40a2-9477-eb9e9b32aa5c/managers/29",
+    "status": 204,
+    "proves": "DELETE .../managers/:userId desvincula o gestor (204)."
+  },
+  {
+    "journey": "admin",
+    "step": 15,
+    "label": "admin rebaixa o gestor Y para DEFAULT",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/29/role",
+    "status": 200,
+    "request": {
+      "role": "DEFAULT"
+    },
+    "response": {
+      "id": "29",
+      "role": "DEFAULT"
+    },
+    "proves": "PATCH .../role rebaixa EVENT_MANAGER-\u003eDEFAULT depois que os assignments foram removidos (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 16,
+    "label": "jogador faz check-in via QR",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/qr/validate",
+    "status": 201,
+    "request": {
+      "qrToken": "y6EWxuyLoNGDh7bsCbgh6witf0AK3sP6qybwoLcj3xg"
+    },
+    "response": {
+      "participation": {
+        "id": "a7468ada-c939-4eaa-a957-1df4b0510b5a",
+        "activity": {
+          "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+          "name": "Atividade admin-journey-y"
+        },
+        "place": {
+          "id": "5a88d192-40a7-4b2a-a83d-925be5fa336c",
+          "name": "Espaço admin-journey-y"
+        },
+        "checkedInAt": "2026-08-26T04:03:40.940947Z",
+        "status": "active",
+        "canShareMoment": true,
+        "checkInPoints": 0,
+        "newTotalPoints": 0
+      }
+    },
+    "proves": "POST /v2/qr/validate cria a Participation usada pelos moments seguintes."
+  },
+  {
+    "journey": "admin",
+    "step": 17,
+    "label": "player pede uma intenção de upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/upload-intents",
+    "status": 201,
+    "request": {
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+    },
+    "response": {
+      "id": "c65de92a-fa98-4afb-b42e-cd72f4c7d4fd",
+      "uploadUrl": "https://storage.example/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd?signed=redacted",
+      "method": "PUT",
+      "headers": {
+        "Content-Type": "image/jpeg",
+        "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+      },
+      "expiresAt": "2026-08-26T04:13:40.958006182Z"
+    },
+    "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 18,
+    "label": "player confirma o upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd/complete",
+    "status": 200,
+    "response": {
+      "id": "c65de92a-fa98-4afb-b42e-cd72f4c7d4fd",
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "state": "available",
+      "availableAt": "2026-08-26T04:03:40.988259903Z",
+      "retentionDueAt": "2026-11-24T04:03:40.958006Z"
+    },
+    "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 19,
+    "label": "player publica um moment",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/moments",
+    "status": 201,
+    "request": {
+      "mediaAssetId": "c65de92a-fa98-4afb-b42e-cd72f4c7d4fd",
+      "publishConsent": true,
+      "participationId": "a7468ada-c939-4eaa-a957-1df4b0510b5a"
+    },
+    "response": {
+      "id": "da6f62e7-7973-4d3e-a345-d933963b4b5c",
+      "origin": "challenge",
+      "participationId": "a7468ada-c939-4eaa-a957-1df4b0510b5a",
+      "imageUrl": "https://storage.example/read/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd?signed=redacted",
+      "imageExpiresAt": "2026-08-26T04:08:40.997561427Z",
+      "placeName": "Espaço admin-journey-y",
+      "authorName": "E2E Admin Journey Player",
+      "capturedAt": "2026-08-26T04:03:40.997561Z",
+      "publicationStatus": "public",
+      "moderationStatus": "pending",
+      "pointsAwarded": 20,
+      "likesCount": 0,
+      "likedByCurrentUser": false
+    },
+    "proves": "POST /v2/moments nasce pending e já aparece no feed (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 20,
+    "label": "player pede uma intenção de upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/upload-intents",
+    "status": 201,
+    "request": {
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+    },
+    "response": {
+      "id": "00570b8a-f5e9-4db4-915d-10ab6b0b7056",
+      "uploadUrl": "https://storage.example/00570b8a-f5e9-4db4-915d-10ab6b0b7056?signed=redacted",
+      "method": "PUT",
+      "headers": {
+        "Content-Type": "image/jpeg",
+        "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
+      },
+      "expiresAt": "2026-08-26T04:13:41.033877947Z"
+    },
+    "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 21,
+    "label": "player confirma o upload",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/media/00570b8a-f5e9-4db4-915d-10ab6b0b7056/complete",
+    "status": 200,
+    "response": {
+      "id": "00570b8a-f5e9-4db4-915d-10ab6b0b7056",
+      "contentType": "image/jpeg",
+      "bytes": 636,
+      "state": "available",
+      "availableAt": "2026-08-26T04:03:41.048895896Z",
+      "retentionDueAt": "2026-11-24T04:03:41.033877Z"
+    },
+    "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 22,
+    "label": "player publica um moment",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/moments",
+    "status": 201,
+    "request": {
+      "mediaAssetId": "00570b8a-f5e9-4db4-915d-10ab6b0b7056",
+      "publishConsent": true
+    },
+    "response": {
+      "id": "bda186fd-2ca5-4a7e-b36e-b3e1661ca0c3",
+      "origin": "free",
+      "participationId": null,
+      "imageUrl": "https://storage.example/read/00570b8a-f5e9-4db4-915d-10ab6b0b7056?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/00570b8a-f5e9-4db4-915d-10ab6b0b7056?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/00570b8a-f5e9-4db4-915d-10ab6b0b7056?signed=redacted",
+      "imageExpiresAt": "2026-08-26T04:08:41.052390131Z",
+      "placeName": null,
+      "authorName": "E2E Admin Journey Player",
+      "capturedAt": "2026-08-26T04:03:41.05239Z",
+      "publicationStatus": "public",
+      "moderationStatus": "pending",
+      "pointsAwarded": 0,
+      "likesCount": 0,
+      "likedByCurrentUser": false
+    },
+    "proves": "POST /v2/moments nasce pending e já aparece no feed (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 23,
+    "label": "admin lista a fila de moderação (challenge)",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/moments/moderation?queue=challenge\u0026page=1",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "momentId": "da6f62e7-7973-4d3e-a345-d933963b4b5c",
+          "imageUrl": "https://storage.example/read/c65de92a-fa98-4afb-b42e-cd72f4c7d4fd?signed=redacted",
+          "imageExpiresAt": "2026-08-26T04:08:41.059466204Z",
+          "capturedAt": "2026-08-26T04:03:40.997561Z",
+          "participantName": "E2E Admin Journey Player",
+          "activity": {
+            "id": "b10155fa-b81e-40a2-9477-eb9e9b32aa5c",
+            "name": "Atividade admin-journey-y"
+          },
+          "pointsAwarded": 20,
+          "publicationStatus": "public",
+          "moderationStatus": "pending",
+          "rewardStatus": "awarded",
+          "photoStatus": "available",
+          "availableActions": [
+            "approve",
+            "deny_points",
+            "delete_photo"
+          ]
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 50
+      }
+    },
+    "proves": "GET .../moderation?queue=challenge mostra o moment vinculado à participation, ainda pendente."
+  },
+  {
+    "journey": "admin",
+    "step": 24,
+    "label": "admin aprova o primeiro moment",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/moments/da6f62e7-7973-4d3e-a345-d933963b4b5c/moderation",
+    "status": 200,
+    "request": {
+      "action": "approve"
+    },
+    "response": {
+      "momentId": "da6f62e7-7973-4d3e-a345-d933963b4b5c",
+      "action": "approve",
+      "publicationStatus": "public",
+      "moderationStatus": "approved",
+      "rewardStatus": "awarded",
+      "photoStatus": "available",
+      "pointsAwarded": 20
+    },
+    "proves": "POST .../moderation com action=approve tira o moment da fila pendente (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 25,
+    "label": "admin lista a fila de moderação (general)",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/moments/moderation?queue=general\u0026page=1",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "momentId": "bda186fd-2ca5-4a7e-b36e-b3e1661ca0c3",
+          "imageUrl": "https://storage.example/read/00570b8a-f5e9-4db4-915d-10ab6b0b7056?signed=redacted",
+          "imageExpiresAt": "2026-08-26T04:08:41.0720128Z",
+          "capturedAt": "2026-08-26T04:03:41.05239Z",
+          "participantName": "E2E Admin Journey Player",
+          "activity": null,
+          "pointsAwarded": 0,
+          "publicationStatus": "public",
+          "moderationStatus": "pending",
+          "rewardStatus": "not_applicable",
+          "photoStatus": "available",
+          "availableActions": [
+            "approve",
+            "delete_photo"
+          ]
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 50
+      }
+    },
+    "proves": "GET .../moderation?queue=general mostra o moment espontâneo, ainda pendente."
+  },
+  {
+    "journey": "admin",
+    "step": 26,
+    "label": "admin rejeita o segundo moment",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/moments/bda186fd-2ca5-4a7e-b36e-b3e1661ca0c3/moderation",
+    "status": 200,
+    "request": {
+      "action": "delete_photo"
+    },
+    "response": {
+      "momentId": "bda186fd-2ca5-4a7e-b36e-b3e1661ca0c3",
+      "action": "delete_photo",
+      "publicationStatus": "private",
+      "moderationStatus": "rejected",
+      "rewardStatus": "not_applicable",
+      "photoStatus": "deleted",
+      "pointsAwarded": 0
+    },
+    "proves": "POST .../moderation com action=delete_photo derruba a foto e rejeita o moment (200)."
+  },
+  {
+    "journey": "admin",
+    "step": 27,
+    "label": "jogador cria o próprio grupo",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "POST",
+    "path": "/v2/groups",
+    "status": 201,
+    "request": {
+      "name": "Grupo E2E Admin"
+    },
+    "response": {
+      "id": "2",
+      "groupName": "Grupo E2E Admin"
+    },
+    "proves": "POST /v2/groups é self-service -- qualquer autenticado pode criar (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 28,
+    "label": "admin cria um convite para o grupo",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/groups/2/invites",
+    "status": 201,
+    "response": {
+      "id": "1",
+      "groupId": "2",
+      "status": "ACTIVE",
+      "expiresAt": "2026-09-02T04:03:41.088531798Z",
+      "revokedAt": null,
+      "consumedAt": null,
+      "consumedByUserId": null,
+      "createdByUserId": "27",
+      "replacesInviteId": null,
+      "createdAt": "2026-08-26T01:03:41.088922232-03:00",
+      "code": "rD24OWLuxW3-heNg3vByrg"
+    },
+    "proves": "POST .../invites cria um convite de uso único (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 29,
+    "label": "admin renova o convite",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/groups/2/invites/1/renew",
+    "status": 201,
+    "response": {
+      "id": "2",
+      "groupId": "2",
+      "status": "ACTIVE",
+      "expiresAt": "2026-09-02T04:03:41.094984994Z",
+      "revokedAt": null,
+      "consumedAt": null,
+      "consumedByUserId": null,
+      "createdByUserId": "27",
+      "replacesInviteId": "1",
+      "createdAt": "2026-08-26T01:03:41.095010902-03:00",
+      "code": "R-tlhnnN78FFl-KyOtR9AQ"
+    },
+    "proves": "POST .../renew revoga o convite antigo e emite um novo (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 30,
+    "label": "admin revoga o convite renovado",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "DELETE",
+    "path": "/v2/admin/groups/2/invites/2",
+    "status": 204,
+    "proves": "DELETE .../invites/:inviteId revoga o convite (204)."
+  },
+  {
+    "journey": "admin",
+    "step": 31,
+    "label": "admin lista convites do grupo",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/v2/admin/groups/2/invites",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "2",
+          "groupId": "2",
+          "status": "REVOKED",
+          "expiresAt": "2026-09-02T01:03:41.094984-03:00",
+          "revokedAt": "2026-08-26T01:03:41.096776-03:00",
+          "consumedAt": null,
+          "consumedByUserId": null,
+          "createdByUserId": "27",
+          "replacesInviteId": "1",
+          "createdAt": "2026-08-26T01:03:41.09501-03:00"
+        },
+        {
+          "id": "1",
+          "groupId": "2",
+          "status": "REVOKED",
+          "expiresAt": "2026-09-02T01:03:41.088531-03:00",
+          "revokedAt": "2026-08-26T01:03:41.094253-03:00",
+          "consumedAt": null,
+          "consumedByUserId": null,
+          "createdByUserId": "27",
+          "replacesInviteId": null,
+          "createdAt": "2026-08-26T01:03:41.088922-03:00"
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      }
+    },
+    "proves": "GET .../invites lista o histórico (original + renovado, ambos revogados)."
+  },
+  {
+    "journey": "admin",
+    "step": 32,
+    "label": "admin dispara notificação broadcast",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/notifications",
+    "status": 201,
+    "request": {
+      "title": "Aviso geral",
+      "body": "Bem-vindos à jornada E2E."
+    },
+    "response": {
+      "recipientCount": "2"
+    },
+    "proves": "POST /v2/admin/notifications sem targetUserIds alcança todo mundo com announcement habilitado (201)."
+  },
+  {
+    "journey": "admin",
+    "step": 33,
+    "label": "jogador vê a notificação recebida",
+    "role": "DEFAULT",
+    "actor": "player",
+    "method": "GET",
+    "path": "/v2/notifications",
+    "status": 200,
+    "response": {
+      "data": [
+        {
+          "id": "b66b0d79-231e-429e-8d0d-4f57c3ab5a6f",
+          "category": "announcement",
+          "state": "unread",
+          "title": "Aviso geral",
+          "body": "Bem-vindos à jornada E2E.",
+          "sourceType": "admin_broadcast",
+          "sourceId": "5b5543ec-c221-4c22-a0ff-838ea506b857",
+          "createdAt": "2026-08-26T04:03:41.099652Z"
+        },
+        {
+          "id": "a8926d48-918a-403c-aec2-c225086e1ff9",
+          "category": "moment_moderation",
+          "state": "unread",
+          "title": "Sua foto foi moderada",
+          "body": "Sua foto foi removida da galeria.",
+          "sourceType": "moment",
+          "sourceId": "bda186fd-2ca5-4a7e-b36e-b3e1661ca0c3",
+          "createdAt": "2026-08-26T04:03:41.076515Z"
+        },
+        {
+          "id": "fa74f9ce-fe74-4df8-9775-87fe6ae64ac9",
+          "category": "moment_moderation",
+          "state": "unread",
+          "title": "Sua foto foi aprovada",
+          "body": "Sua foto foi aprovada e já está publicada.",
+          "sourceType": "moment",
+          "sourceId": "da6f62e7-7973-4d3e-a345-d933963b4b5c",
+          "createdAt": "2026-08-26T04:03:41.064168Z"
+        },
+        {
+          "id": "5fe085f4-4756-4c2e-9c50-0dde0276f24c",
+          "category": "points",
+          "state": "unread",
+          "title": "Pontos concedidos",
+          "body": "Você recebeu pontos por uma foto publicada.",
+          "sourceType": "moment",
+          "sourceId": "da6f62e7-7973-4d3e-a345-d933963b4b5c",
+          "createdAt": "2026-08-26T04:03:40.997561Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": "1",
+        "hasNextPage": false,
+        "limit": 10
+      },
+      "unreadCount": "4"
+    },
+    "proves": "GET /v2/notifications do jogador contém o broadcast enviado pelo admin."
+  }
+]

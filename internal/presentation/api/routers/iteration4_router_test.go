@@ -32,11 +32,15 @@ func TestIteration4Routes_PublicSpacesAndProtectedOperations(t *testing.T) {
 	engine.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/v2/manager/activities/11111111-1111-4111-8111-111111111111/start", nil))
 	pause := httptest.NewRecorder()
 	engine.ServeHTTP(pause, httptest.NewRequest(http.MethodPost, "/v2/manager/activities/11111111-1111-4111-8111-111111111111/pause", nil))
+	conclude := httptest.NewRecorder()
+	engine.ServeHTTP(conclude, httptest.NewRequest(http.MethodPost, "/v2/manager/activities/11111111-1111-4111-8111-111111111111/conclude", nil))
 
 	// then
 	assert.NotEqual(t, http.StatusUnauthorized, public.Code)
 	assert.Equal(t, http.StatusUnauthorized, start.Code)
 	assert.Equal(t, http.StatusUnauthorized, pause.Code)
+	assert.Equal(t, http.StatusUnauthorized, conclude.Code)
 	assert.Contains(t, start.Body.String(), "UNAUTHENTICATED")
 	assert.Contains(t, pause.Body.String(), "UNAUTHENTICATED")
+	assert.Contains(t, conclude.Body.String(), "UNAUTHENTICATED")
 }

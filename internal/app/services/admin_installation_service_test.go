@@ -93,15 +93,21 @@ func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.
 	spaces, spacesErr := service.ListSpaces(adminCtx, &messages.ListAdminSpacesFilterDTO{})
 	activities, activitiesErr := service.ListActivities(adminCtx, &messages.ListAdminActivitiesFilterDTO{})
 	staff, staffErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "EVENT_MANAGER"})
+	// A jurisdiction covering everyone below it: an admin can also list admins,
+	// and an empty/nil filter lists every staff member regardless of role.
+	admins, adminsErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "ADMIN"})
+	allStaff, allStaffErr := service.ListStaff(adminCtx, nil)
 	_, managerErr := service.ListSpaces(managerCtx, &messages.ListAdminSpacesFilterDTO{})
 	_, defaultErr := service.ListActivities(defaultCtx, &messages.ListAdminActivitiesFilterDTO{})
 	_, missingIdentityErr := service.ListSpaces(context.Background(), &messages.ListAdminSpacesFilterDTO{})
-	_, invalidRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "ADMIN"})
+	_, invalidRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "DEFAULT"})
 
 	// then
 	require.NoError(t, spacesErr)
 	require.NoError(t, activitiesErr)
 	require.NoError(t, staffErr)
+	require.NoError(t, adminsErr)
+	require.NoError(t, allStaffErr)
 	require.Len(t, spaces.Data, 20)
 	require.Len(t, activities.Data, 20)
 	assert.Equal(t, "Space 00", spaces.Data[0].Name)
@@ -110,6 +116,10 @@ func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.
 	assert.True(t, activities.Pagination.HasNextPage)
 	require.Len(t, staff.Data, 1)
 	assert.Equal(t, "EVENT_MANAGER", staff.Data[0].Role)
+	require.Len(t, admins.Data, 1)
+	assert.Equal(t, "ADMIN", admins.Data[0].Role)
+	require.Len(t, allStaff.Data, 2)
+	assert.ElementsMatch(t, []string{"ADMIN", "EVENT_MANAGER"}, []string{allStaff.Data[0].Role, allStaff.Data[1].Role})
 	assertAdminError(t, managerErr, http.StatusForbidden, "FORBIDDEN")
 	assertAdminError(t, defaultErr, http.StatusForbidden, "FORBIDDEN")
 	assertAdminError(t, missingIdentityErr, http.StatusUnauthorized, "UNAUTHENTICATED")
@@ -274,6 +284,40 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	var stored models.Activity
 	require.NoError(t, TestSuite.DbConn.First(&stored, "id = ?", created.ID).Error)
 	assert.Equal(t, "archived", stored.Status)
+}
+
+func TestAdminInstallationService_CreateActivityInitialStatusDependsOnKind(t *testing.T) {
+	// given
+	service := setupAdminInstallationTest(t)
+	_, adminCtx := seedAdminInstallationUser(t, "admin-kind-status@example.com", userEntities.RoleAdmin, true)
+	testCases := []struct {
+		kind           string
+		expectedStatus string
+	}{
+		{"schedule", "active"},
+		{"checkpoint", "active"},
+		{"challenge", "draft"},
+		{"competitive", "draft"},
+		{"live", "draft"},
+	}
+
+	for _, testCase := range testCases {
+		request := validCreateActivity("kind-status-"+testCase.kind, nil)
+		request.Kind = pointer(testCase.kind)
+		if testCase.kind == "schedule" {
+			request.AllowsMoment = pointer(false)
+		}
+
+		// when
+		created, err := service.CreateActivity(adminCtx, uuid.NewString(), request)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, testCase.expectedStatus, created.Status, "kind %s", testCase.kind)
+		var stored models.Activity
+		require.NoError(t, TestSuite.DbConn.First(&stored, "id = ?", created.ID).Error)
+		assert.Equal(t, testCase.expectedStatus, stored.Status, "kind %s", testCase.kind)
+	}
 }
 
 func TestAdminInstallationService_RejectsInvalidSpaceAndActivityPayloads(t *testing.T) {
@@ -543,7 +587,7 @@ func TestAdminInstallationService_ManagerAndRoleIdentifierErrors(t *testing.T) {
 	_, missingRoleUserErr := service.UpdateUserRole(adminCtx, "999999", uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("DEFAULT")})
 	_, nilRoleRequestErr := service.UpdateUserRole(adminCtx, fmt.Sprint(manager.ID), uuid.NewString(), nil)
 	_, nilRoleFieldErr := service.UpdateUserRole(adminCtx, fmt.Sprint(manager.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{})
-	_, nilStaffFilterErr := service.ListStaff(adminCtx, nil)
+	_, invalidStaffRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "DEFAULT"})
 	_, deletedAdminCtx := seedAdminInstallationUser(t, "deleted-admin@example.com", userEntities.RoleAdmin, true)
 	var deletedID uint64
 	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("email = ?", "deleted-admin@example.com").Pluck("id", &deletedID).Error)
@@ -562,7 +606,7 @@ func TestAdminInstallationService_ManagerAndRoleIdentifierErrors(t *testing.T) {
 		{missingRemoveUserErr, 404, "NOT_FOUND"}, {missingRemoveActivityErr, 404, "NOT_FOUND"},
 		{malformedRoleUserErr, 404, "NOT_FOUND"}, {missingRoleUserErr, 404, "NOT_FOUND"},
 		{nilRoleRequestErr, 400, "INVALID_REQUEST"}, {nilRoleFieldErr, 400, "INVALID_REQUEST"},
-		{nilStaffFilterErr, 400, "INVALID_REQUEST"}, {deletedAdminErr, 401, "UNAUTHENTICATED"},
+		{invalidStaffRoleErr, 400, "INVALID_REQUEST"}, {deletedAdminErr, 401, "UNAUTHENTICATED"},
 	} {
 		assertAdminError(t, testCase.err, testCase.status, testCase.code)
 	}

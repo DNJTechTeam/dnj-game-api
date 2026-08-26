@@ -21,6 +21,7 @@ func iteration4Engine(t *testing.T, spaces *mocks.MockSpaceServiceInterface, act
 	engine.GET("/v2/spaces", handler.ListSpaces)
 	engine.POST("/v2/manager/activities/:id/start", handler.StartActivity)
 	engine.POST("/v2/manager/activities/:id/pause", handler.PauseActivity)
+	engine.POST("/v2/manager/activities/:id/conclude", handler.ConcludeActivity)
 	return engine
 }
 
@@ -32,12 +33,14 @@ func TestIteration4Handlers_SpacesAndActivityOperations(t *testing.T) {
 	spaces.On("List", mock.Anything, mock.Anything).Return(&messages.PaginatedResponse[messages.SpaceResponseDTO]{Data: []messages.SpaceResponseDTO{{ID: "11111111-1111-4111-8111-111111111111", Name: "Capela", Slug: "capela", MapReference: &mapReference}}, Pagination: messages.Pagination{CurrentPage: 1, Limit: 20}}, nil).Once()
 	activities.On("Start", mock.Anything, "22222222-2222-4222-8222-222222222222", "").Return(&messages.ActivityStateResponseDTO{ID: "22222222-2222-4222-8222-222222222222", Status: "active"}, nil).Once()
 	activities.On("Pause", mock.Anything, "22222222-2222-4222-8222-222222222222", "").Return(&messages.ActivityStateResponseDTO{ID: "22222222-2222-4222-8222-222222222222", Status: "paused"}, nil).Once()
+	activities.On("Conclude", mock.Anything, "22222222-2222-4222-8222-222222222222", "").Return(&messages.ActivityStateResponseDTO{ID: "22222222-2222-4222-8222-222222222222", Status: "completed"}, nil).Once()
 	engine := iteration4Engine(t, spaces, activities)
 
 	// when
 	listed := performJSON(engine, http.MethodGet, "/v2/spaces?page=1", "")
 	started := performJSON(engine, http.MethodPost, "/v2/manager/activities/22222222-2222-4222-8222-222222222222/start", "")
 	paused := performJSON(engine, http.MethodPost, "/v2/manager/activities/22222222-2222-4222-8222-222222222222/pause", "")
+	concluded := performJSON(engine, http.MethodPost, "/v2/manager/activities/22222222-2222-4222-8222-222222222222/conclude", "")
 
 	// then
 	assert.Equal(t, http.StatusOK, listed.Code)
@@ -47,6 +50,8 @@ func TestIteration4Handlers_SpacesAndActivityOperations(t *testing.T) {
 	assert.Contains(t, started.Body.String(), `"status":"active"`)
 	assert.Equal(t, http.StatusOK, paused.Code)
 	assert.Contains(t, paused.Body.String(), `"status":"paused"`)
+	assert.Equal(t, http.StatusOK, concluded.Code)
+	assert.Contains(t, concluded.Body.String(), `"status":"completed"`)
 }
 
 func TestIteration4Handlers_AllPublishedOperationErrors(t *testing.T) {

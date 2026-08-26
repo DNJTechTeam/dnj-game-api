@@ -570,13 +570,16 @@ paths:
     post:
       tags: [Installation administration]
       operationId: createAdminActivity
-      summary: Cria uma Activity sempre em draft
-      description: status, eventId, papel, assignment e demais campos não publicados são rejeitados.
+      summary: Cria uma Activity com status inicial dependente do kind
+      description: >-
+        status, eventId, papel, assignment e demais campos não publicados são
+        rejeitados. Status inicial: schedule e checkpoint nascem active;
+        challenge, competitive e live nascem draft.
       security: [{bearerAuth: []}, {identityCookie: []}]
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateAdminActivityRequest'}}}}
       responses:
-        '201': {description: Activity draft criada ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminActivity'}}}}
+        '201': {description: Activity criada (active ou draft, conforme o kind) ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/AdminActivity'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
@@ -591,7 +594,8 @@ paths:
       summary: Reconfigura uma Activity ou faz a transição validada para archived
       description: >-
         status aceita somente archived. active não pode ser arquivada sem pause;
-        start e pause permanecem exclusivamente nas operações gerenciais.
+        start, pause e conclude permanecem exclusivamente nas operações
+        gerenciais.
       security: [{bearerAuth: []}, {identityCookie: []}]
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateAdminActivityRequest'}}}}
@@ -712,6 +716,29 @@ paths:
       operationId: pauseActivity
       summary: Pausa uma atividade ativa
       description: >-
+        Possui o mesmo escopo de autorização, isolamento, atomicidade e
+        idempotência da operação de início.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Estado resultante ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ActivityState'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /manager/activities/{activityId}/conclude:
+    parameters:
+      - {$ref: '#/components/parameters/ActivityID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    post:
+      tags: [Activity operations]
+      operationId: concludeActivity
+      summary: Conclui uma atividade ativa ou pausada
+      description: >-
+        Aceita active → completed e paused → completed, somente para kind
+        challenge, competitive ou live; schedule e checkpoint (que nascem
+        active e não passam por este fluxo) retornam ACTIVITY_STATE_CONFLICT.
         Possui o mesmo escopo de autorização, isolamento, atomicidade e
         idempotência da operação de início.
       security: [{bearerAuth: []}, {identityCookie: []}]

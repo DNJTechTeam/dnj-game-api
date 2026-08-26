@@ -437,8 +437,8 @@ func (_c *MockUserRepositoryInterface_FindByIDForUpdate_Call) RunAndReturn(run f
 }
 
 // ListByRole provides a mock function for the type MockUserRepositoryInterface
-func (_mock *MockUserRepositoryInterface) ListByRole(ctx context.Context, role entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error) {
-	ret := _mock.Called(ctx, role, page)
+func (_mock *MockUserRepositoryInterface) ListByRole(ctx context.Context, roles []entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error) {
+	ret := _mock.Called(ctx, roles, page)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListByRole")
@@ -446,18 +446,18 @@ func (_mock *MockUserRepositoryInterface) ListByRole(ctx context.Context, role e
 
 	var r0 *messages.PaginatedResponse[entities.User]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, entities.UserRole, uint64) (*messages.PaginatedResponse[entities.User], error)); ok {
-		return returnFunc(ctx, role, page)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []entities.UserRole, uint64) (*messages.PaginatedResponse[entities.User], error)); ok {
+		return returnFunc(ctx, roles, page)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, entities.UserRole, uint64) *messages.PaginatedResponse[entities.User]); ok {
-		r0 = returnFunc(ctx, role, page)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []entities.UserRole, uint64) *messages.PaginatedResponse[entities.User]); ok {
+		r0 = returnFunc(ctx, roles, page)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*messages.PaginatedResponse[entities.User])
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, entities.UserRole, uint64) error); ok {
-		r1 = returnFunc(ctx, role, page)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []entities.UserRole, uint64) error); ok {
+		r1 = returnFunc(ctx, roles, page)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -471,21 +471,21 @@ type MockUserRepositoryInterface_ListByRole_Call struct {
 
 // ListByRole is a helper method to define mock.On call
 //   - ctx context.Context
-//   - role entities.UserRole
+//   - roles []entities.UserRole
 //   - page uint64
-func (_e *MockUserRepositoryInterface_Expecter) ListByRole(ctx interface{}, role interface{}, page interface{}) *MockUserRepositoryInterface_ListByRole_Call {
-	return &MockUserRepositoryInterface_ListByRole_Call{Call: _e.mock.On("ListByRole", ctx, role, page)}
+func (_e *MockUserRepositoryInterface_Expecter) ListByRole(ctx interface{}, roles interface{}, page interface{}) *MockUserRepositoryInterface_ListByRole_Call {
+	return &MockUserRepositoryInterface_ListByRole_Call{Call: _e.mock.On("ListByRole", ctx, roles, page)}
 }
 
-func (_c *MockUserRepositoryInterface_ListByRole_Call) Run(run func(ctx context.Context, role entities.UserRole, page uint64)) *MockUserRepositoryInterface_ListByRole_Call {
+func (_c *MockUserRepositoryInterface_ListByRole_Call) Run(run func(ctx context.Context, roles []entities.UserRole, page uint64)) *MockUserRepositoryInterface_ListByRole_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 entities.UserRole
+		var arg1 []entities.UserRole
 		if args[1] != nil {
-			arg1 = args[1].(entities.UserRole)
+			arg1 = args[1].([]entities.UserRole)
 		}
 		var arg2 uint64
 		if args[2] != nil {
@@ -505,7 +505,7 @@ func (_c *MockUserRepositoryInterface_ListByRole_Call) Return(paginatedResponse 
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_ListByRole_Call) RunAndReturn(run func(ctx context.Context, role entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error)) *MockUserRepositoryInterface_ListByRole_Call {
+func (_c *MockUserRepositoryInterface_ListByRole_Call) RunAndReturn(run func(ctx context.Context, roles []entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error)) *MockUserRepositoryInterface_ListByRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

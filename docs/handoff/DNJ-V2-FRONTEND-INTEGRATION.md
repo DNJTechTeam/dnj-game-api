@@ -276,6 +276,7 @@ handoff — cada linha tem um teste automatizado real por trás (arquivo em
 | Configuração administrativa (spaces/activities/staff/managers) | PATCH /admin/users/{userId}/role | `updateAdminUserRole` | 200,400,401,403,404,409,500 | `admin_installation_service_test.go` |
 | Configuração administrativa (spaces/activities/staff/managers) | POST /admin/activities | `createAdminActivity` | 201,400,401,403,404,409,500 | `admin_installation_service_test.go` |
 | Configuração administrativa (spaces/activities/staff/managers) | POST /admin/spaces | `createAdminSpace` | 201,400,401,403,409,500 | `admin_installation_service_test.go` |
+| Configuração administrativa (spaces/activities/staff/managers) | POST /manager/activities/{activityId}/conclude | `concludeActivity` | 200,400,401,403,404,409,500 | `iteration4_service_test.go` |
 | Configuração administrativa (spaces/activities/staff/managers) | POST /manager/activities/{activityId}/pause | `pauseActivity` | 200,400,401,403,404,409,500 | `iteration4_service_test.go` |
 | Configuração administrativa (spaces/activities/staff/managers) | POST /manager/activities/{activityId}/start | `startActivity` | 200,400,401,403,404,409,500 | `iteration4_service_test.go` |
 | Configuração administrativa (spaces/activities/staff/managers) | PUT /admin/activities/{activityId}/managers/{userId} | `assignAdminActivityManager` | 200,400,401,403,404,409,500 | `admin_installation_service_test.go` |

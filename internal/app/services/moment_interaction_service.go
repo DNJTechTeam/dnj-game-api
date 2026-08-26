@@ -71,7 +71,7 @@ func (s *MomentService) ToggleLike(
 			return authErr
 		}
 		visible := moment.PublicationStatus == momentEntities.PublicationPublic &&
-			moment.ModerationStatus == momentEntities.ModerationApproved &&
+			moment.ModerationStatus != momentEntities.ModerationRejected &&
 			moment.AssetAvailable &&
 			moment.AuthorEligible &&
 			now.Before(moment.AssetRetentionDueAt)
@@ -170,10 +170,14 @@ func (s *MomentService) moderationQueueItem(
 		return nil, mediaUnavailableError()
 	}
 	expiresAt := signingTime.Add(mediaReadLifetime).UTC()
-	actions := []string{"delete_photo"}
-	if moment.RewardStatus == momentEntities.RewardAwarded {
-		actions = []string{"deny_points", "delete_photo"}
+	var actions []string
+	if moment.ModerationStatus == momentEntities.ModerationPending {
+		actions = append(actions, "approve")
 	}
+	if moment.RewardStatus == momentEntities.RewardAwarded {
+		actions = append(actions, "deny_points")
+	}
+	actions = append(actions, "delete_photo")
 	var activity *messages.ModerationActivitySummaryDTO
 	if moment.ActivityID != nil {
 		activity = &messages.ModerationActivitySummaryDTO{
@@ -207,11 +211,12 @@ func (s *MomentService) Moderate(
 	if err != nil {
 		return nil, notFoundError()
 	}
-	if request == nil || request.Action != "deny_points" && request.Action != "delete_photo" {
+	if request == nil ||
+		request.Action != "approve" && request.Action != "deny_points" && request.Action != "delete_photo" {
 		return nil, mediaMomentError(
 			http.StatusBadRequest,
 			"INVALID_REQUEST",
-			"action deve ser deny_points ou delete_photo.",
+			"action deve ser approve, deny_points ou delete_photo.",
 		)
 	}
 	key, err := parseIdempotencyKey(rawKey)

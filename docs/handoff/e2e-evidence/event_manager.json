@@ -1,0 +1,521 @@
+[
+  {
+    "journey": "event_manager",
+    "step": 1,
+    "label": "admin promove usuário a EVENT_MANAGER",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/35/role",
+    "status": 200,
+    "request": {
+      "role": "EVENT_MANAGER"
+    },
+    "response": {
+      "id": "35",
+      "role": "EVENT_MANAGER"
+    },
+    "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 2,
+    "label": "admin promove usuário a EVENT_MANAGER",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/v2/admin/users/36/role",
+    "status": 200,
+    "request": {
+      "role": "EVENT_MANAGER"
+    },
+    "response": {
+      "id": "36",
+      "role": "EVENT_MANAGER"
+    },
+    "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 3,
+    "label": "admin cria o espaço em-journey-a",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/spaces",
+    "status": 201,
+    "request": {
+      "slug": "em-journey-a-space",
+      "name": "Espaço em-journey-a",
+      "mapReference": "map:em-journey-a"
+    },
+    "response": {
+      "id": "b21c9dc1-e4e9-401d-95bd-5dfc1dd79618",
+      "name": "Espaço em-journey-a",
+      "slug": "em-journey-a-space",
+      "mapReference": "map:em-journey-a"
+    },
+    "proves": "POST /v2/admin/spaces cria um espaço com sucesso (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 4,
+    "label": "admin cria a activity em-journey-a",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/activities",
+    "status": 201,
+    "request": {
+      "spaceId": "b21c9dc1-e4e9-401d-95bd-5dfc1dd79618",
+      "slug": "em-journey-a",
+      "name": "Atividade em-journey-a",
+      "description": null,
+      "kind": "competitive",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "response": {
+      "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+      "spaceId": "b21c9dc1-e4e9-401d-95bd-5dfc1dd79618",
+      "slug": "em-journey-a",
+      "name": "Atividade em-journey-a",
+      "description": null,
+      "kind": "competitive",
+      "status": "draft",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "proves": "POST /v2/admin/activities cria uma activity em draft (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 5,
+    "label": "admin atribui o gestor à activity em-journey-a",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/v2/admin/activities/32977c00-4ca5-4e0e-9d9f-f8643d05085e/managers/35",
+    "status": 200,
+    "response": {
+      "activityId": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+      "userId": "35"
+    },
+    "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 6,
+    "label": "gestor inicia a activity em-journey-a",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/activities/32977c00-4ca5-4e0e-9d9f-f8643d05085e/start",
+    "status": 200,
+    "response": {
+      "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+      "status": "active"
+    },
+    "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 7,
+    "label": "admin cria o espaço em-journey-b",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/spaces",
+    "status": 201,
+    "request": {
+      "slug": "em-journey-b-space",
+      "name": "Espaço em-journey-b",
+      "mapReference": "map:em-journey-b"
+    },
+    "response": {
+      "id": "5ae8adfa-1d07-494d-b10a-64ecf559a789",
+      "name": "Espaço em-journey-b",
+      "slug": "em-journey-b-space",
+      "mapReference": "map:em-journey-b"
+    },
+    "proves": "POST /v2/admin/spaces cria um espaço com sucesso (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 8,
+    "label": "admin cria a activity em-journey-b",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/v2/admin/activities",
+    "status": 201,
+    "request": {
+      "spaceId": "5ae8adfa-1d07-494d-b10a-64ecf559a789",
+      "slug": "em-journey-b",
+      "name": "Atividade em-journey-b",
+      "description": null,
+      "kind": "competitive",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "response": {
+      "id": "1e55551e-5ec4-4c88-bcd7-56376af6ddb4",
+      "spaceId": "5ae8adfa-1d07-494d-b10a-64ecf559a789",
+      "slug": "em-journey-b",
+      "name": "Atividade em-journey-b",
+      "description": null,
+      "kind": "competitive",
+      "status": "draft",
+      "startsAt": null,
+      "endsAt": null,
+      "checkInPoints": 10,
+      "momentPoints": 20,
+      "cooldownSeconds": 60,
+      "allowsMoment": true
+    },
+    "proves": "POST /v2/admin/activities cria uma activity em draft (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 9,
+    "label": "admin atribui o gestor à activity em-journey-b",
+    "role": "ADMIN",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/v2/admin/activities/1e55551e-5ec4-4c88-bcd7-56376af6ddb4/managers/36",
+    "status": 200,
+    "response": {
+      "activityId": "1e55551e-5ec4-4c88-bcd7-56376af6ddb4",
+      "userId": "36"
+    },
+    "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 10,
+    "label": "gestor inicia a activity em-journey-b",
+    "role": "EVENT_MANAGER",
+    "actor": "manager",
+    "method": "POST",
+    "path": "/v2/manager/activities/1e55551e-5ec4-4c88-bcd7-56376af6ddb4/start",
+    "status": 200,
+    "response": {
+      "id": "1e55551e-5ec4-4c88-bcd7-56376af6ddb4",
+      "status": "active"
+    },
+    "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 11,
+    "label": "gestor A vê seu próprio painel",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "GET",
+    "path": "/v2/manager/game-overview",
+    "status": 200,
+    "response": {
+      "scope": "actions",
+      "actions": {
+        "games": [
+          {
+            "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+            "name": "Atividade em-journey-a",
+            "points": {
+              "first": 50,
+              "second": 30,
+              "third": 20,
+              "participation": 10
+            }
+          }
+        ],
+        "run": null
+      }
+    },
+    "proves": "GET /v2/manager/game-overview só lista activities atribuídas a este gestor (não vê a activity do gestor B)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 12,
+    "label": "gestor A cria um run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs",
+    "status": 201,
+    "request": {
+      "gameId": "32977c00-4ca5-4e0e-9d9f-f8643d05085e"
+    },
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST /v2/manager/runs cria um run para uma activity própria (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 13,
+    "label": "gestor A gera QR do run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271/qr",
+    "status": 201,
+    "response": {
+      "runId": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "qrId": "e47e259b-ee63-4676-89cf-ad1484216ffd",
+      "qrToken": "tO8d_rlydmdOrhpHt0N8CZQfMBlPXmgAE6msM8GksIY",
+      "expiresAt": "2026-08-26T04:48:42.161657046Z"
+    },
+    "proves": "POST .../qr emite um QR válido para check-in (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 14,
+    "label": "gestor A vê o detalhe do próprio run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "GET",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271",
+    "status": 200,
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "GET /v2/manager/runs/:id retorna 200 para o run do próprio gestor."
+  },
+  {
+    "journey": "event_manager",
+    "step": 15,
+    "label": "gestor A inicia o run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271/start",
+    "status": 200,
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "active",
+      "startedAt": "2026-08-26T04:03:42.182346561Z",
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST .../start transiciona scheduled-\u003eactive (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 16,
+    "label": "gestor A pausa o run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271/pause",
+    "status": 200,
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "paused",
+      "startedAt": "2026-08-26T04:03:42.182346Z",
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST .../pause transiciona active-\u003epaused (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 17,
+    "label": "gestor A retoma o run",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271/resume",
+    "status": 200,
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "active",
+      "startedAt": "2026-08-26T04:03:42.182346Z",
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST .../resume transiciona paused-\u003eactive (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 18,
+    "label": "gestor A finaliza o run (sem participantes)",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/manager/runs/4a4cffc1-74ef-4e9e-b433-611bde621271/results",
+    "status": 200,
+    "request": {
+      "results": []
+    },
+    "response": {
+      "id": "4a4cffc1-74ef-4e9e-b433-611bde621271",
+      "game": {
+        "id": "32977c00-4ca5-4e0e-9d9f-f8643d05085e",
+        "name": "Atividade em-journey-a"
+      },
+      "status": "completed",
+      "startedAt": "2026-08-26T04:03:42.182346Z",
+      "endedAt": "2026-08-26T04:03:42.21177232Z",
+      "participants": []
+    },
+    "proves": "POST .../results finaliza o run mesmo sem check-ins (200)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 19,
+    "label": "gestor B cria um run na própria activity",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-b",
+    "method": "POST",
+    "path": "/v2/manager/runs",
+    "status": 201,
+    "request": {
+      "gameId": "1e55551e-5ec4-4c88-bcd7-56376af6ddb4"
+    },
+    "response": {
+      "id": "c2b92d85-a706-4b2f-b5df-405fb6fd1659",
+      "game": {
+        "id": "1e55551e-5ec4-4c88-bcd7-56376af6ddb4",
+        "name": "Atividade em-journey-b"
+      },
+      "status": "draft",
+      "startedAt": null,
+      "endedAt": null,
+      "participants": []
+    },
+    "proves": "POST /v2/manager/runs cria um run para a activity do gestor B (201)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 20,
+    "label": "gestor A tenta ver o run do gestor B",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "GET",
+    "path": "/v2/manager/runs/c2b92d85-a706-4b2f-b5df-405fb6fd1659",
+    "status": 404,
+    "response": {
+      "code": "NOT_FOUND",
+      "message": "Partida não encontrada.",
+      "requestId": ""
+    },
+    "proves": "GET /v2/manager/runs/:id de um run alheio retorna 404 -- o escopo do gestor é só o que ele gerencia."
+  },
+  {
+    "journey": "event_manager",
+    "step": 21,
+    "label": "gestor tenta listar staff",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "GET",
+    "path": "/v2/admin/staff",
+    "status": 403,
+    "response": {
+      "code": "FORBIDDEN",
+      "message": "Operação permitida somente para ADMIN.",
+      "requestId": ""
+    },
+    "proves": "Superfície admin-only rejeita Event Manager com 403 FORBIDDEN (listar staff)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 22,
+    "label": "gestor tenta criar espaço",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/admin/spaces",
+    "status": 403,
+    "request": {
+      "slug": "x",
+      "name": "x",
+      "mapReference": "x"
+    },
+    "response": {
+      "code": "FORBIDDEN",
+      "message": "Operação permitida somente para ADMIN.",
+      "requestId": ""
+    },
+    "proves": "Superfície admin-only rejeita Event Manager com 403 FORBIDDEN (criar espaço)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 23,
+    "label": "gestor tenta moderar um moment",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/admin/moments/1cfc5b3a-5f34-447d-83c8-ecbc026f3668/moderation",
+    "status": 403,
+    "request": {
+      "action": "approve"
+    },
+    "response": {
+      "code": "FORBIDDEN",
+      "message": "Operação restrita a ADMIN.",
+      "requestId": ""
+    },
+    "proves": "Superfície admin-only rejeita Event Manager com 403 FORBIDDEN (moderar um moment)."
+  },
+  {
+    "journey": "event_manager",
+    "step": 24,
+    "label": "gestor tenta disparar notificação broadcast",
+    "role": "EVENT_MANAGER",
+    "actor": "manager-a",
+    "method": "POST",
+    "path": "/v2/admin/notifications",
+    "status": 403,
+    "request": {
+      "title": "x",
+      "body": "x"
+    },
+    "response": {
+      "code": "FORBIDDEN",
+      "message": "Operação restrita a ADMIN.",
+      "requestId": ""
+    },
+    "proves": "Superfície admin-only rejeita Event Manager com 403 FORBIDDEN (disparar notificação broadcast)."
+  }
+]

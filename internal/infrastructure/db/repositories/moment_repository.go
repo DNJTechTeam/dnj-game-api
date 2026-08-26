@@ -158,7 +158,7 @@ func (r *MomentRepository) ListMoments(
 		q = q.Where("moments.user_id=?", actor)
 	case "feed":
 		q = q.Where(
-			"moments.publication_status='public' AND moments.moderation_status='approved' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL AND users.onboarding_complete=TRUE AND users.role='DEFAULT'",
+			"moments.publication_status='public' AND moments.moderation_status<>'rejected' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL AND users.onboarding_complete=TRUE AND users.role='DEFAULT'",
 			now,
 		)
 	case "group":
@@ -166,7 +166,7 @@ func (r *MomentRepository) ListMoments(
 			return &momentEntities.Page{Items: []momentEntities.Moment{}}, nil
 		}
 		q = q.Where(
-			"moments.publication_status='public' AND moments.moderation_status='approved' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL AND users.onboarding_complete=TRUE AND users.role='DEFAULT' AND users.group_id=?",
+			"moments.publication_status='public' AND moments.moderation_status<>'rejected' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL AND users.onboarding_complete=TRUE AND users.role='DEFAULT' AND users.group_id=?",
 			now,
 			*groupID,
 		)
@@ -233,7 +233,7 @@ func (r *MomentRepository) ListModeration(
 	q := projectionQuery(
 		r.getDB(ctx),
 		0,
-	).Where("moments.publication_status='public' AND moments.moderation_status='approved' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL", now)
+	).Where("moments.publication_status='public' AND moments.moderation_status='pending' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL", now)
 	if queue == "general" {
 		q = q.Where("moments.origin='free'")
 	} else {
@@ -401,6 +401,25 @@ func (r *MomentRepository) ApplyModeration(
 			changed = true
 			assetJustDeleted = true
 		}
+	} else if action == "approve" {
+		if row.ModerationStatus == string(momentEntities.ModerationRejected) {
+			return nil, nil, false, appErrors.ErrConflict
+		}
+		if row.ModerationStatus != string(momentEntities.ModerationApproved) {
+			row.ModerationStatus = string(momentEntities.ModerationApproved)
+			row.UpdatedAt = now
+			if err := r.getDB(ctx).Save(&row).Error; err != nil {
+				return nil, nil, false, handleRepositoryError(err)
+			}
+			changed = true
+			if err := writeDerivedNotification(
+				r.getDB(ctx), row.UserID, "moment_moderation",
+				"Sua foto foi aprovada", "Sua foto foi aprovada e já está publicada.", "moment", row.ID, now,
+			); err != nil {
+				return nil, nil, false, err
+			}
+		}
+		return mappers.MapMomentToEntity(&row), mappers.MapMediaAssetToEntity(&asset), changed, nil
 	}
 	moderationJustChanged := row.PublicationStatus != string(momentEntities.PublicationPrivate) ||
 		row.ModerationStatus != string(momentEntities.ModerationRejected)

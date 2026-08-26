@@ -43,9 +43,15 @@ func seedIteration4User(t *testing.T, email string, role userEntities.UserRole) 
 
 func seedActivity(t *testing.T, status activityEntities.Status) string {
 	t.Helper()
+	return seedActivityWithKind(t, status, activityEntities.KindCompetitive)
+}
+
+func seedActivityWithKind(t *testing.T, status activityEntities.Status, kind activityEntities.Kind) string {
+	t.Helper()
 	id := uuid.NewString()
 	now := time.Now().UTC()
-	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: id, Slug: "activity-" + id, Name: "Radicalidade", Kind: string(activityEntities.KindCompetitive), Status: string(status), CheckInPoints: 10, MomentPoints: 20, CooldownSeconds: 60, AllowsMoment: true, CreatedAt: now, UpdatedAt: now}).Error)
+	allowsMoment := kind != activityEntities.KindSchedule
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: id, Slug: "activity-" + id, Name: "Radicalidade", Kind: string(kind), Status: string(status), CheckInPoints: 10, MomentPoints: 20, CooldownSeconds: 60, AllowsMoment: allowsMoment, CreatedAt: now, UpdatedAt: now}).Error)
 	return id
 }
 
@@ -122,6 +128,41 @@ func TestActivityService_AdminGlobalStartPauseAndIdempotency(t *testing.T) {
 	assert.Equal(t, "activity.start", audits[0].Action)
 	assert.JSONEq(t, `{"fromStatus":"draft","toStatus":"active"}`, string(audits[0].Metadata))
 	assert.NotContains(t, string(audits[0].Metadata), "example.com")
+}
+
+func TestActivityService_ConcludeTransitionsAndKindRestriction(t *testing.T) {
+	// given
+	setupIteration4Test(t)
+	_, activityService := newIteration4Services()
+	_, adminCtx := seedIteration4User(t, "iteration4-conclude-admin@example.com", userEntities.RoleAdmin)
+	activeChallengeID := seedActivityWithKind(t, activityEntities.StatusActive, activityEntities.KindChallenge)
+	pausedLiveID := seedActivityWithKind(t, activityEntities.StatusPaused, activityEntities.KindLive)
+	draftCompetitiveID := seedActivityWithKind(t, activityEntities.StatusDraft, activityEntities.KindCompetitive)
+	activeScheduleID := seedActivityWithKind(t, activityEntities.StatusActive, activityEntities.KindSchedule)
+	activeCheckpointID := seedActivityWithKind(t, activityEntities.StatusActive, activityEntities.KindCheckpoint)
+	concludeKey := uuid.NewString()
+
+	// when
+	concluded, concludeErr := activityService.Conclude(adminCtx, activeChallengeID, concludeKey)
+	retried, retryErr := activityService.Conclude(adminCtx, activeChallengeID, concludeKey)
+	concludedFromPaused, concludeFromPausedErr := activityService.Conclude(adminCtx, pausedLiveID, uuid.NewString())
+	_, draftConflictErr := activityService.Conclude(adminCtx, draftCompetitiveID, uuid.NewString())
+	_, scheduleKindErr := activityService.Conclude(adminCtx, activeScheduleID, uuid.NewString())
+	_, checkpointKindErr := activityService.Conclude(adminCtx, activeCheckpointID, uuid.NewString())
+
+	// then
+	require.NoError(t, concludeErr)
+	require.NoError(t, retryErr)
+	require.NoError(t, concludeFromPausedErr)
+	assert.Equal(t, "completed", concluded.Status)
+	assert.Equal(t, concluded, retried)
+	assert.Equal(t, "completed", concludedFromPaused.Status)
+	apiServiceError(t, draftConflictErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
+	apiServiceError(t, scheduleKindErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
+	apiServiceError(t, checkpointKindErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
+	var audit models.OperationAudit
+	require.NoError(t, TestSuite.DbConn.Where("action = ?", "activity.conclude").Where("entity_id = ?", activeChallengeID).Take(&audit).Error)
+	assert.JSONEq(t, `{"fromStatus":"active","toStatus":"completed"}`, string(audit.Metadata))
 }
 
 func TestActivityService_ManagerAssignmentIsolationAndRoles(t *testing.T) {

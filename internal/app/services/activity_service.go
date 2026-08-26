@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
@@ -40,7 +41,7 @@ func activityOperationError(status int, code, message string) error {
 	return appErrors.NewAPIServiceError(status, code, message, nil)
 }
 
-func (s *ActivityService) transition(ctx context.Context, rawActivityID, rawKey, action string, allowed []activityEntities.Status, target activityEntities.Status) (*messages.ActivityStateResponseDTO, error) {
+func (s *ActivityService) transition(ctx context.Context, rawActivityID, rawKey, action string, allowed []activityEntities.Status, target activityEntities.Status, allowedKinds []activityEntities.Kind) (*messages.ActivityStateResponseDTO, error) {
 	activityUUID, err := uuid.Parse(rawActivityID)
 	if err != nil {
 		return nil, activityOperationError(http.StatusNotFound, "NOT_FOUND", "Atividade não encontrada.")
@@ -92,15 +93,11 @@ func (s *ActivityService) transition(ctx context.Context, rawActivityID, rawKey,
 			return appErrors.InternalError
 		}
 
-		valid := false
-		for _, status := range allowed {
-			if activity.Status == status {
-				valid = true
-				break
-			}
-		}
-		if !valid {
+		if !slices.Contains(allowed, activity.Status) {
 			return activityOperationError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "A atividade não pode executar esta transição no estado atual.")
+		}
+		if allowedKinds != nil && !slices.Contains(allowedKinds, activity.Kind) {
+			return activityOperationError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "Esta transição não é permitida para o kind da atividade.")
 		}
 		now := s.now().UTC()
 		if updateErr := s.activities.TransitionStatus(txCtx, activityID, activity.Status, target, now); updateErr != nil {
@@ -130,9 +127,13 @@ func (s *ActivityService) transition(ctx context.Context, rawActivityID, rawKey,
 }
 
 func (s *ActivityService) Start(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	return s.transition(ctx, activityID, idempotencyKey, "activity.start", []activityEntities.Status{activityEntities.StatusDraft, activityEntities.StatusPaused}, activityEntities.StatusActive)
+	return s.transition(ctx, activityID, idempotencyKey, "activity.start", []activityEntities.Status{activityEntities.StatusDraft, activityEntities.StatusPaused}, activityEntities.StatusActive, nil)
 }
 
 func (s *ActivityService) Pause(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	return s.transition(ctx, activityID, idempotencyKey, "activity.pause", []activityEntities.Status{activityEntities.StatusActive}, activityEntities.StatusPaused)
+	return s.transition(ctx, activityID, idempotencyKey, "activity.pause", []activityEntities.Status{activityEntities.StatusActive}, activityEntities.StatusPaused, nil)
+}
+
+func (s *ActivityService) Conclude(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	return s.transition(ctx, activityID, idempotencyKey, "activity.conclude", []activityEntities.Status{activityEntities.StatusActive, activityEntities.StatusPaused}, activityEntities.StatusCompleted, []activityEntities.Kind{activityEntities.KindChallenge, activityEntities.KindCompetitive, activityEntities.KindLive})
 }

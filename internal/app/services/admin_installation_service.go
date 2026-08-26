@@ -401,7 +401,11 @@ func (s *AdminInstallationService) CreateActivity(ctx context.Context, key strin
 		}
 		kind := activityEntities.Kind(strings.TrimSpace(*request.Kind))
 		now := s.now().UTC()
-		activity := &activityEntities.Activity{ID: uuid.NewString(), SpaceID: spaceID, Slug: slug, Name: name, Description: description, Kind: kind, Status: activityEntities.StatusDraft, StartsAt: adminUTCTime(request.StartsAt.Value), EndsAt: adminUTCTime(request.EndsAt.Value), CheckInPoints: *request.CheckInPoints, MomentPoints: *request.MomentPoints, CooldownSeconds: *request.CooldownSeconds, AllowsMoment: *request.AllowsMoment, CreatedAt: now, UpdatedAt: now}
+		initialStatus := activityEntities.StatusDraft
+		if kind == activityEntities.KindSchedule || kind == activityEntities.KindCheckpoint {
+			initialStatus = activityEntities.StatusActive
+		}
+		activity := &activityEntities.Activity{ID: uuid.NewString(), SpaceID: spaceID, Slug: slug, Name: name, Description: description, Kind: kind, Status: initialStatus, StartsAt: adminUTCTime(request.StartsAt.Value), EndsAt: adminUTCTime(request.EndsAt.Value), CheckInPoints: *request.CheckInPoints, MomentPoints: *request.MomentPoints, CooldownSeconds: *request.CooldownSeconds, AllowsMoment: *request.AllowsMoment, CreatedAt: now, UpdatedAt: now}
 		if err := validateActivityEntity(activity); err != nil {
 			return nil, err
 		}
@@ -414,7 +418,7 @@ func (s *AdminInstallationService) CreateActivity(ctx context.Context, key strin
 		}
 		response := mapAdminActivity(created)
 		entityID := created.ID
-		return &adminWriteOutcome[messages.AdminActivityResponseDTO]{Response: response, EntityType: "activity", EntityRef: created.ID, EntityID: &entityID, AuditMetadata: map[string]any{"created": true, "status": "draft"}, HTTPStatus: http.StatusCreated}, nil
+		return &adminWriteOutcome[messages.AdminActivityResponseDTO]{Response: response, EntityType: "activity", EntityRef: created.ID, EntityID: &entityID, AuditMetadata: map[string]any{"created": true, "status": string(initialStatus)}, HTTPStatus: http.StatusCreated}, nil
 	})
 }
 
@@ -565,10 +569,22 @@ func (s *AdminInstallationService) ListStaff(ctx context.Context, filter *messag
 	if _, err := s.authorizeAdmin(ctx, false); err != nil {
 		return nil, err
 	}
-	if filter == nil || filter.Role != string(userEntities.RoleEventManager) {
-		return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role deve ser EVENT_MANAGER.")
+	var roles []userEntities.UserRole
+	var page uint64
+	switch {
+	case filter == nil || filter.Role == "":
+		roles = []userEntities.UserRole{userEntities.RoleAdmin, userEntities.RoleEventManager}
+	case filter.Role == string(userEntities.RoleAdmin):
+		roles = []userEntities.UserRole{userEntities.RoleAdmin}
+	case filter.Role == string(userEntities.RoleEventManager):
+		roles = []userEntities.UserRole{userEntities.RoleEventManager}
+	default:
+		return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role deve ser ADMIN ou EVENT_MANAGER.")
 	}
-	result, err := s.users.ListByRole(ctx, userEntities.RoleEventManager, filter.GetPage())
+	if filter != nil {
+		page = filter.GetPage()
+	}
+	result, err := s.users.ListByRole(ctx, roles, page)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}

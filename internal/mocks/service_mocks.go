@@ -40,6 +40,80 @@ func (_m *MockActivityServiceInterface) EXPECT() *MockActivityServiceInterface_E
 	return &MockActivityServiceInterface_Expecter{mock: &_m.Mock}
 }
 
+// Conclude provides a mock function for the type MockActivityServiceInterface
+func (_mock *MockActivityServiceInterface) Conclude(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Conclude")
+	}
+
+	var r0 *messages.ActivityStateResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*messages.ActivityStateResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID, idempotencyKey)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *messages.ActivityStateResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityServiceInterface_Conclude_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Conclude'
+type MockActivityServiceInterface_Conclude_Call struct {
+	*mock.Call
+}
+
+// Conclude is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - idempotencyKey string
+func (_e *MockActivityServiceInterface_Expecter) Conclude(ctx interface{}, activityID interface{}, idempotencyKey interface{}) *MockActivityServiceInterface_Conclude_Call {
+	return &MockActivityServiceInterface_Conclude_Call{Call: _e.mock.On("Conclude", ctx, activityID, idempotencyKey)}
+}
+
+func (_c *MockActivityServiceInterface_Conclude_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string)) *MockActivityServiceInterface_Conclude_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_Conclude_Call) Return(activityStateResponseDTO *messages.ActivityStateResponseDTO, err error) *MockActivityServiceInterface_Conclude_Call {
+	_c.Call.Return(activityStateResponseDTO, err)
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_Conclude_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_Conclude_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Pause provides a mock function for the type MockActivityServiceInterface
 func (_mock *MockActivityServiceInterface) Pause(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
 	ret := _mock.Called(ctx, activityID, idempotencyKey)

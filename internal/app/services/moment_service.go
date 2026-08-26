@@ -342,7 +342,7 @@ func (s *MomentService) Create(
 			MediaAssetID:      asset.ID,
 			Origin:            origin,
 			PublicationStatus: publicationStatus,
-			ModerationStatus:  momentEntities.ModerationApproved,
+			ModerationStatus:  momentEntities.ModerationPending,
 			RewardStatus:      rewardStatus,
 			CapturedAt:        now,
 			CreatedAt:         now,

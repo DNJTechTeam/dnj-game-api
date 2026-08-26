@@ -100,10 +100,14 @@ func (r *UserRepository) RankPosition(ctx context.Context, userID uint64, points
 	return ahead + 1, nil
 }
 
-func (r *UserRepository) ListByRole(ctx context.Context, role entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error) {
+func (r *UserRepository) ListByRole(ctx context.Context, roles []entities.UserRole, page uint64) (*messages.PaginatedResponse[entities.User], error) {
 	const limit = 20
+	roleValues := make([]string, len(roles))
+	for index, role := range roles {
+		roleValues[index] = string(role)
+	}
 	var rows []models.User
-	err := r.getDB(ctx).Where("role = ?", string(role)).Order("name ASC").Order("id ASC").Limit(limit + 1).Offset(int(page) * limit).Find(&rows).Error
+	err := r.getDB(ctx).Where("role IN ?", roleValues).Order("name ASC").Order("id ASC").Limit(limit + 1).Offset(int(page) * limit).Find(&rows).Error
 	if err != nil {
 		return nil, handleRepositoryError(err)
 	}

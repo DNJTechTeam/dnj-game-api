@@ -1178,4 +1178,48 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		"2.9.0",
 		&models.EmailSignupCode{},
 	))
+
+	registry.Register(Migration{
+		Name: "add_pending_moment_moderation_status",
+		Description: "Moments now start out pending moderation instead of auto-approved. They " +
+			"still publish immediately (pending and approved are both visible) so curation never " +
+			"blocks the day-to-day flow — admins work through the pending queue to approve or " +
+			"reject at their own pace, and only 'rejected' moments come down.",
+		Version:    "2.10.0",
+		Definition: "moment-moderation-pending-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("moments", "moments_moderation_check") {
+				if err := db.Migrator().DropConstraint("moments", "moments_moderation_check"); err != nil {
+					return err
+				}
+			}
+			if err := addConstraintIfMissing(
+				db, "moments", "moments_moderation_check",
+				`CHECK (moderation_status IN ('pending','approved','rejected'))`,
+			); err != nil {
+				return err
+			}
+			if db.Migrator().HasConstraint("moment_moderation_decisions", "moment_moderation_action_check") {
+				if err := db.Migrator().DropConstraint("moment_moderation_decisions", "moment_moderation_action_check"); err != nil {
+					return err
+				}
+			}
+			if err := addConstraintIfMissing(
+				db, "moment_moderation_decisions", "moment_moderation_action_check",
+				`CHECK (action IN ('approve','deny_points','delete_photo'))`,
+			); err != nil {
+				return err
+			}
+			// The feed only ever excludes 'rejected' moments now (pending and approved are
+			// both public), so the partial index needs to match that predicate to stay useful.
+			if err := db.Exec(`DROP INDEX IF EXISTS moments_feed_idx`).Error; err != nil {
+				return err
+			}
+			return db.Exec(
+				`CREATE INDEX IF NOT EXISTS moments_feed_idx ON moments (captured_at DESC, id DESC) ` +
+					`WHERE publication_status = 'public' AND moderation_status <> 'rejected'`,
+			).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

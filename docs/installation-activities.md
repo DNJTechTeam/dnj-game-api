@@ -86,12 +86,16 @@ Idempotency-Key: 33333333-3333-4333-8333-333333333333
 ```
 
 `start` aceita `draft → active` e `paused → active`; `pause` aceita somente
-`active → paused`. `completed` e `archived` não podem ser reabertos. Cada
-transição bloqueia a Activity, atualiza seu estado e grava auditoria na mesma
-transação. Retry com a mesma chave, ator, ação e Activity retorna o resultado
-original; reutilizar a chave para outra intenção retorna
-`409 IDEMPOTENCY_KEY_REUSED`. Uma nova chave sobre estado incompatível retorna
-`409 ACTIVITY_STATE_CONFLICT`.
+`active → paused`; `conclude` aceita `active → completed` e `paused →
+completed`, mas somente para `kind` `challenge`, `competitive` ou `live` — uma
+Activity `schedule` ou `checkpoint` (que já nasce `active`, ver seção
+administrativa) retorna `409 ACTIVITY_STATE_CONFLICT` em `conclude`.
+`completed` e `archived` não podem ser reabertos. Cada transição bloqueia a
+Activity, atualiza seu estado e grava auditoria na mesma transação. Retry com
+a mesma chave, ator, ação e Activity retorna o resultado original; reutilizar
+a chave para outra intenção retorna `409 IDEMPOTENCY_KEY_REUSED`. Uma nova
+chave sobre estado (ou kind) incompatível retorna `409
+ACTIVITY_STATE_CONFLICT`.
 
 ## Contrato administrativo publicado
 
@@ -105,7 +109,7 @@ papel atual no banco. Somente `ADMIN` recebe acesso. As listagens usam envelope
 | `POST /admin/spaces` | `slug`, `name`, `mapReference?`; retorna 201. |
 | `PATCH /admin/spaces/{spaceId}` | Um ou mais dentre `slug`, `name`, `mapReference`; `null` limpa somente `mapReference`. |
 | `GET /admin/activities?page=1` | Todos os campos persistidos e o status atual. |
-| `POST /admin/activities` | `spaceId?`, `slug`, `name`, `description?`, `kind`, `startsAt?`, `endsAt?`, `checkInPoints`, `momentPoints`, `cooldownSeconds`, `allowsMoment`; sempre cria `draft`. |
+| `POST /admin/activities` | `spaceId?`, `slug`, `name`, `description?`, `kind`, `startsAt?`, `endsAt?`, `checkInPoints`, `momentPoints`, `cooldownSeconds`, `allowsMoment`; status inicial depende do `kind` — `schedule` e `checkpoint` nascem `active`, `challenge`, `competitive` e `live` nascem `draft`. |
 | `PATCH /admin/activities/{activityId}` | Os mesmos campos configuráveis. `status` é uma extensão exclusiva do PATCH e aceita somente `archived`; `active` deve ser pausada antes. |
 | `GET /admin/staff?role=EVENT_MANAGER&page=1` | O único filtro de papel aceito é `EVENT_MANAGER`. |
 | `PATCH /admin/users/{userId}/role` | Aceita somente `DEFAULT` ou `EVENT_MANAGER`; não concede nem remove `ADMIN`. |

@@ -3436,7 +3436,7 @@
         ]
       },
       "post": {
-        "description": "status, eventId, papel, assignment e demais campos não publicados são rejeitados.",
+        "description": "status, eventId, papel, assignment e demais campos não publicados são rejeitados. Status inicial: schedule e checkpoint nascem active; challenge, competitive e live nascem draft.",
         "operationId": "createAdminActivity",
         "parameters": [
           {
@@ -3455,6 +3455,7 @@
         },
         "responses": {
           "201": {
+            "conforme o kind) ou resultado original do retry": null,
             "content": {
               "application/json": {
                 "schema": {
@@ -3462,7 +3463,7 @@
                 }
               }
             },
-            "description": "Activity draft criada ou resultado original do retry"
+            "description": "Activity criada (active ou draft"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -3491,7 +3492,7 @@
             "identityCookie": []
           }
         ],
-        "summary": "Cria uma Activity sempre em draft",
+        "summary": "Cria uma Activity com status inicial dependente do kind",
         "tags": [
           "Installation administration"
         ]
@@ -3504,7 +3505,7 @@
         }
       ],
       "patch": {
-        "description": "status aceita somente archived. active não pode ser arquivada sem pause; start e pause permanecem exclusivamente nas operações gerenciais.",
+        "description": "status aceita somente archived. active não pode ser arquivada sem pause; start, pause e conclude permanecem exclusivamente nas operações gerenciais.",
         "operationId": "updateAdminActivity",
         "parameters": [
           {
@@ -5083,6 +5084,62 @@
         "summary": "Confirma que o processo HTTP está ativo",
         "tags": [
           "Operations"
+        ]
+      }
+    },
+    "/manager/activities/{activityId}/conclude": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "description": "Aceita active → completed e paused → completed, somente para kind challenge, competitive ou live; schedule e checkpoint (que nascem active e não passam por este fluxo) retornam ACTIVITY_STATE_CONFLICT. Possui o mesmo escopo de autorização, isolamento, atomicidade e idempotência da operação de início.",
+        "operationId": "concludeActivity",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityState"
+                }
+              }
+            },
+            "description": "Estado resultante ou resultado original do retry"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Conclui uma atividade ativa ou pausada",
+        "tags": [
+          "Activity operations"
         ]
       }
     },

@@ -219,6 +219,14 @@ operations:
       - internal/app/services/iteration4_service_test.go
       - internal/presentation/api/handlers/iteration4_handler_test.go
       - internal/presentation/api/routers/iteration4_router_test.go
+  - operationId: concludeActivity
+    method: POST
+    path: /manager/activities/{activityId}/conclude
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/iteration4_service_test.go
+      - internal/presentation/api/handlers/iteration4_handler_test.go
+      - internal/presentation/api/routers/iteration4_router_test.go
   - operationId: listAdminSpaces
     method: GET
     path: /admin/spaces

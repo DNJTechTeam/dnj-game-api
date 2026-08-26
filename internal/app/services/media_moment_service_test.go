@@ -337,6 +337,7 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	assert.Equal(t, "challenge", moment.Origin)
 	assert.Equal(t, 25, moment.PointsAwarded)
 	assert.Equal(t, "public", moment.PublicationStatus)
+	assert.Equal(t, "pending", moment.ModerationStatus)
 	assert.NotEmpty(t, moment.ImageURL)
 
 	replayed, replayStatus, err := momentService.Create(participantCtx, createKey, &messages.CreateMomentRequestDTO{
@@ -348,6 +349,7 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	assert.Equal(t, 201, replayStatus)
 	assert.Equal(t, moment, replayed)
 
+	// A moment born pending publishes immediately — curation never blocks the feed.
 	feed, err := momentService.List(participantCtx, "feed", "")
 	require.NoError(t, err)
 	require.Len(t, feed.Items, 1)
@@ -362,10 +364,30 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, liked, likedReplay)
 
+	// It still sits in the pending curation queue for an admin to work through.
 	moderation, err := momentService.ListModeration(adminCtx, "challenge", 0)
 	require.NoError(t, err)
 	require.Len(t, moderation.Data, 1)
-	assert.ElementsMatch(t, []string{"deny_points", "delete_photo"}, moderation.Data[0].AvailableActions)
+	assert.ElementsMatch(t, []string{"approve", "deny_points", "delete_photo"}, moderation.Data[0].AvailableActions)
+
+	approveKey := uuid.NewString()
+	approved, err := momentService.Moderate(adminCtx, moment.ID, approveKey, &messages.ModerationRequestDTO{Action: "approve"})
+	require.NoError(t, err)
+	assert.Equal(t, "approved", approved.ModerationStatus)
+	assert.Equal(t, "public", approved.PublicationStatus)
+	assert.Equal(t, "awarded", approved.RewardStatus)
+	replayedApproval, err := momentService.Moderate(adminCtx, moment.ID, approveKey, &messages.ModerationRequestDTO{Action: "approve"})
+	require.NoError(t, err)
+	assert.Equal(t, approved, replayedApproval)
+
+	moderation, err = momentService.ListModeration(adminCtx, "challenge", 0)
+	require.NoError(t, err)
+	assert.Empty(t, moderation.Data)
+
+	feed, err = momentService.List(participantCtx, "feed", "")
+	require.NoError(t, err)
+	require.Len(t, feed.Items, 1)
+	assert.Equal(t, moment.ID, feed.Items[0].ID)
 
 	moderationKey := uuid.NewString()
 	decision, err := momentService.Moderate(adminCtx, moment.ID, moderationKey, &messages.ModerationRequestDTO{Action: "deny_points"})
@@ -387,7 +409,7 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	assert.ElementsMatch(t, []int{25, -25}, []int{entries[0].Delta, entries[1].Delta})
 	var audits int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).Where("action = ?", "moment.moderated").Count(&audits).Error)
-	assert.EqualValues(t, 1, audits)
+	assert.EqualValues(t, 2, audits) // approve + deny_points
 
 	feed, err = momentService.List(participantCtx, "feed", "")
 	require.NoError(t, err)
