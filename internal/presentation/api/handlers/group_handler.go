@@ -42,6 +42,20 @@ func (h *GroupHandler) Search(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, result.Data)
 }
 
+func (h *GroupHandler) Create(c *gin.Context) {
+	var request messages.CreateGroupRequestDTO
+	if err := ParseRequest(c, &request); err != nil {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Nome do grupo é obrigatório.", nil)
+		return
+	}
+	result, err := h.GroupService.CreateGroup(c.Request.Context(), &request)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusCreated, result)
+}
+
 func (h *GroupHandler) Current(c *gin.Context) {
 	result, err := h.GroupService.Current(c.Request.Context())
 	if err != nil {

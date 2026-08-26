@@ -174,7 +174,7 @@ func TestIdentityService_CompleteOnboardingAndCurrent(t *testing.T) {
 
 	// when
 	completed, completeErr := service.CompleteOnboarding(ctx, &messages.CompleteOnboardingRequestDTO{
-		Document: "529.982.247-25", MobilePhone: "+55 41 99999-0000", GroupID: messages.Uint64StringFromUint64(group.ID),
+		Document: "529.982.247-25", MobilePhone: "+55 41 99999-0000", GroupID: messages.NullableUint64String{Set: true, Valid: true, Value: group.ID},
 	})
 	current, currentErr := service.Current(ctx)
 
@@ -191,6 +191,44 @@ func TestIdentityService_CompleteOnboardingAndCurrent(t *testing.T) {
 	assert.Len(t, stored.DocumentHash, 64)
 }
 
+func TestIdentityService_CompleteOnboardingWithoutGroup(t *testing.T) {
+	t.Run("explicit null groupId completes onboarding without a group", func(t *testing.T) {
+		// given
+		service := setupIdentityServiceTest(t, verifiedGooglePayload("google-no-group", "no-group@example.com"))
+		login, err := service.AuthenticateGoogle(TestSuite.Ctx, &messages.GoogleAuthRequestDTO{IDToken: "verified"})
+		require.NoError(t, err)
+		ctx := TestSuite.ContextWithUser(login.User.ID.Uint64())
+
+		// when
+		completed, completeErr := service.CompleteOnboarding(ctx, &messages.CompleteOnboardingRequestDTO{
+			Document: "529.982.247-25", MobilePhone: "5541999990000", GroupID: messages.NullableUint64String{Set: true, Valid: false},
+		})
+
+		// then
+		require.NoError(t, completeErr)
+		assert.False(t, completed.OnboardingRequired)
+		assert.Nil(t, completed.User.Group)
+	})
+
+	t.Run("omitted groupId behaves the same as explicit null", func(t *testing.T) {
+		// given
+		service := setupIdentityServiceTest(t, verifiedGooglePayload("google-omitted-group", "omitted-group@example.com"))
+		login, err := service.AuthenticateGoogle(TestSuite.Ctx, &messages.GoogleAuthRequestDTO{IDToken: "verified"})
+		require.NoError(t, err)
+		ctx := TestSuite.ContextWithUser(login.User.ID.Uint64())
+
+		// when
+		completed, completeErr := service.CompleteOnboarding(ctx, &messages.CompleteOnboardingRequestDTO{
+			Document: "11144477735", MobilePhone: "5541999990000",
+		})
+
+		// then
+		require.NoError(t, completeErr)
+		assert.False(t, completed.OnboardingRequired)
+		assert.Nil(t, completed.User.Group)
+	})
+}
+
 func TestIdentityService_RejectsDuplicateDocument(t *testing.T) {
 	// given
 	firstService := setupIdentityServiceTest(t, verifiedGooglePayload("google-document-1", "first-document@example.com"))
@@ -199,7 +237,7 @@ func TestIdentityService_RejectsDuplicateDocument(t *testing.T) {
 	firstLogin, err := firstService.AuthenticateGoogle(TestSuite.Ctx, &messages.GoogleAuthRequestDTO{IDToken: "first"})
 	require.NoError(t, err)
 	request := &messages.CompleteOnboardingRequestDTO{
-		Document: "52998224725", MobilePhone: "5541999990000", GroupID: messages.Uint64StringFromUint64(group.ID),
+		Document: "52998224725", MobilePhone: "5541999990000", GroupID: messages.NullableUint64String{Set: true, Valid: true, Value: group.ID},
 	}
 	_, err = firstService.CompleteOnboarding(TestSuite.ContextWithUser(firstLogin.User.ID.Uint64()), request)
 	require.NoError(t, err)

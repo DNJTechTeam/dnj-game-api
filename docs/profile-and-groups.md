@@ -15,6 +15,12 @@ As rotas são relativas a `/v2`, exigem JWT de identidade por Bearer ou cookie
   caso de uso como alias deprecated para o frontend atual.
 - `GET /groups` mantém o array esperado pelo consumidor e publica paginação
   nos headers `X-Page`, `X-Limit` e `X-Has-Next-Page`. A ordem é `name,id`.
+- `POST /groups` cria um grupo — self-service, qualquer usuário autenticado,
+  sem exigir papel `ADMIN`. Nome vazio retorna `400`; nome duplicado
+  (case-insensitive, mesma regra de `FindByNameExact`) retorna
+  `409 GROUP_NAME_TAKEN`. Cobre o cenário de quem busca em `GET /groups`, não
+  encontra o próprio grupo, e cria na hora — inclusive antes de completar o
+  onboarding, já que `groupId` é opcional em `PATCH /auth/onboarding`.
 - `GET /groups/me/members` não recebe `groupId`: o grupo vem exclusivamente
   da identidade autenticada. Retorna apenas id, nome, papel e data de entrada,
   ordenados por `name,user_id`.

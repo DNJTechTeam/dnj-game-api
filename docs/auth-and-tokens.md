@@ -106,11 +106,16 @@ specific origins in `CORS_ALLOWED_ORIGINS`.
 
 ## Incomplete profile and onboarding
 
-A Google account is incomplete until CPF, mobile phone and group are present.
-`PATCH /v2/auth/onboarding` validates CPF digits/checksum, mobile format and an
-existing group. The CPF is stored as HMAC-SHA256 using
-`DOCUMENT_HMAC_SECRET`, plus only its last four digits for masking. V2 never
-returns the full CPF. Duplicate CPF ownership returns
+A Google (or email-signup) account is incomplete until CPF and mobile phone
+are present — `groupId` is optional. `PATCH /v2/auth/onboarding` validates
+CPF digits/checksum and mobile format; `groupId`, when sent, must reference
+an existing group (`404 GROUP_NOT_FOUND` otherwise) — omitted or explicit
+`null` completes onboarding with no group at all, since not everyone finds
+their group on the first try. Join or create one later via
+`GET/POST /v2/groups` (creation is self-service, any authenticated user, not
+admin-gated) or `PATCH /v2/users/me/group`. The CPF is stored as HMAC-SHA256
+using `DOCUMENT_HMAC_SECRET`, plus only its last four digits for masking. V2
+never returns the full CPF. Duplicate CPF ownership returns
 `409 DOCUMENT_ALREADY_LINKED`.
 
 Legacy users are preserved. The expand migration adds nullable secure fields;

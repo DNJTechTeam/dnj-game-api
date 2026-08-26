@@ -6,6 +6,7 @@ func (r *Router) RegisterGroupRoutes() {
 
 	group := r.v2Group.Group("/groups")
 	group.GET("", append(r.authProtected(), r.handlers.GroupHandler.Search)...)
+	group.POST("", append(r.authProtected(), r.handlers.GroupHandler.Create)...)
 	group.GET("/me", append(r.authProtected(), r.handlers.GroupHandler.Current)...)
 	group.GET("/me/members", append(r.authProtected(), r.handlers.GroupHandler.Members)...)
 	group.POST("/invites/consume", append(r.authProtected(), r.handlers.GroupInviteHandler.Consume)...)

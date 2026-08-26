@@ -425,19 +425,30 @@ func (s *IdentityService) CompleteOnboarding(ctx context.Context, request *messa
 	userID := common.ExtractUserIdFromContext(ctx)
 	document := normalizeDocument(request.Document)
 	phone := common.SanitizePhone(request.MobilePhone)
-	groupID := request.GroupID.Uint64()
 	if userID == 0 {
 		return nil, identityError(http.StatusUnauthorized, "UNAUTHENTICATED", "Autenticação necessária.")
 	}
-	if !validCPF(document) || !common.ValidatePhone(phone, true) || groupID == 0 {
-		return nil, identityError(http.StatusBadRequest, "INVALID_ONBOARDING", "CPF, telefone e grupo válidos são obrigatórios.")
+	if !validCPF(document) || !common.ValidatePhone(phone, true) {
+		return nil, identityError(http.StatusBadRequest, "INVALID_ONBOARDING", "CPF e telefone válidos são obrigatórios.")
+	}
+	// Group is optional here on purpose: someone may not have found theirs
+	// yet (see GroupService.CreateGroup, self-service) or want to pick one
+	// later via PATCH /users/me/group. Omitted and explicit null both mean
+	// "no group yet" — only an explicit, non-zero id is validated.
+	var groupID *uint64
+	if request.GroupID.Set && request.GroupID.Valid {
+		if request.GroupID.Value == 0 {
+			return nil, identityError(http.StatusBadRequest, "INVALID_ONBOARDING", "groupId deve ser um identificador válido ou null.")
+		}
+		if !s.groups.ExistsByID(ctx, request.GroupID.Value) {
+			return nil, identityError(http.StatusNotFound, "GROUP_NOT_FOUND", "Grupo não encontrado.")
+		}
+		value := request.GroupID.Value
+		groupID = &value
 	}
 	secret := os.Getenv("DOCUMENT_HMAC_SECRET")
 	if secret == "" {
 		return nil, appErrors.InternalError
-	}
-	if !s.groups.ExistsByID(ctx, groupID) {
-		return nil, identityError(http.StatusNotFound, "GROUP_NOT_FOUND", "Grupo não encontrado.")
 	}
 	user, err := s.users.FindByID(ctx, userID)
 	if err != nil {
@@ -462,10 +473,12 @@ func (s *IdentityService) CompleteOnboarding(ctx context.Context, request *messa
 		locked.DocumentHash = documentHash
 		locked.DocumentLast4 = document[len(document)-4:]
 		locked.MobilePhone = phone
-		locked.GroupID = &groupID
+		locked.GroupID = groupID
 		locked.OnboardingComplete = true
-		if _, membershipErr := s.memberships.UpsertForUser(txCtx, &membershipEntities.GroupMembership{UserID: userID, GroupID: groupID, JoinedAt: s.now().UTC()}); membershipErr != nil {
-			return membershipErr
+		if groupID != nil {
+			if _, membershipErr := s.memberships.UpsertForUser(txCtx, &membershipEntities.GroupMembership{UserID: userID, GroupID: *groupID, JoinedAt: s.now().UTC()}); membershipErr != nil {
+				return membershipErr
+			}
 		}
 		_, updateErr := s.users.Update(txCtx, locked)
 		return updateErr

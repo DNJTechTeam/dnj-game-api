@@ -171,7 +171,7 @@ function toUtcIso(localDate: Date): string {
 }
 ```
 
-## Backlog granular (25 fluxos, cobertura 1:1 com as 69 operações publicadas)
+## Backlog granular (26 fluxos, cobertura 1:1 com as 70 operações publicadas)
 
 Fonte de verdade estruturada: [`dnj-v2-frontend-integration.json`](dnj-v2-frontend-integration.json)
 (validado em CI contra o OpenAPI pelo `cmd/handoff-check` — `make openapi`
@@ -183,7 +183,8 @@ referenciar um `operationId` que não existe).
 | Tela de login | frontend | 2 | P0 | ready | — | frontend |
 | Tela de cadastro/login por email | frontend | 11 | P0 | ready | — | frontend |
 | Bootstrap de app (sessão + refresh) | frontend | 2 | P0 | ready | Tela de login | frontend |
-| Completar cadastro (onboarding) | frontend | 2 | P0 | ready | Tela de login | frontend |
+| Completar cadastro (onboarding, grupo opcional) | frontend | 2 | P0 | ready | Tela de login | frontend |
+| Criar grupo (quando não encontrado na busca) | frontend | 11 | P1 | ready | — | frontend |
 | Ação de sair | frontend | 2 | P1 | ready | Bootstrap de app | frontend |
 | Meu perfil | frontend | 3 | P1 | ready | Bootstrap de app | frontend |
 | Meu grupo e membros | frontend | 3 | P1 | ready | Bootstrap de app | frontend |
@@ -206,7 +207,7 @@ referenciar um `operationId` que não existe).
 | Configuração administrativa (spaces/activities/staff/managers) | admin-tooling | 4 | P2 | ready | — | admin-panel |
 | Enablers de plataforma (healthcheck/readiness) | enabler | 1 | P0 | done | — | platform |
 
-Para cada linha, o manifesto JSON traz `blockers` (vazio para todas as 25 —
+Para cada linha, o manifesto JSON traz `blockers` (vazio para todas as 26 —
 nenhuma pendência de backend nesta entrega) e `acceptanceTest` (critério
 objetivo de pronto). Nenhum fluxo amplo ficou sem decompor: cada linha acima
 corresponde a uma tela ou ação concreta, nunca a um domínio inteiro como
@@ -224,7 +225,7 @@ implementar.
 | Tela de login | `POST /api/auth/google` → `POST /v2/auth/google` | 1 chamada; `onboardingComplete=false` redireciona para onboarding | [`auth-and-tokens.md`](../auth-and-tokens.md) |
 | Cadastro/login por email | novo em V2, substitui o `/v1/auth/onboarding` passwordless (morto — depende de um webhook de parceiro que nunca chegou a existir) | `POST /auth/signup` (sempre `CODE_SENT`) → usuário digita o código do email → `POST /auth/signup/verify` (mesma resposta de sessão do login Google); 429 no reenvio antes do cooldown | [`auth-and-tokens.md#cadastrologin-por-email-v2`](../auth-and-tokens.md#cadastrologin-por-email-v2) |
 | Bootstrap de app | novo em V2 | `GET /auth/session`; em 401, `POST /auth/refresh` uma vez, então repete | [`auth-and-tokens.md`](../auth-and-tokens.md) |
-| Completar cadastro | novo em V2 | `PATCH /auth/onboarding` com CPF/telefone/grupo | [`auth-and-tokens.md`](../auth-and-tokens.md) |
+| Completar cadastro | novo em V2 | `PATCH /auth/onboarding` com CPF/telefone (grupo opcional — omitido/null completa sem grupo) | [`auth-and-tokens.md`](../auth-and-tokens.md) |
 | Agenda e detalhe | `GET /api/v1/schedule` → `GET /v2/schedule` | schedule → detalhe sob demanda ao abrir card | [`agenda-content.md`](../agenda-content.md) |
 | Abertura da tela Game | `/api/v1/game/overview` + 2 rotas → 3 GETs `/v2` em paralelo | `getGameOverview` + `getCurrentActivityRun` + `getCurrentParticipation` disparados juntos, nunca em cascata; 204 vira estado vazio | [`game-frontend-handoff.md#grafo-de-requests--abertura-do-game`](../game-frontend-handoff.md) |
 | Scanner de QR | `/api/v1/qr/validate` (chave no corpo) → `POST /v2/qr/validate` (chave no header) | 1 chamada; corpo só `{qrToken}` | [`game-frontend-handoff.md#grafo-de-requests--scan`](../game-frontend-handoff.md) |
@@ -260,7 +261,8 @@ handoff — cada linha tem um teste automatizado real por trás (arquivo em
 | Ciclo de vida do run (criar/QR/start/pause/resume/finalizar/cancelar) | POST /manager/runs/{runId}/results | `finalizeManagerRunResults` | 200,400,401,403,404,409,500 | `iteration6_service_test.go` |
 | Ciclo de vida do run (criar/QR/start/pause/resume/finalizar/cancelar) | POST /manager/runs/{runId}/resume | `resumeManagerRun` | 200,400,401,403,404,409,500 | `iteration6_service_test.go` |
 | Ciclo de vida do run (criar/QR/start/pause/resume/finalizar/cancelar) | POST /manager/runs/{runId}/start | `startManagerRun` | 200,400,401,403,404,409,500 | `iteration6_service_test.go` |
-| Completar cadastro (CPF/telefone/grupo) | PATCH /auth/onboarding | `completeIdentityOnboarding` | 200,400,401,404,409,500 | `identity_handler_test.go` |
+| Completar cadastro (CPF/telefone, grupo opcional) | PATCH /auth/onboarding | `completeIdentityOnboarding` | 200,400,401,404,409,500 | `identity_handler_test.go` |
+| Criar grupo (self-service) | POST /groups | `createGroup` | 201,400,401,409,500 | `group_create_service_test.go` |
 | Composer de foto (checksum → intenção → PUT S3 → complete → criar Moment) | POST /media/upload-intents | `createMediaUploadIntent` | 201,400,401,403,409,413,415,500,503 | `media_moment_service_test.go` |
 | Composer de foto (checksum → intenção → PUT S3 → complete → criar Moment) | POST /media/{mediaAssetId}/complete | `completeMediaUpload` | 200,400,401,403,404,409,410,413,422,500,503 | `media_moment_service_test.go` |
 | Composer de foto (checksum → intenção → PUT S3 → complete → criar Moment) | POST /moments | `createMoment` | 201,400,401,403,404,409,500 | `media_moment_service_test.go` |

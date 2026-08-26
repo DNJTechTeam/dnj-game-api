@@ -40,6 +40,35 @@ func authenticatedUserID(ctx context.Context) (uint64, error) {
 	return userID, nil
 }
 
+// CreateGroup is self-service, open to any authenticated user — the story
+// is a participant searching for their group, not finding it, and creating
+// it themselves (onboarding's groupId is optional for exactly this reason:
+// pick or create a group, in either order, or skip it for now). Until now
+// groups could only be created by inserting a row directly in Postgres.
+func (s *GroupService) CreateGroup(ctx context.Context, request *messages.CreateGroupRequestDTO) (*messages.GroupSummaryDTO, error) {
+	if _, err := authenticatedUserID(ctx); err != nil {
+		return nil, err
+	}
+	name := strings.TrimSpace(request.Name)
+	if name == "" {
+		return nil, appErrors.NewError("Nome do grupo é obrigatório.", []*appErrors.FieldError{
+			appErrors.NewFieldError("name", "nome não informado"),
+		})
+	}
+	existing, err := s.groups.FindByNameExact(ctx, name)
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	if existing != nil {
+		return nil, identityError(http.StatusConflict, "GROUP_NAME_TAKEN", "Já existe um grupo com esse nome.")
+	}
+	created, err := s.groups.Create(ctx, &groupEntities.Group{Name: name})
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	return mappers.MapGroupToSummaryDTO(created), nil
+}
+
 func (s *GroupService) Search(ctx context.Context, query string, filter *messages.ListGroupsFilterDTO) (*messages.PaginatedResponse[messages.GroupSummaryDTO], error) {
 	trimmed := strings.TrimSpace(query)
 	if trimmed != "" && len([]rune(trimmed)) < 3 {

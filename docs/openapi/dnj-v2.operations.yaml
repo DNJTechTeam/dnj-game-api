@@ -97,6 +97,12 @@ operations:
     statuses: ['200', '400', '401', '500']
     automatedTests:
       - internal/app/services/group_service_test.go
+  - operationId: createGroup
+    method: POST
+    path: /groups
+    statuses: ['201', '400', '401', '409', '500']
+    automatedTests:
+      - internal/app/services/group_create_service_test.go
       - internal/presentation/api/handlers/iteration3_handler_test.go
   - operationId: getCurrentGroup
     method: GET

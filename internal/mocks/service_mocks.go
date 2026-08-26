@@ -3406,6 +3406,74 @@ func (_m *MockGroupServiceInterface) EXPECT() *MockGroupServiceInterface_Expecte
 	return &MockGroupServiceInterface_Expecter{mock: &_m.Mock}
 }
 
+// CreateGroup provides a mock function for the type MockGroupServiceInterface
+func (_mock *MockGroupServiceInterface) CreateGroup(ctx context.Context, request *messages.CreateGroupRequestDTO) (*messages.GroupSummaryDTO, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateGroup")
+	}
+
+	var r0 *messages.GroupSummaryDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.CreateGroupRequestDTO) (*messages.GroupSummaryDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.CreateGroupRequestDTO) *messages.GroupSummaryDTO); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.GroupSummaryDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.CreateGroupRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGroupServiceInterface_CreateGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateGroup'
+type MockGroupServiceInterface_CreateGroup_Call struct {
+	*mock.Call
+}
+
+// CreateGroup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request *messages.CreateGroupRequestDTO
+func (_e *MockGroupServiceInterface_Expecter) CreateGroup(ctx interface{}, request interface{}) *MockGroupServiceInterface_CreateGroup_Call {
+	return &MockGroupServiceInterface_CreateGroup_Call{Call: _e.mock.On("CreateGroup", ctx, request)}
+}
+
+func (_c *MockGroupServiceInterface_CreateGroup_Call) Run(run func(ctx context.Context, request *messages.CreateGroupRequestDTO)) *MockGroupServiceInterface_CreateGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *messages.CreateGroupRequestDTO
+		if args[1] != nil {
+			arg1 = args[1].(*messages.CreateGroupRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupServiceInterface_CreateGroup_Call) Return(groupSummaryDTO *messages.GroupSummaryDTO, err error) *MockGroupServiceInterface_CreateGroup_Call {
+	_c.Call.Return(groupSummaryDTO, err)
+	return _c
+}
+
+func (_c *MockGroupServiceInterface_CreateGroup_Call) RunAndReturn(run func(ctx context.Context, request *messages.CreateGroupRequestDTO) (*messages.GroupSummaryDTO, error)) *MockGroupServiceInterface_CreateGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Current provides a mock function for the type MockGroupServiceInterface
 func (_mock *MockGroupServiceInterface) Current(ctx context.Context) (*messages.CurrentGroupResponseDTO, error) {
 	ret := _mock.Called(ctx)

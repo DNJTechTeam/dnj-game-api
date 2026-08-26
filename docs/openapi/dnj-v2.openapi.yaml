@@ -275,6 +275,33 @@ paths:
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '500': {$ref: '#/components/responses/InternalError'}
+    post:
+      tags: [Groups]
+      operationId: createGroup
+      summary: Cria um grupo — self-service, qualquer usuário autenticado
+      description: >-
+        Não exige papel administrativo. Existe pra quem não encontrou seu
+        grupo em /groups poder criar o próprio, seja durante o onboarding
+        (groupId é opcional lá — pode-se completar sem grupo e criar/entrar
+        depois) ou a qualquer momento via PATCH /users/me/group.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateGroupRequest'}
+      responses:
+        '201':
+          description: Grupo criado
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GroupSummary'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /groups/me:
     get:
       tags: [Groups]
@@ -1485,11 +1512,24 @@ components:
     CompleteOnboardingRequest:
       type: object
       additionalProperties: false
-      required: [document, mobilePhone, groupId]
+      required: [document, mobilePhone]
       properties:
         document: {type: string, example: '52998224725'}
         mobilePhone: {type: string, example: '5541999990000'}
-        groupId: {type: string, pattern: '^[1-9][0-9]*$', example: '12'}
+        groupId:
+          nullable: true
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          example: '12'
+          description: >-
+            Opcional. Omitido ou null completa o onboarding sem grupo — use
+            POST /groups (self-service) ou PATCH /users/me/group depois.
+    CreateGroupRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, example: 'Turma da Serra'}
     IdentitySessionResponse:
       type: object
       required: [accessToken, tokenType, expiresIn, csrfToken, onboardingRequired, user]

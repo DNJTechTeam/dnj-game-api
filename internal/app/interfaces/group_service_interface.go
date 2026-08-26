@@ -7,6 +7,7 @@ import (
 )
 
 type GroupServiceInterface interface {
+	CreateGroup(ctx context.Context, request *messages.CreateGroupRequestDTO) (*messages.GroupSummaryDTO, error)
 	Search(ctx context.Context, query string, filter *messages.ListGroupsFilterDTO) (*messages.PaginatedResponse[messages.GroupSummaryDTO], error)
 	Current(ctx context.Context) (*messages.CurrentGroupResponseDTO, error)
 	UpdateCurrent(ctx context.Context, request *messages.UpdateCurrentGroupRequestDTO) (*messages.CurrentProfileResponseDTO, error)

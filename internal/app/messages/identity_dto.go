@@ -18,9 +18,9 @@ type VerifyEmailSignupRequestDTO struct {
 }
 
 type CompleteOnboardingRequestDTO struct {
-	Document    string       `json:"document" binding:"required"`
-	MobilePhone string       `json:"mobilePhone" binding:"required"`
-	GroupID     Uint64String `json:"groupId" binding:"required"`
+	Document    string               `json:"document" binding:"required"`
+	MobilePhone string               `json:"mobilePhone" binding:"required"`
+	GroupID     NullableUint64String `json:"groupId"`
 }
 
 type IdentityUserResponseDTO struct {
