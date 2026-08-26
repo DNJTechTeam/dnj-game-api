@@ -595,7 +595,9 @@
             "type": "string"
           },
           "groupId": {
+            "description": "Opcional. Omitido ou null completa o onboarding sem grupo — use POST /groups (self-service) ou PATCH /users/me/group depois.",
             "example": "12",
+            "nullable": true,
             "pattern": "^[1-9][0-9]*$",
             "type": "string"
           },
@@ -606,8 +608,7 @@
         },
         "required": [
           "document",
-          "mobilePhone",
-          "groupId"
+          "mobilePhone"
         ],
         "type": "object"
       },
@@ -734,6 +735,20 @@
         },
         "required": [
           "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateGroupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "example": "Turma da Serra",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
           "name"
         ],
         "type": "object"
@@ -4854,6 +4869,61 @@
           }
         ],
         "summary": "Lista ou pesquisa grupos em ordem determinística",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "post": {
+        "description": "Não exige papel administrativo. Existe pra quem não encontrou seu grupo em /groups poder criar o próprio, seja durante o onboarding (groupId é opcional lá — pode-se completar sem grupo e criar/entrar depois) ou a qualquer momento via PATCH /users/me/group.",
+        "operationId": "createGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupSummary"
+                }
+              }
+            },
+            "description": "Grupo criado",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Cria um grupo — self-service, qualquer usuário autenticado",
         "tags": [
           "Groups"
         ]
