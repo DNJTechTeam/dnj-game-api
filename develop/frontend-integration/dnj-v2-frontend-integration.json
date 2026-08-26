@@ -1,5 +1,5 @@
 {
-  "version": "2.9.0",
+  "version": "2.10.0",
   "generatedFrom": "docs/openapi/dnj-v2.openapi.yaml",
   "operationsManifest": "docs/openapi/dnj-v2.operations.yaml",
   "canonicalDoc": "docs/handoff/DNJ-V2-FRONTEND-INTEGRATION.md",
@@ -67,7 +67,7 @@
     },
     {
       "id": "auth-onboarding",
-      "screen": "Completar cadastro (CPF/telefone/grupo)",
+      "screen": "Completar cadastro (CPF/telefone, grupo opcional)",
       "scope": "frontend",
       "iteration": 2,
       "priority": "P0",
@@ -76,8 +76,22 @@
       "endpoints": ["completeIdentityOnboarding"],
       "owner": "frontend",
       "blockers": [],
-      "acceptanceTest": "Usuário com onboarding incompleto não acessa recursos protegidos até enviar CPF/telefone/grupo válidos.",
+      "acceptanceTest": "Usuário com onboarding incompleto não acessa recursos protegidos até enviar CPF/telefone válidos; groupId é opcional — omitido ou null completa o onboarding sem grupo, e o usuário escolhe/cria um depois via GET+POST /groups ou PATCH /users/me/group.",
       "evidence": "internal/app/services/identity_service_test.go"
+    },
+    {
+      "id": "group-create-self-service",
+      "screen": "Criar grupo (quando não encontrado na busca)",
+      "scope": "frontend",
+      "iteration": 11,
+      "priority": "P1",
+      "state": "ready",
+      "dependencies": [],
+      "endpoints": ["createGroup"],
+      "owner": "frontend",
+      "blockers": [],
+      "acceptanceTest": "Qualquer usuário autenticado (não precisa ser admin) cria um grupo por nome; nome duplicado (case-insensitive) retorna 409 GROUP_NAME_TAKEN; nome vazio retorna 400.",
+      "evidence": "internal/app/services/group_create_service_test.go"
     },
     {
       "id": "profile-view-edit",
