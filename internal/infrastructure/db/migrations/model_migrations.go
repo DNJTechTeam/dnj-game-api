@@ -1253,4 +1253,31 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		"2.13.0",
 		&models.SpecialEvent{},
 	))
+
+	registry.Register(Migration{
+		Name:        "contract_challenge_moments_without_qr",
+		Description: "Allow photo challenges to award Moments without QR participations",
+		Version:     "2.14.0",
+		Definition:  "challenge-moments-without-qr-v1",
+		Up: func(db *gorm.DB) error {
+			for _, constraint := range []struct{ table, name string }{
+				{"moments", "moments_origin_status_check"},
+				{"point_entries", "point_entries_origin_check"},
+			} {
+				if db.Migrator().HasConstraint(constraint.table, constraint.name) {
+					if err := db.Migrator().DropConstraint(constraint.table, constraint.name); err != nil {
+						return err
+					}
+				}
+			}
+			if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS moments_challenge_user_activity_unique ON moments (user_id, activity_id) WHERE origin = 'challenge'`).Error; err != nil {
+				return err
+			}
+			if err := addConstraintIfMissing(db, "moments", "moments_origin_status_check", `CHECK ((origin = 'free' AND participation_id IS NULL AND activity_id IS NULL AND points_awarded = 0 AND reward_status = 'not_applicable') OR (origin = 'challenge' AND activity_id IS NOT NULL AND points_awarded >= 0 AND reward_status IN ('awarded','denied','reversed')))`); err != nil {
+				return err
+			}
+			return addConstraintIfMissing(db, "point_entries", "point_entries_origin_check", `CHECK ((origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL AND moment_id IS NULL) OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL) OR (origin = 'moment' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND moment_id IS NOT NULL))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }
