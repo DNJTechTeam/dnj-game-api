@@ -31,6 +31,7 @@ func mediaMomentHandlerEngine(
 	engine.POST("/v2/media/:mediaAssetId/complete", mediaHandler.CompleteUpload)
 	engine.GET("/v2/moments", momentHandler.List)
 	engine.POST("/v2/moments", momentHandler.Create)
+	engine.POST("/v2/moments/challenge", momentHandler.CreateChallenge)
 	engine.POST("/v2/moments/:momentId/likes", momentHandler.ToggleLike)
 	engine.GET("/v2/admin/moments/moderation", momentHandler.ListModeration)
 	engine.POST("/v2/admin/moments/:momentId/moderation", momentHandler.Moderate)
@@ -83,6 +84,34 @@ func TestMediaMoments_HandlerHappyPaths(t *testing.T) {
 	}
 	for i, r := range responses {
 		assert.Lessf(t, r.Code, 300, "response %d: %s", i, r.Body.String())
+	}
+}
+
+func TestMediaMoments_CreateChallengeAcceptsOnlyChallengePayload(t *testing.T) {
+	momentService := mocks.NewMockMomentServiceInterface(t)
+	key := "22222222-2222-4222-8222-222222222222"
+	momentService.On(
+		"Create",
+		mock.Anything,
+		key,
+		mock.MatchedBy(func(request *messages.CreateMomentRequestDTO) bool {
+			return request.MediaAssetID == "asset-1" && request.PublishConsent && request.ChallengeMode && request.ParticipationID == nil
+		}),
+	).Return(&messages.MomentResponseDTO{ID: "moment-1", Origin: "challenge"}, http.StatusCreated, nil).Once()
+
+	engine := mediaMomentHandlerEngine(t, mocks.NewMockMediaServiceInterface(t), momentService)
+
+	created := mediaMomentRequest(engine, http.MethodPost, "/v2/moments/challenge", `{"mediaAssetId":"asset-1","publishConsent":true}`, map[string]string{"Idempotency-Key": key})
+	assert.Equal(t, http.StatusCreated, created.Code)
+	assert.Contains(t, created.Body.String(), `"origin":"challenge"`)
+
+	for _, body := range []string{
+		`{"mediaAssetId":"asset-1","publishConsent":true,"participationId":"p-1"}`,
+		`{"mediaAssetId":"asset-1","publishConsent":true,"challengeId":"c-1"}`,
+	} {
+		rejected := mediaMomentRequest(engine, http.MethodPost, "/v2/moments/challenge", body, nil)
+		assert.Equal(t, http.StatusBadRequest, rejected.Code)
+		assert.Contains(t, rejected.Body.String(), "INVALID_REQUEST")
 	}
 }
 

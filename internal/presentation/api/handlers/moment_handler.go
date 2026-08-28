@@ -58,6 +58,38 @@ func (h *MomentHandler) Create(c *gin.Context) {
 	ResponseSuccess(c, status, response)
 }
 
+func (h *MomentHandler) CreateChallenge(c *gin.Context) {
+	if !validatePublishedQuery(c) {
+		return
+	}
+	var request messages.CreateChallengeMomentRequestDTO
+	if err := ParseStrictRequest(c, &request); err != nil {
+		ResponseAPIError(
+			c,
+			http.StatusBadRequest,
+			"INVALID_REQUEST",
+			"Envie somente mediaAssetId e publishConsent.",
+			nil,
+		)
+		return
+	}
+	response, status, err := h.MomentService.Create(
+		c.Request.Context(),
+		c.GetHeader("Idempotency-Key"),
+		&messages.CreateMomentRequestDTO{
+			MediaAssetID:   request.MediaAssetID,
+			PublishConsent: request.PublishConsent,
+			ChallengeMode:  true,
+		},
+	)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	c.Header("Cache-Control", "private, no-store")
+	ResponseSuccess(c, status, response)
+}
+
 func (h *MomentHandler) ToggleLike(c *gin.Context) {
 	if !validatePublishedQuery(c) || !requireEmptyBody(c) {
 		return

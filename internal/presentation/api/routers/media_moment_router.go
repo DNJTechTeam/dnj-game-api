@@ -14,6 +14,7 @@ func (r *Router) RegisterMediaMomentRoutes() {
 	moments := r.v2Group.Group("/moments")
 	moments.GET("", append(r.authProtected(), r.handlers.MomentHandler.List)...)
 	moments.POST("", append(r.authProtected(), r.handlers.MomentHandler.Create)...)
+	moments.POST("/challenge", append(r.authProtected(), r.handlers.MomentHandler.CreateChallenge)...)
 	moments.POST(
 		"/:momentId/likes",
 		append(r.authProtected(), r.handlers.MomentHandler.ToggleLike)...,

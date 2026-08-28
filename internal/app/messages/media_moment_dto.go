@@ -39,6 +39,12 @@ type CreateMomentRequestDTO struct {
 	MediaAssetID    string  `json:"mediaAssetId"`
 	PublishConsent  bool    `json:"publishConsent"`
 	ParticipationID *string `json:"participationId,omitempty"`
+	ChallengeMode   bool    `json:"-"`
+}
+
+type CreateChallengeMomentRequestDTO struct {
+	MediaAssetID   string `json:"mediaAssetId"`
+	PublishConsent bool   `json:"publishConsent"`
 }
 type MomentResponseDTO struct {
 	ID                 string        `json:"id"`
