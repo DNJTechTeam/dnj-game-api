@@ -328,12 +328,7 @@ func (r *MomentRepository) AwardMoment(
 		Error; err != nil {
 		return handleRepositoryError(err)
 	}
-	return writeDerivedNotification(
-		r.getDB(ctx), userID, "points",
-		"Pontos concedidos",
-		"Você recebeu pontos por uma foto publicada.",
-		"moment", momentID, now,
-	)
+	return nil
 }
 
 func (r *MomentRepository) ReverseMomentAward(
@@ -372,14 +367,6 @@ func (r *MomentRepository) ReverseMomentAward(
 	}
 	if err := r.getDB(ctx).Model(&models.Moment{}).Where("id=?", momentID).Updates(map[string]any{"reward_status": string(momentEntities.RewardReversed), "updated_at": now}).Error; err != nil {
 		return false, handleRepositoryError(err)
-	}
-	if err := writeDerivedNotification(
-		r.getDB(ctx), userID, "points",
-		"Pontos revertidos",
-		"Uma pontuação da sua foto foi revertida por moderação.",
-		"moment", momentID, now,
-	); err != nil {
-		return false, err
 	}
 	return true, nil
 }

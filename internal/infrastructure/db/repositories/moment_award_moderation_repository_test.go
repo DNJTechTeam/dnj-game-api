@@ -111,11 +111,12 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	require.NoError(t, TestSuite.DbConn.Where("id = ?", participationID).Take(&participation).Error)
 	assert.False(t, participation.CanShareMoment)
 
-	var awardNotification models.Notification
+	var awardNotificationCount int64
 	require.NoError(t, TestSuite.DbConn.
+		Model(&models.Notification{}).
 		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "points", moment.ID).
-		Take(&awardNotification).Error)
-	assert.Equal(t, "unread", awardNotification.State)
+		Count(&awardNotificationCount).Error)
+	assert.Zero(t, awardNotificationCount)
 
 	err = momentRepo.AwardMoment(ctx, moment.ID, owner.ID, activityID, 30, now)
 	assert.ErrorIs(t, err, appErrors.ErrConflict)
@@ -132,10 +133,12 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	require.NoError(t, err)
 	assert.Equal(t, userBeforeReverse.Points-30, userAfterReverse.Points)
 
-	var reversalNotification models.Notification
+	var reversalNotificationCount int64
 	require.NoError(t, TestSuite.DbConn.
+		Model(&models.Notification{}).
 		Where("user_id = ? AND category = ? AND source_id = ?", owner.ID, "points", moment.ID).
-		Order("created_at DESC").Take(&reversalNotification).Error)
+		Count(&reversalNotificationCount).Error)
+	assert.Zero(t, reversalNotificationCount)
 
 	// Reversing an already-reversed award is a safe, durable no-op — not a double-decrement.
 	reversedAgain, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, now)

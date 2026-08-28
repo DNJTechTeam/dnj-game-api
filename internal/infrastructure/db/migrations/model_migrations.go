@@ -1280,4 +1280,15 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "remove_moment_points_notifications",
+		Description: "Moment challenge scoring is shown in DNJ Game and must not create a generic points notification.",
+		Version:     "2.15.0",
+		Definition:  "remove-moment-points-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`DELETE FROM notifications WHERE category = 'points' AND source_type = 'moment'`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }
