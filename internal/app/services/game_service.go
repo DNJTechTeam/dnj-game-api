@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -18,6 +19,8 @@ import (
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	appMappers "github.com/dnjtechteam/dnj-game-api/internal/app/mappers"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
+	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	favoriteEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/entities"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
@@ -32,15 +35,16 @@ const qrLifetime = 45 * time.Minute
 
 type GameService struct {
 	*BaseService
-	games  gameInterfaces.GameRepositoryInterface
-	users  userInterfaces.UserRepositoryInterface
-	audits auditInterfaces.OperationAuditRepositoryInterface
-	now    func() time.Time
-	secret func() string
+	games      gameInterfaces.GameRepositoryInterface
+	activities activityInterfaces.ActivityRepositoryInterface
+	users      userInterfaces.UserRepositoryInterface
+	audits     auditInterfaces.OperationAuditRepositoryInterface
+	now        func() time.Time
+	secret     func() string
 }
 
-func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface) appInterfaces.GameServiceInterface {
-	return &GameService{BaseService: base, games: games, users: users, audits: audits, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
+func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface) appInterfaces.GameServiceInterface {
+	return &GameService{BaseService: base, games: games, activities: activities, users: users, audits: audits, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
 }
 
 func gameError(status int, code, message string) error {
@@ -220,6 +224,9 @@ func (s *GameService) CurrentRun(ctx context.Context, rawRunID string) (*message
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
+	if run.Activity != nil && run.Activity.Kind == activityEntities.KindLive {
+		return nil, nil
+	}
 	response := messages.ParticipantRunResponseDTO{ID: run.ID, Status: string(run.Status), GameName: run.Activity.Name, StartedAt: utcPointer(run.StartedAt), EndedAt: utcPointer(run.EndedAt)}
 	if participant.Result != nil {
 		result := string(*participant.Result)
@@ -278,8 +285,16 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			if participationErr != nil {
 				return appErrors.InternalError
 			}
+			activity, activityErr := s.activities.FindByID(txCtx, participation.ActivityID)
+			if activityErr != nil {
+				return appErrors.InternalError
+			}
 			total := *prior.ResultPoints
-			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total)}
+			action, pointsAwarded := "joined", 0
+			if activity.Kind == activityEntities.KindLive {
+				action, pointsAwarded = "scored", activity.CheckInPoints
+			}
+			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), Action: action, PointsAwarded: pointsAwarded}
 			status = prior.HTTPStatus
 			return nil
 		}
@@ -310,15 +325,31 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		if qr.Status != gameEntities.QRCodeStatusActive {
 			return gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
 		}
+		activity, activityErr := s.activities.FindByID(txCtx, qr.ActivityID)
+		if activityErr != nil {
+			return appErrors.InternalError
+		}
+		scoreOnly := activity.Kind == activityEntities.KindLive
 		participation, existingErr := s.games.FindParticipationByRunAndUser(txCtx, qr.ActivityRunID, user.ID)
 		if existingErr == nil {
 			status = http.StatusOK
 		} else if errors.Is(existingErr, appErrors.ErrNotFound) {
 			participationID := uuid.NewString()
+			points := 0
+			if scoreOnly {
+				points = activity.CheckInPoints
+			}
 			participation = &gameEntities.Participation{ID: participationID, UserID: user.ID, ActivityID: qr.ActivityID, ActivityRunID: qr.ActivityRunID, QRCodeID: qr.ID, CheckedInAt: now, Status: gameEntities.ParticipationStatusActive, CanShareMoment: qr.AllowsMoment, CheckInPoints: 0, CreatedAt: now}
 			participant := &gameEntities.RunParticipant{ID: uuid.NewString(), ActivityRunID: qr.ActivityRunID, UserID: user.ID, ParticipationID: participationID, CheckedInAt: now, CreatedAt: now}
 			if createErr := s.games.CreateParticipation(txCtx, participation, participant); createErr != nil {
 				return appErrors.InternalError
+			}
+			if scoreOnly {
+				runRef, participationRef := qr.ActivityRunID, participationID
+				entry := &gameEntities.PointEntry{ID: uuid.NewString(), UserID: user.ID, ActivityID: qr.ActivityID, ActivityRunID: &runRef, ParticipationID: &participationRef, Origin: "activity_run_results", Reason: appMappers.PointReason(gameEntities.ResultParticipation), Delta: points, CreatedAt: now}
+				if awardErr := s.games.ApplyAward(txCtx, participant.ID, gameEntities.ResultParticipation, points, entry); awardErr != nil {
+					return appErrors.InternalError
+				}
 			}
 			participation, existingErr = s.games.FindParticipationByID(txCtx, participationID)
 			if existingErr != nil {
@@ -329,13 +360,22 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		}
 		resultRef := participation.ID
 		total := user.Points
+		action := "joined"
+		if scoreOnly {
+			total += activity.CheckInPoints
+			action = "scored"
+		}
 		if createErr := s.games.CreateParticipantOperation(txCtx, &favoriteEntities.ParticipantOperation{ID: uuid.NewString(), ActorUserID: user.ID, IdempotencyKey: key.String(), Operation: operation, ActivityID: qr.ActivityID, IntentHash: requestHash, HTTPStatus: status, ResultRef: &resultRef, ResultPoints: &total, CreatedAt: now}); createErr != nil {
 			if errors.Is(createErr, appErrors.ErrConflict) {
 				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
 			}
 			return appErrors.InternalError
 		}
-		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total)}
+		pointsAwarded := 0
+		if scoreOnly {
+			pointsAwarded = activity.CheckInPoints
+		}
+		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), Action: action, PointsAwarded: pointsAwarded}
 		return nil
 	})
 	if err != nil {
@@ -398,6 +438,9 @@ func (s *GameService) readManagerRun(ctx context.Context, rawRunID string, lock 
 	if err != nil {
 		return nil, false, nil, nil, err
 	}
+	if scopeErr := requireInteractiveManagerScope(actor, global); scopeErr != nil {
+		return nil, false, nil, nil, scopeErr
+	}
 	run, err := s.games.FindRunForManager(ctx, id.String(), actor.ID, global, lock)
 	if errors.Is(err, appErrors.ErrNotFound) {
 		return nil, false, nil, nil, gameError(http.StatusNotFound, "NOT_FOUND", "Partida não encontrada.")
@@ -440,7 +483,30 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	response := &messages.ManagerGameOverviewResponseDTO{Scope: "actions", Actions: messages.ManagerGameOverviewActionsDTO{Games: make([]messages.ManagerGameResponseDTO, len(games))}}
+	scope := "actions"
+	if actor.ManagerScope != nil && *actor.ManagerScope != "" {
+		scope = *actor.ManagerScope
+	}
+	response := &messages.ManagerGameOverviewResponseDTO{Scope: scope, Actions: messages.ManagerGameOverviewActionsDTO{Games: make([]messages.ManagerGameResponseDTO, len(games))}}
+	schedule, err := s.activities.ListManagerSchedule(ctx, actor.ID, global)
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	space := &messages.ManagerSpaceOverviewDTO{Upcoming: make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule))}
+	for index := range schedule {
+		item := schedule[index]
+		spaceItem := messages.ManagerSpaceItemResponseDTO{ID: item.Activity.ID, Title: item.Activity.Name, StartsAt: utcPointer(item.Activity.StartsAt), StartedAt: utcPointer(item.Activity.ActualStartedAt), Status: string(item.Activity.Status), FlexMinutes: item.Activity.FlexMinutes}
+		if item.Space != nil {
+			spaceItem.SpaceName = item.Space.Name
+		}
+		if space.Current == nil && item.Activity.Status != activityEntities.StatusCompleted {
+			copy := spaceItem
+			space.Current = &copy
+		} else {
+			space.Upcoming = append(space.Upcoming, spaceItem)
+		}
+	}
+	response.Space = space
 	rules := gameEntities.DefaultPointRules()
 	for i := range games {
 		response.Actions.Games[i].ID = games[i].Activity.ID
@@ -504,6 +570,146 @@ func parseManagerKey(raw string) (string, error) {
 	return key.String(), nil
 }
 
+func requireInteractiveManagerScope(actor *userEntities.User, global bool) error {
+	if global {
+		return nil
+	}
+	// Existing operational accounts predate manager_scope; retain their former
+	// Radicalidade behavior until an administrator assigns an explicit scope.
+	if actor.ManagerScope != nil && *actor.ManagerScope != "actions" && *actor.ManagerScope != "special_events" {
+		return gameError(http.StatusForbidden, "FORBIDDEN", "Esta operação exige o escopo de Radicalidade ou Eventos especiais.")
+	}
+	return nil
+}
+
+func managerGameDTO(activity *activityEntities.Activity) *messages.ManagerGameResponseDTO {
+	rules := gameEntities.DefaultPointRules()
+	response := &messages.ManagerGameResponseDTO{ID: activity.ID, Name: activity.Name}
+	response.Points.First = rules.First
+	response.Points.Second = rules.Second
+	response.Points.Third = rules.Third
+	response.Points.Participation = rules.Participation
+	return response
+}
+
+func managerGameName(raw string) (string, error) {
+	name := strings.TrimSpace(raw)
+	if name == "" || len(name) > 120 {
+		return "", gameError(http.StatusBadRequest, "INVALID_REQUEST", "name é obrigatório e deve ter até 120 caracteres.")
+	}
+	return name, nil
+}
+
+func (s *GameService) CreateManagerGame(ctx context.Context, rawKey string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error) {
+	if request == nil {
+		return nil, 0, gameError(http.StatusBadRequest, "INVALID_REQUEST", "name é obrigatório.")
+	}
+	name, err := managerGameName(request.Name)
+	if err != nil {
+		return nil, 0, err
+	}
+	key, err := parseManagerKey(rawKey)
+	if err != nil {
+		return nil, 0, err
+	}
+	var response *messages.ManagerGameResponseDTO
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		actor, global, authErr := s.manager(txCtx, true)
+		if authErr != nil {
+			return authErr
+		}
+		if scopeErr := requireInteractiveManagerScope(actor, global); scopeErr != nil {
+			return scopeErr
+		}
+		now := s.now().UTC()
+		id := uuid.NewString()
+		kind := activityEntities.KindCompetitive
+		if actor.ManagerScope != nil && *actor.ManagerScope == "special_events" {
+			kind = activityEntities.KindLive
+		}
+		activity := &activityEntities.Activity{ID: id, Slug: "manager-" + fmt.Sprint(actor.ID) + "-" + strings.ReplaceAll(id[:8], "-", ""), Name: name, Kind: kind, Status: activityEntities.StatusActive, MomentPoints: 5, AllowsMoment: true, CreatedAt: now, UpdatedAt: now}
+		created, createErr := s.activities.Create(txCtx, activity)
+		if errors.Is(createErr, appErrors.ErrConflict) {
+			return gameError(http.StatusConflict, "SLUG_ALREADY_EXISTS", "Não foi possível criar esta atividade. Tente novamente.")
+		}
+		if createErr != nil {
+			return appErrors.InternalError
+		}
+		if _, assignErr := s.activities.CreateManagerAssignment(txCtx, &activityEntities.ManagerAssignment{ActivityID: created.ID, UserID: actor.ID, CreatedAt: now}); assignErr != nil {
+			return appErrors.InternalError
+		}
+		entityID := created.ID
+		metadata, _ := json.Marshal(map[string]any{"name": created.Name, "scope": actor.ManagerScope})
+		if _, auditErr := s.audits.Create(txCtx, &auditEntities.OperationAudit{ID: uuid.NewString(), ActorUserID: &actor.ID, Action: "manager.game.create", EntityType: "activity", EntityID: &entityID, Metadata: metadata, IdempotencyKey: key, CreatedAt: now}); auditErr != nil {
+			if errors.Is(auditErr, appErrors.ErrConflict) {
+				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key já foi usada em outra operação.")
+			}
+			return appErrors.InternalError
+		}
+		response = managerGameDTO(created)
+		return nil
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	return response, http.StatusCreated, nil
+}
+
+func (s *GameService) UpdateManagerGame(ctx context.Context, rawGameID, rawKey string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error) {
+	if request == nil {
+		return nil, gameError(http.StatusBadRequest, "INVALID_REQUEST", "name é obrigatório.")
+	}
+	name, err := managerGameName(request.Name)
+	if err != nil {
+		return nil, err
+	}
+	gameID, err := uuid.Parse(rawGameID)
+	if err != nil {
+		return nil, gameError(http.StatusNotFound, "NOT_FOUND", "Jogo não encontrado.")
+	}
+	key, err := parseManagerKey(rawKey)
+	if err != nil {
+		return nil, err
+	}
+	var response *messages.ManagerGameResponseDTO
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		actor, global, authErr := s.manager(txCtx, true)
+		if authErr != nil {
+			return authErr
+		}
+		if scopeErr := requireInteractiveManagerScope(actor, global); scopeErr != nil {
+			return scopeErr
+		}
+		activity, findErr := s.activities.FindAuthorizedForUpdate(txCtx, gameID.String(), actor.ID, global)
+		if errors.Is(findErr, appErrors.ErrNotFound) {
+			return gameError(http.StatusNotFound, "NOT_FOUND", "Jogo não encontrado.")
+		}
+		if findErr != nil {
+			return appErrors.InternalError
+		}
+		if activity.Kind != activityEntities.KindCompetitive && activity.Kind != activityEntities.KindLive {
+			return gameError(http.StatusNotFound, "NOT_FOUND", "Jogo não encontrado.")
+		}
+		activity.Name = name
+		activity.UpdatedAt = s.now().UTC()
+		updated, updateErr := s.activities.Update(txCtx, activity)
+		if updateErr != nil {
+			return appErrors.InternalError
+		}
+		entityID := updated.ID
+		metadata, _ := json.Marshal(map[string]any{"name": updated.Name})
+		if _, auditErr := s.audits.Create(txCtx, &auditEntities.OperationAudit{ID: uuid.NewString(), ActorUserID: &actor.ID, Action: "manager.game.update", EntityType: "activity", EntityID: &entityID, Metadata: metadata, IdempotencyKey: key, CreatedAt: updated.UpdatedAt}); auditErr != nil {
+			if errors.Is(auditErr, appErrors.ErrConflict) {
+				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key já foi usada em outra operação.")
+			}
+			return appErrors.InternalError
+		}
+		response = managerGameDTO(updated)
+		return nil
+	})
+	return response, err
+}
+
 func (s *GameService) auditManagerOperation(ctx context.Context, actorID uint64, key, action, runID string, metadata any, now time.Time) error {
 	encoded, err := json.Marshal(metadata)
 	if err != nil {
@@ -542,6 +748,9 @@ func (s *GameService) CreateRun(ctx context.Context, rawKey string, request *mes
 		actor, global, authErr := s.manager(txCtx, true)
 		if authErr != nil {
 			return authErr
+		}
+		if scopeErr := requireInteractiveManagerScope(actor, global); scopeErr != nil {
+			return scopeErr
 		}
 		prior, priorErr := s.findPriorManagerOperation(txCtx, actor.ID, key, operation, hash)
 		if priorErr != nil {

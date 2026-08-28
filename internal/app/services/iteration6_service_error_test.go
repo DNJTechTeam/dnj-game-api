@@ -22,7 +22,7 @@ import (
 func iteration6ServiceWithMocks(t *testing.T, games gameInterfaces.GameRepositoryInterface, users userInterfaces.UserRepositoryInterface) *GameService {
 	t.Helper()
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewGameService(TestSuite.BaseService, games, users, audits).(*GameService)
+	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits).(*GameService)
 	service.now = func() time.Time { return iteration6Now }
 	service.secret = func() string { return "iteration-6-error-secret" }
 	return service
@@ -374,7 +374,7 @@ func TestIteration6_IdentityRepositoryFailuresAndPureFallbacks(t *testing.T) {
 	games := mocks.NewMockGameRepositoryInterface(t)
 	users := mocks.NewMockUserRepositoryInterface(t)
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewGameService(TestSuite.BaseService, games, users, audits).(*GameService)
+	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits).(*GameService)
 	assert.Equal(t, os.Getenv("DOCUMENT_HMAC_SECRET"), service.secret())
 	assert.Equal(t, "fallback", valueOr(nil, "fallback"))
 	assert.Equal(t, "paused", dashboardStatus(gameEntities.RunStatusPaused))

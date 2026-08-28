@@ -98,7 +98,7 @@ func InitializeServer() *api.API {
 		FavoriteService: favoriteServiceInterface,
 	}
 	gameRepositoryInterface := repositories.ProvideGameRepository(gormDB)
-	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
+	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, activityRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
 	gameHandler := &handlers.GameHandler{
 		GameService: gameServiceInterface,
 	}
@@ -116,6 +116,11 @@ func InitializeServer() *api.API {
 	notificationServiceInterface := services.ProvideNotificationService(baseService, repository2, userRepositoryInterface)
 	notificationHandler := &handlers.NotificationHandler{
 		NotificationService: notificationServiceInterface,
+	}
+	repository3 := repositories.ProvideSpecialEventRepository(gormDB)
+	specialEventServiceInterface := services.ProvideSpecialEventService(baseService, repository3, activityRepositoryInterface, gameRepositoryInterface, userRepositoryInterface)
+	specialEventHandler := &handlers.SpecialEventHandler{
+		Service: specialEventServiceInterface,
 	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
@@ -135,6 +140,7 @@ func InitializeServer() *api.API {
 		MediaHandler:               mediaHandler,
 		MomentHandler:              momentHandler,
 		NotificationHandler:        notificationHandler,
+		SpecialEventHandler:        specialEventHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

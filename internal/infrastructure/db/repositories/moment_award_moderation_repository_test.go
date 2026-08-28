@@ -107,6 +107,9 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	require.NoError(t, err)
 	assert.Equal(t, momentEntities.RewardAwarded, afterAward.RewardStatus)
 	assert.Equal(t, 30, afterAward.PointsAwarded)
+	var participation models.Participation
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", participationID).Take(&participation).Error)
+	assert.False(t, participation.CanShareMoment)
 
 	var awardNotification models.Notification
 	require.NoError(t, TestSuite.DbConn.

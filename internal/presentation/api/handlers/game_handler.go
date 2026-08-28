@@ -170,6 +170,40 @@ func (h *GameHandler) ManagerRun(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+func (h *GameHandler) CreateManagerGame(c *gin.Context) {
+	if !requirePublishedQuery(c) {
+		return
+	}
+	var request messages.CreateManagerGameRequestDTO
+	if err := ParseStrictRequest(c, &request); err != nil {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie somente name.", nil)
+		return
+	}
+	response, status, err := h.GameService.CreateManagerGame(c.Request.Context(), c.GetHeader("Idempotency-Key"), &request)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, status, response)
+}
+
+func (h *GameHandler) UpdateManagerGame(c *gin.Context) {
+	if !requirePublishedQuery(c) {
+		return
+	}
+	var request messages.UpdateManagerGameRequestDTO
+	if err := ParseStrictRequest(c, &request); err != nil {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie somente name.", nil)
+		return
+	}
+	response, err := h.GameService.UpdateManagerGame(c.Request.Context(), c.Param("gameId"), c.GetHeader("Idempotency-Key"), &request)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
 func (h *GameHandler) CreateRun(c *gin.Context) {
 	if !requirePublishedQuery(c) {
 		return

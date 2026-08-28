@@ -6329,3 +6329,48 @@ func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) RunAndReturn(run
 	_c.Call.Return(run)
 	return _c
 }
+
+func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+	var r0 *messages.ActivityStateResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+	}
+	return r0, ret.Error(1)
+}
+
+func (_mock *MockActivityServiceInterface) FlexScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+	var r0 *messages.ActivityStateResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+	}
+	return r0, ret.Error(1)
+}
+
+func (_mock *MockActivityServiceInterface) AdvanceScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+	var r0 *messages.ActivityStateResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+	}
+	return r0, ret.Error(1)
+}
+
+func (_mock *MockGameServiceInterface) CreateManagerGame(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error) {
+	ret := _mock.Called(ctx, key, request)
+	var r0 *messages.ManagerGameResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
+	}
+	return r0, ret.Get(1).(int), ret.Error(2)
+}
+
+func (_mock *MockGameServiceInterface) UpdateManagerGame(ctx context.Context, gameID string, key string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error) {
+	ret := _mock.Called(ctx, gameID, key, request)
+	var r0 *messages.ManagerGameResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
+	}
+	return r0, ret.Error(1)
+}

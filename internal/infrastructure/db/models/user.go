@@ -15,6 +15,7 @@ type User struct {
 	DocumentHash       string         `gorm:"size:64;default:null"`
 	DocumentLast4      string         `gorm:"size:4;default:null"`
 	Role               string         `gorm:"not null;default:'DEFAULT'"`
+	ManagerScope       *string        `gorm:"size:32;default:null"`
 	GroupID            *uint64        `gorm:"index;default:null"`
 	Points             int            `gorm:"not null;default:0"`
 	OnboardingComplete bool           `gorm:"not null;default:false"`

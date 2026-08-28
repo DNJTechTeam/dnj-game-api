@@ -69,7 +69,7 @@ func setupE2ERig(t *testing.T) *e2eRig {
 	userService := NewUserService(TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository, TestSuite.GroupMembershipRepository)
 	contentService := NewContentService(TestSuite.ActivityRepository, TestSuite.SpaceRepository)
 	favoriteService := NewFavoriteService(TestSuite.BaseService, TestSuite.FavoriteRepository, TestSuite.ActivityRepository, TestSuite.UserRepository)
-	gameService := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository)
+	gameService := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository)
 	installationActivityService := NewActivityService(TestSuite.BaseService, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.UserRepository)
 	spaceService := NewSpaceService(TestSuite.SpaceRepository)
 	adminService := NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository)

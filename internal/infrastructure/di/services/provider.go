@@ -19,6 +19,7 @@ import (
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
+	specialInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/specialevent/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
 	taskInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/task/interfaces"
@@ -78,10 +79,15 @@ func ProvideFavoriteService(
 func ProvideGameService(
 	baseService *services.BaseService,
 	gameRepository gameInterfaces.GameRepositoryInterface,
+	activityRepository activityInterfaces.ActivityRepositoryInterface,
 	userRepository uInterfaces.UserRepositoryInterface,
 	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
 ) appInterfaces.GameServiceInterface {
-	return services.NewGameService(baseService, gameRepository, userRepository, auditRepository)
+	return services.NewGameService(baseService, gameRepository, activityRepository, userRepository, auditRepository)
+}
+
+func ProvideSpecialEventService(baseService *services.BaseService, repository specialInterfaces.Repository, activityRepository activityInterfaces.ActivityRepositoryInterface, gameRepository gameInterfaces.GameRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.SpecialEventServiceInterface {
+	return services.NewSpecialEventService(baseService, repository, activityRepository, gameRepository, userRepository)
 }
 
 func ProvideMediaService(

@@ -9,7 +9,8 @@ type EmailSignupRequestDTO struct {
 }
 
 type EmailSignupResponseDTO struct {
-	Status string `json:"status"`
+	Status    string `json:"status"`
+	DebugCode string `json:"debugCode,omitempty"`
 }
 
 type VerifyEmailSignupRequestDTO struct {
@@ -30,6 +31,7 @@ type IdentityUserResponseDTO struct {
 	MobilePhone        string           `json:"mobilePhone"`
 	DocumentMasked     string           `json:"documentMasked"`
 	Role               string           `json:"role"`
+	Scope              string           `json:"scope,omitempty"`
 	Group              *GroupSummaryDTO `json:"group"`
 	OnboardingComplete bool             `json:"onboardingComplete"`
 }

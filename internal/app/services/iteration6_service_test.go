@@ -30,7 +30,7 @@ func setupIteration6Test(t *testing.T) *GameService {
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
-	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
+	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
 	service.now = func() time.Time { return iteration6Now }
 	service.secret = func() string { return "iteration-6-qr-secret" }
 	return service
@@ -113,6 +113,36 @@ func TestIteration6_GameCatalogVisibilityOrderingPaginationAndDetail(t *testing.
 	assert.Equal(t, "Alpha", detail.Name)
 	apiServiceError(t, archivedErr, http.StatusNotFound, "NOT_FOUND")
 	apiServiceError(t, malformedErr, http.StatusNotFound, "NOT_FOUND")
+}
+
+func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Special manager", userEntities.RoleEventManager, true, 0)
+	participant, participantCtx := seedIteration6User(t, "Scored participant", userEntities.RoleDefault, true, 0)
+	activityID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: activityID, Slug: "special-" + activityID, Name: "Desafio espacial", Kind: string(activityEntities.KindLive), Status: string(activityEntities.StatusActive), CheckInPoints: 25, CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	assignIteration6Manager(t, activityID, manager.ID)
+	run := createIteration6Run(t, service, managerCtx, activityID)
+	qr := rotateIteration6QR(t, service, managerCtx, run.ID)
+
+	key := uuid.NewString()
+	validated, status, err := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
+	retry, retryStatus, retryErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
+	currentRun, currentRunErr := service.CurrentRun(participantCtx, "")
+	var refreshed models.User
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", participant.ID).Take(&refreshed).Error)
+
+	require.NoError(t, err)
+	require.NoError(t, retryErr)
+	require.NoError(t, currentRunErr)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, http.StatusCreated, retryStatus)
+	assert.Equal(t, "scored", validated.Action)
+	assert.Equal(t, "scored", retry.Action)
+	assert.Equal(t, 25, validated.PointsAwarded)
+	assert.Equal(t, 25, *validated.Participation.NewTotalPoints)
+	assert.Nil(t, currentRun)
+	assert.Equal(t, 25, refreshed.Points)
 }
 
 func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) {

@@ -6,4 +6,8 @@ func (r *Router) RegisterInstallationRoutes() {
 	manager.POST("/:id/start", append(r.authProtected(), r.handlers.InstallationHandler.StartActivity)...)
 	manager.POST("/:id/pause", append(r.authProtected(), r.handlers.InstallationHandler.PauseActivity)...)
 	manager.POST("/:id/conclude", append(r.authProtected(), r.handlers.InstallationHandler.ConcludeActivity)...)
+	space := r.v2Group.Group("/manager/space")
+	space.POST("/start", append(r.authProtected(), r.handlers.InstallationHandler.StartScheduledActivity)...)
+	space.POST("/flex", append(r.authProtected(), r.handlers.InstallationHandler.FlexScheduledActivity)...)
+	space.POST("/advance", append(r.authProtected(), r.handlers.InstallationHandler.AdvanceScheduledActivity)...)
 }

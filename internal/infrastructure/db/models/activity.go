@@ -12,6 +12,8 @@ type Activity struct {
 	Status          string     `gorm:"not null;default:'draft'"`
 	StartsAt        *time.Time `gorm:"default:null"`
 	EndsAt          *time.Time `gorm:"default:null"`
+	ActualStartedAt *time.Time `gorm:"column:actual_started_at;default:null"`
+	FlexMinutes     int        `gorm:"not null;default:0"`
 	CheckInPoints   int        `gorm:"not null;default:0"`
 	MomentPoints    int        `gorm:"not null;default:0"`
 	CooldownSeconds int        `gorm:"not null;default:0"`

@@ -81,7 +81,7 @@ func (r *GameRepository) FindPublicGame(
 
 func manageableGameQuery(db *gorm.DB, actorUserID uint64, global bool, generatedAt time.Time) *gorm.DB {
 	query := publiclyVisibleActivities(
-		publicActivityQuery(db).Where("activities.kind = ?", string(activityEntities.KindCompetitive)),
+		publicActivityQuery(db).Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}),
 		generatedAt,
 	)
 	if !global {
@@ -121,7 +121,7 @@ func (r *GameRepository) FindManageableActivityForUpdate(
 	query := r.getDB(ctx).
 		Model(&models.Activity{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("activities.id = ? AND activities.kind = ? AND activities.status IN ('active','paused')", activityID, string(activityEntities.KindCompetitive))
+		Where("activities.id = ? AND activities.kind IN ? AND activities.status IN ('active','paused')", activityID, []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)})
 	query = publiclyVisibleActivities(query, generatedAt)
 	if !global {
 		query = query.Joins(
@@ -460,7 +460,7 @@ func (r *GameRepository) FindQRByTokenHashForUpdate(
 		Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_run_qr_codes"}}).
 		Joins("JOIN activity_runs ON activity_runs.id = activity_run_qr_codes.activity_run_id").
 		Joins("JOIN activities ON activities.id = activity_run_qr_codes.activity_id").
-		Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind = ?", tokenHash, string(activityEntities.KindCompetitive))
+		Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind IN ?", tokenHash, []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)})
 	query = publiclyVisibleActivities(query, generatedAt)
 	if err := query.Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)

@@ -38,8 +38,36 @@ func (h *InstallationHandler) ConcludeActivity(c *gin.Context) {
 	h.transitionActivity(c, h.ActivityService.Conclude)
 }
 
+func (h *InstallationHandler) AdvanceScheduledActivity(c *gin.Context) {
+	h.transitionScheduledActivity(c, h.ActivityService.AdvanceScheduled)
+}
+
+func (h *InstallationHandler) StartScheduledActivity(c *gin.Context) {
+	h.transitionScheduledActivity(c, h.ActivityService.StartScheduled)
+}
+
+func (h *InstallationHandler) FlexScheduledActivity(c *gin.Context) {
+	h.transitionScheduledActivity(c, h.ActivityService.FlexScheduled)
+}
+
 func (h *InstallationHandler) transitionActivity(c *gin.Context, operation func(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) {
 	result, err := operation(c.Request.Context(), c.Param("id"), c.GetHeader("Idempotency-Key"))
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, result)
+}
+
+func (h *InstallationHandler) transitionScheduledActivity(c *gin.Context, operation func(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) {
+	request := struct {
+		ItemID string `json:"itemId"`
+	}{}
+	if err := ParseStrictRequest(c, &request); err != nil || request.ItemID == "" {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie somente itemId.", nil)
+		return
+	}
+	result, err := operation(c.Request.Context(), request.ItemID, c.GetHeader("Idempotency-Key"))
 	if err != nil {
 		identityFailure(c, err)
 		return

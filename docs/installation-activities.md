@@ -111,7 +111,7 @@ papel atual no banco. Somente `ADMIN` recebe acesso. As listagens usam envelope
 | `GET /admin/activities?page=1` | Todos os campos persistidos e o status atual. |
 | `POST /admin/activities` | `spaceId?`, `slug`, `name`, `description?`, `kind`, `startsAt?`, `endsAt?`, `checkInPoints`, `momentPoints`, `cooldownSeconds`, `allowsMoment`; status inicial depende do `kind` — `schedule` e `checkpoint` nascem `active`, `challenge`, `competitive` e `live` nascem `draft`. |
 | `PATCH /admin/activities/{activityId}` | Os mesmos campos configuráveis. `status` é uma extensão exclusiva do PATCH e aceita somente `archived`; `active` deve ser pausada antes. |
-| `GET /admin/staff?role=EVENT_MANAGER&page=1` | O único filtro de papel aceito é `EVENT_MANAGER`. |
+| `GET /admin/staff?role=DEFAULT&page=1` | Lista participantes onboarded que podem ser promovidos; também aceita `ADMIN` ou `EVENT_MANAGER` para staff operacional. |
 | `PATCH /admin/users/{userId}/role` | Aceita somente `DEFAULT` ou `EVENT_MANAGER`; não concede nem remove `ADMIN`. |
 | `GET /admin/activities/{activityId}/managers?page=1` | Lista assignments persistidos. |
 | `PUT /admin/activities/{activityId}/managers/{userId}` | Exige usuário existente, onboarding completo e papel atual `EVENT_MANAGER`; é idempotente. |

@@ -37,6 +37,8 @@ type Activity struct {
 	Status          Status
 	StartsAt        *time.Time
 	EndsAt          *time.Time
+	ActualStartedAt *time.Time
+	FlexMinutes     int
 	CheckInPoints   int
 	MomentPoints    int
 	CooldownSeconds int

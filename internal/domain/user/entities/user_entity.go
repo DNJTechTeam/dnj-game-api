@@ -33,6 +33,7 @@ type User struct {
 	DocumentHash       string
 	DocumentLast4      string
 	Role               UserRole
+	ManagerScope       *string
 	GroupID            *uint64
 	Points             int
 	OnboardingComplete bool

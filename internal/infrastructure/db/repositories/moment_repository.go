@@ -288,6 +288,13 @@ func (r *MomentRepository) AwardMoment(
 		Error; err != nil {
 		return handleRepositoryError(err)
 	}
+	if err := r.getDB(ctx).
+		Model(&models.Participation{}).
+		Where("id = (SELECT participation_id FROM moments WHERE id = ? AND user_id = ?)", momentID, userID).
+		Update("can_share_moment", false).
+		Error; err != nil {
+		return handleRepositoryError(err)
+	}
 	return writeDerivedNotification(
 		r.getDB(ctx), userID, "points",
 		"Pontos concedidos",

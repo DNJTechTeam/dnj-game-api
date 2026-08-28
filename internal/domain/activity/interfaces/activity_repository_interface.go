@@ -22,6 +22,7 @@ type ActivityRepositoryInterface interface {
 	DeleteManagerAssignment(ctx context.Context, activityID string, userID uint64) (bool, error)
 	CountManagerAssignments(ctx context.Context, userID uint64) (int64, error)
 	ListSchedule(ctx context.Context, sectorSlug string, limit int) ([]entities.PublicActivity, error)
+	ListManagerSchedule(ctx context.Context, actorUserID uint64, global bool) ([]entities.PublicActivity, error)
 	ListPublic(ctx context.Context, kind *entities.Kind, spaceID *string, generatedAt time.Time, page uint64) (*messages.PaginatedResponse[entities.PublicActivity], error)
 	FindPublicByID(ctx context.Context, activityID string, generatedAt time.Time) (*entities.PublicActivity, error)
 }

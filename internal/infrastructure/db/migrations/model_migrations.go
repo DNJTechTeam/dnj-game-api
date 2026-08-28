@@ -1222,4 +1222,35 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "add_manager_scope_to_users",
+		Description: "Adds the operational area used to route event managers to their dashboard.",
+		Version:     "2.11.0",
+		Definition:  "manager-scope-v1",
+		Up: func(db *gorm.DB) error {
+			if err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_scope VARCHAR(32)`).Error; err != nil {
+				return err
+			}
+			return addConstraintIfMissing(db, "users", "users_manager_scope_check", `CHECK (manager_scope IS NULL OR manager_scope IN ('actions','space','pastoral_queue','special_events'))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "add_schedule_runtime_state",
+		Description: "Persist actual start and flex time for scheduled activities",
+		Version:     "2.12.0",
+		Definition:  "schedule-runtime-state-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS actual_started_at TIMESTAMPTZ; ALTER TABLE activities ADD COLUMN IF NOT EXISTS flex_minutes INTEGER NOT NULL DEFAULT 0`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(createModelMigration(
+		"create_special_events_table",
+		"2.13.0",
+		&models.SpecialEvent{},
+	))
 }
