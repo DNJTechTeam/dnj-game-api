@@ -21,6 +21,39 @@ const momentPageLimit = 20
 
 type MomentRepository struct{ *BaseRepository[models.Moment] }
 
+func (r *MomentRepository) FindActiveMomentChallengeForUpdate(ctx context.Context, now time.Time) (string, int, error) {
+	type row struct {
+		ID           string
+		MomentPoints int
+	}
+	var rows []row
+	err := r.getDB(ctx).Table("activities").
+		Select("id,moment_points").
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("kind = ? AND status = ? AND allows_moment = TRUE AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at > ?)", "challenge", "active", now.UTC(), now.UTC()).
+		Order("starts_at ASC NULLS LAST").
+		Limit(2).
+		Find(&rows).Error
+	if err != nil {
+		return "", 0, handleRepositoryError(err)
+	}
+	if len(rows) == 0 {
+		return "", 0, appErrors.ErrNotFound
+	}
+	if len(rows) > 1 {
+		return "", 0, appErrors.ErrConflict
+	}
+	return rows[0].ID, rows[0].MomentPoints, nil
+}
+
+func (r *MomentRepository) HasMomentForActivity(ctx context.Context, userID uint64, activityID string) (bool, error) {
+	var count int64
+	if err := r.getDB(ctx).Model(&models.Moment{}).Where("user_id = ? AND activity_id = ? AND origin = ?", userID, activityID, string(momentEntities.OriginChallenge)).Count(&count).Error; err != nil {
+		return false, handleRepositoryError(err)
+	}
+	return count > 0, nil
+}
+
 func NewMomentRepository(db *gorm.DB) momentInterfaces.Repository {
 	return &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](db)}
 }
