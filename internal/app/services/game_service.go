@@ -176,7 +176,10 @@ func (s *GameService) Overview(ctx context.Context) (*messages.GameOverviewRespo
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	entries, err := s.games.ListPointEntries(ctx, user.ID, 50)
+	// The DNJ Game history is the participant's complete ledger. The repository
+	// treats a non-positive limit as unbounded, so older awards are not silently
+	// omitted from the app.
+	entries, err := s.games.ListPointEntries(ctx, user.ID, 0)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}

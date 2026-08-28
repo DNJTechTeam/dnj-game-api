@@ -1291,4 +1291,15 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "remove_activity_run_points_notifications",
+		Description: "Game result scoring is shown in DNJ Game and must not create a generic points notification.",
+		Version:     "2.16.0",
+		Definition:  "remove-activity-run-points-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`DELETE FROM notifications WHERE category = 'points' AND source_type = 'activity_run_participant'`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

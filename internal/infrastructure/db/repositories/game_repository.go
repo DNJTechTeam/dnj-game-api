@@ -741,17 +741,6 @@ func (r *GameRepository) ApplyAward(
 	if balance.RowsAffected != 1 {
 		return appErrors.ErrConflict
 	}
-	if entry.Delta != 0 {
-		title, body := "Pontos concedidos", "Você recebeu pontos por um resultado de atividade."
-		if entry.Delta < 0 {
-			title, body = "Pontos revertidos", "Uma pontuação da sua atividade foi revertida."
-		}
-		if err := writeDerivedNotification(
-			r.getDB(ctx), entry.UserID, "points", title, body, "activity_run_participant", participantID, entry.CreatedAt,
-		); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -925,7 +914,11 @@ func (r *GameRepository) ListPointEntries(
 	limit int,
 ) ([]gameEntities.PointEntry, error) {
 	var rows []models.PointEntry
-	if err := r.getDB(ctx).Where("user_id = ?", userID).Order("created_at DESC").Order("id DESC").Limit(limit).Find(&rows).Error; err != nil {
+	query := r.getDB(ctx).Where("user_id = ?", userID).Order("created_at DESC").Order("id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.PointEntry, len(rows))

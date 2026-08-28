@@ -72,12 +72,12 @@ func TestIteration6_ServiceMapsRepositoryFailures(t *testing.T) {
 		{"point entries", func(games *mocks.MockGameRepositoryInterface) {
 			games.On("TopIndividualRankings", mock.Anything, 30).Return(nil, nil)
 			games.On("TopGroupRankings", mock.Anything, 10).Return(nil, nil)
-			games.On("ListPointEntries", mock.Anything, uint64(42), 50).Return(nil, dbFailure)
+			games.On("ListPointEntries", mock.Anything, uint64(42), 0).Return(nil, dbFailure)
 		}},
 		{"current rank", func(games *mocks.MockGameRepositoryInterface) {
 			games.On("TopIndividualRankings", mock.Anything, 30).Return(nil, nil)
 			games.On("TopGroupRankings", mock.Anything, 10).Return(nil, nil)
-			games.On("ListPointEntries", mock.Anything, uint64(42), 50).Return(nil, nil)
+			games.On("ListPointEntries", mock.Anything, uint64(42), 0).Return(nil, nil)
 			games.On("FindCurrentRanking", mock.Anything, uint64(42)).Return(nil, nil, dbFailure)
 		}},
 	} {
