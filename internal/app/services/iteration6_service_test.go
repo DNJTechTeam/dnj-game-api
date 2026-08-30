@@ -160,7 +160,11 @@ func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) 
 	gameID := seedIteration6Game(t, "Ranking Game", activityEntities.StatusActive, nil)
 	runID := uuid.NewString()
 	require.NoError(t, TestSuite.DbConn.Create(&models.ActivityRun{ID: runID, ActivityID: gameID, StartedBy: bia.ID, Status: string(gameEntities.RunStatusCompleted), PointRules: []byte(`{"first":50,"second":30,"third":20,"participation":10}`), EndedAt: timePointer(iteration6Now), CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
-	require.NoError(t, TestSuite.DbConn.Create(&models.PointEntry{ID: uuid.NewString(), UserID: ana.ID, Origin: "legacy_balance", Reason: "legacy_balance", Delta: 50, CreatedAt: iteration6Now.Add(-time.Minute)}).Error)
+	qrID := uuid.NewString()
+	participationID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.ActivityRunQRCode{ID: qrID, ActivityID: gameID, ActivityRunID: runID, TokenHash: "hash", ExpiresAt: iteration6Now, Status: string(gameEntities.QRCodeStatusDisabled), CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	require.NoError(t, TestSuite.DbConn.Create(&models.Participation{ID: participationID, UserID: ana.ID, ActivityID: gameID, ActivityRunID: runID, QRCodeID: qrID, CheckedInAt: iteration6Now, Status: string(gameEntities.ParticipationStatusCompleted), CreatedAt: iteration6Now}).Error)
+	require.NoError(t, TestSuite.DbConn.Create(&models.PointEntry{ID: uuid.NewString(), UserID: ana.ID, ActivityID: &gameID, ActivityRunID: &runID, ParticipationID: &participationID, Origin: "activity_run_results", Reason: "activity_run_first", Delta: 50, CreatedAt: iteration6Now.Add(-time.Minute)}).Error)
 
 	// when
 	individual, individualErr := service.Rankings(TestSuite.Ctx, "individual", 0)
@@ -183,8 +187,8 @@ func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) 
 	assert.Equal(t, uint64(1), overview.Current.RankPosition)
 	assert.Equal(t, 50, overview.Current.Points)
 	assert.Equal(t, uint64(1), *overview.Current.GroupRankPosition)
-	assert.Equal(t, "Pontos DNJ", overview.PointEntries[0].Label)
-	assert.Equal(t, "points", overview.PointEntries[0].Icon)
+	assert.Equal(t, "1º lugar em Ranking Game", overview.PointEntries[0].Label)
+	assert.Equal(t, "trophy", overview.PointEntries[0].Icon)
 	apiServiceError(t, invalidErr, http.StatusBadRequest, "INVALID_REQUEST")
 }
 

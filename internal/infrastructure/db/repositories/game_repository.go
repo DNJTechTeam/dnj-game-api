@@ -913,12 +913,22 @@ func (r *GameRepository) ListPointEntries(
 	userID uint64,
 	limit int,
 ) ([]gameEntities.PointEntry, error) {
-	var rows []models.PointEntry
-	query := r.getDB(ctx).Where("user_id = ?", userID).Order("created_at DESC").Order("id DESC")
+	type pointEntryRow struct {
+		models.PointEntry
+		ActivityName string `gorm:"column:activity_name"`
+	}
+	var rows []pointEntryRow
+	query := r.getDB(ctx).
+		Model(&models.PointEntry{}).
+		Select("point_entries.*, COALESCE(activities.name, '') AS activity_name").
+		Joins("LEFT JOIN activities ON activities.id = point_entries.activity_id").
+		Where("point_entries.user_id = ?", userID).
+		Order("point_entries.created_at DESC").
+		Order("point_entries.id DESC")
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	if err := query.Find(&rows).Error; err != nil {
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.PointEntry, len(rows))
@@ -931,6 +941,7 @@ func (r *GameRepository) ListPointEntries(
 			ID:              rows[i].ID,
 			UserID:          rows[i].UserID,
 			ActivityID:      activityID,
+			ActivityName:    rows[i].ActivityName,
 			ActivityRunID:   rows[i].ActivityRunID,
 			ParticipationID: rows[i].ParticipationID,
 			MomentID:        rows[i].MomentID,

@@ -27,6 +27,10 @@ func TestIteration6GameMapper_PointPresentationIsAllowlisted(t *testing.T) {
 		assert.Equal(t, testCase.icon, response.Icon)
 		assert.Equal(t, time.UTC, response.CreatedAt.Location())
 	}
+	response := MapPointEntryToResponseDTO(gameEntities.PointEntry{ID: "entry", Reason: "activity_run_first", ActivityName: "Corrida do Saco", Delta: 10, CreatedAt: now})
+	assert.Equal(t, "1º lugar em Corrida do Saco", response.Label)
+	response = MapPointEntryToResponseDTO(gameEntities.PointEntry{ID: "entry", Reason: "moment_challenge_award", ActivityName: "Chafariz", Delta: 10, CreatedAt: now})
+	assert.Equal(t, "Desafio Momento - Chafariz", response.Label)
 }
 
 func TestIteration6GameMapper_OptionalParticipationAndResultFields(t *testing.T) {
