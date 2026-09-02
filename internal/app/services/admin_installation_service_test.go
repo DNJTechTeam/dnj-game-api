@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -15,8 +16,10 @@ import (
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/repositories"
+	"github.com/dnjtechteam/dnj-game-api/internal/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -125,6 +128,49 @@ func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.
 	assertAdminError(t, defaultErr, http.StatusForbidden, "FORBIDDEN")
 	assertAdminError(t, missingIdentityErr, http.StatusUnauthorized, "UNAUTHENTICATED")
 	assertAdminError(t, invalidRoleErr, http.StatusBadRequest, "INVALID_REQUEST")
+}
+
+func TestAdminInstallationService_ChallengeActivationNotifications(t *testing.T) {
+	service := setupAdminInstallationTest(t)
+	_, _ = seedAdminInstallationUser(t, "challenge-admin@example.com", userEntities.RoleAdmin, true)
+	recipient, _ := seedAdminInstallationUser(t, "challenge-player@example.com", userEntities.RoleDefault, true)
+	now := time.Now().UTC()
+
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{
+		ID: uuid.NewString(), Name: "Corrida do saco", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, CreatedAt: now,
+	}, now))
+
+	description := "Registre uma foto no chafariz"
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{
+		ID: uuid.NewString(), Name: "Chafariz", Description: &description, Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, AllowsMoment: true, CreatedAt: now,
+	}, now))
+
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Ignorado", Kind: activityEntities.KindLive, Status: activityEntities.StatusActive}, now))
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Pausado", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusPaused}, now))
+
+	var notifications []models.Notification
+	require.NoError(t, TestSuite.DbConn.Where("user_id = ?", recipient.ID).Order("created_at, title").Find(&notifications).Error)
+	require.Len(t, notifications, 2)
+	assert.ElementsMatch(t, []string{"challenge", "moment_challenge"}, []string{notifications[0].Category, notifications[1].Category})
+	assert.ElementsMatch(t, []string{"Corrida do saco", description}, []string{notifications[0].Body, notifications[1].Body})
+	var deliveries int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.NotificationDelivery{}).Where("notification_id IN ?", []string{notifications[0].ID, notifications[1].ID}).Count(&deliveries).Error)
+	assert.Zero(t, deliveries)
+}
+
+func TestAdminInstallationService_ChallengeNotificationFailureIsInternal(t *testing.T) {
+	notifications := mocks.NewMockNotificationRepository(t)
+	notifications.On("ResolveAnnouncementRecipients", TestSuite.Ctx, ([]uint64)(nil)).Return(nil, errors.New("db down")).Once()
+	service := &AdminInstallationService{notifications: notifications}
+	err := service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Desafio", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive}, time.Now().UTC())
+	assert.ErrorIs(t, err, appErrors.InternalError)
+
+	notifications = mocks.NewMockNotificationRepository(t)
+	notifications.On("ResolveAnnouncementRecipients", TestSuite.Ctx, ([]uint64)(nil)).Return([]uint64{1}, nil).Once()
+	notifications.On("CreateBroadcast", TestSuite.Ctx, mock.Anything).Return(errors.New("db down")).Once()
+	service = &AdminInstallationService{notifications: notifications}
+	err = service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Desafio", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive}, time.Now().UTC())
+	assert.ErrorIs(t, err, appErrors.InternalError)
 }
 
 func TestAdminInstallationService_EveryOperationRequiresDatabaseAdminRole(t *testing.T) {
