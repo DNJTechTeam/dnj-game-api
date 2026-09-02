@@ -33,6 +33,8 @@ import (
 
 const qrLifetime = 45 * time.Minute
 
+var staticQRExpiry = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+
 type GameService struct {
 	*BaseService
 	games      gameInterfaces.GameRepositoryInterface
@@ -67,6 +69,20 @@ func (s *GameService) qrHash(token string) string {
 	mac := hmac.New(sha256.New, []byte(s.secret()))
 	_, _ = mac.Write([]byte("dnj-v2-activity-run-qr-hash\x00" + token))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func qrScoresCheckIn(kind activityEntities.Kind) bool {
+	return kind == activityEntities.KindCheckpoint || kind == activityEntities.KindLive
+}
+
+func qrExpiresAt(activity *activityEntities.Activity, now time.Time) time.Time {
+	if activity != nil && activity.Kind == activityEntities.KindCheckpoint {
+		if activity.EndsAt != nil {
+			return activity.EndsAt.UTC()
+		}
+		return staticQRExpiry
+	}
+	return now.Add(qrLifetime)
 }
 
 func (s *GameService) requireQRSecret() error {
@@ -294,7 +310,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			}
 			total := *prior.ResultPoints
 			action, pointsAwarded := "joined", 0
-			if activity.Kind == activityEntities.KindLive {
+			if qrScoresCheckIn(activity.Kind) {
 				action, pointsAwarded = "scored", activity.CheckInPoints
 			}
 			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), Action: action, PointsAwarded: pointsAwarded}
@@ -332,7 +348,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		if activityErr != nil {
 			return appErrors.InternalError
 		}
-		scoreOnly := activity.Kind == activityEntities.KindLive
+		scoreOnly := qrScoresCheckIn(activity.Kind)
 		participation, existingErr := s.games.FindParticipationByRunAndUser(txCtx, qr.ActivityRunID, user.ID)
 		if existingErr == nil {
 			status = http.StatusOK
@@ -866,7 +882,7 @@ func (s *GameService) RotateQR(ctx context.Context, rawRunID, rawKey string) (*m
 		}
 		qrID := uuid.NewString()
 		token := s.qrToken(qrID)
-		expiresAt := now.Add(qrLifetime)
+		expiresAt := qrExpiresAt(run.Activity, now)
 		_, createErr := s.games.CreateQR(txCtx, &gameEntities.QRCode{ID: qrID, ActivityID: run.ActivityID, ActivityRunID: run.ID, TokenHash: s.qrHash(token), ExpiresAt: expiresAt, Status: gameEntities.QRCodeStatusActive, CreatedAt: now, UpdatedAt: now})
 		if createErr != nil {
 			return appErrors.InternalError
