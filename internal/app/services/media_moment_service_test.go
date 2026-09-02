@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -317,6 +318,57 @@ func seedChallengeParticipation(
 		CreatedAt:      mediaMomentNow.Add(-30 * time.Minute),
 	}).Error)
 	return participationID
+}
+
+func seedActiveMomentChallenge(t *testing.T) string {
+	t.Helper()
+	activityID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{
+		ID:           activityID,
+		Slug:         "active-moment-" + activityID,
+		Name:         "Desafio do Momento",
+		Kind:         "challenge",
+		Status:       "active",
+		StartsAt:     timePointer(mediaMomentNow.Add(-time.Hour)),
+		EndsAt:       timePointer(mediaMomentNow.Add(time.Hour)),
+		MomentPoints: 50,
+		AllowsMoment: true,
+		CreatedAt:    mediaMomentNow.Add(-time.Hour),
+		UpdatedAt:    mediaMomentNow,
+	}).Error)
+	return activityID
+}
+
+func TestMediaMoments_ChallengeModeAwardsWithoutQRParticipation(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	participant, participantCtx := seedMediaMomentUser(t, "challenge-no-qr@example.com", userEntities.RoleDefault, true)
+	activityID := seedActiveMomentChallenge(t)
+	asset := createAvailableAsset(t, mediaService, storage, participantCtx, "image/jpeg")
+
+	moment, status, err := momentService.Create(participantCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: asset.ID, PublishConsent: true, ChallengeMode: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "challenge", moment.Origin)
+	assert.Nil(t, moment.ParticipationID)
+	assert.Equal(t, 50, moment.PointsAwarded)
+
+	var points uint64
+	require.NoError(t, TestSuite.DbConn.Table("users").Select("points").Where("id = ?", participant.ID).Scan(&points).Error)
+	assert.Equal(t, uint64(50), points)
+	var activityCount int64
+	require.NoError(t, TestSuite.DbConn.Table("moments").Where("id = ? AND activity_id = ?", moment.ID, activityID).Count(&activityCount).Error)
+	assert.EqualValues(t, 1, activityCount)
+
+	secondAsset := createAvailableAsset(t, mediaService, storage, participantCtx, "image/jpeg")
+	_, _, err = momentService.Create(participantCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: secondAsset.ID, PublishConsent: true, ChallengeMode: true,
+	})
+	require.Error(t, err)
+	var apiErr *appErrors.APIServiceError
+	require.True(t, errors.As(err, &apiErr))
+	assert.Equal(t, "MOMENT_ALREADY_COMPLETED", apiErr.Code)
 }
 
 func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {

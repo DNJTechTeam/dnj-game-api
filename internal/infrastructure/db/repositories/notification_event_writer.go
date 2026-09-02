@@ -1,8 +1,10 @@
 package repositories
 
 import (
+	"context"
 	"time"
 
+	notificationEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,6 +16,7 @@ import (
 // never customized it). Failures roll back with the rest of the transaction,
 // keeping the notification and the event that caused it atomic.
 func writeDerivedNotification(
+	ctx context.Context,
 	db *gorm.DB,
 	userID uint64,
 	category string,
@@ -44,7 +47,14 @@ func writeDerivedNotification(
 		SourceID:   &ref,
 		CreatedAt:  now,
 	}
-	return handleRepositoryError(db.Create(row).Error)
+	if err := db.Create(row).Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	// The event writer already runs inside the originating transaction. Build
+	// its outbox row in that same transaction; a worker dispatches later.
+	repo := &NotificationRepository{BaseRepository: NewBaseRepository[models.Notification](db)}
+	_, err := repo.CreatePendingDeliveries(ctx, []*notificationEntities.Notification{{ID: row.ID, UserID: userID}}, now)
+	return err
 }
 
 func categoryEnabled(db *gorm.DB, userID uint64, category string) (bool, error) {

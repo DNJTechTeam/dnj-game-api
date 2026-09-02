@@ -127,6 +127,7 @@ type PointEntry struct {
 	ID              string
 	UserID          uint64
 	ActivityID      string
+	ActivityName    string
 	ActivityRunID   *string
 	ParticipationID *string
 	MomentID        *string

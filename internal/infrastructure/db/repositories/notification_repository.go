@@ -10,6 +10,7 @@ import (
 	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/mappers"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -161,7 +162,95 @@ func (r *NotificationRepository) CreateBroadcast(ctx context.Context, notificati
 	// Batched to stay under Postgres's 65535 bind-parameter limit on a single
 	// INSERT — models.Notification has enough columns that an unbatched
 	// broadcast could hit it once the eligible user base grows large.
-	return handleRepositoryError(r.getDB(ctx).CreateInBatches(rows, 500).Error)
+	if err := r.getDB(ctx).CreateInBatches(rows, 500).Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	_, err := r.CreatePendingDeliveries(ctx, notifications, time.Now().UTC())
+	return err
+}
+
+func (r *NotificationRepository) UpsertPushSubscription(
+	ctx context.Context,
+	subscription *entities.PushSubscription,
+) (*entities.PushSubscription, error) {
+	row := &models.PushSubscription{
+		ID: subscription.ID, UserID: subscription.UserID, Endpoint: subscription.Endpoint,
+		P256DH: subscription.P256DH, Auth: subscription.Auth, State: subscription.State,
+		CreatedAt: subscription.CreatedAt, UpdatedAt: subscription.UpdatedAt, DisabledAt: subscription.DisabledAt,
+	}
+	err := r.getDB(ctx).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "endpoint"}},
+		DoUpdates: clause.Assignments(map[string]any{
+			"user_id": subscription.UserID, "p256dh": subscription.P256DH, "auth": subscription.Auth,
+			"state": subscription.State, "updated_at": subscription.UpdatedAt, "disabled_at": nil,
+		}),
+	}).Create(row).Error
+	if err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	var saved models.PushSubscription
+	if err := r.getDB(ctx).Where("endpoint = ?", subscription.Endpoint).Take(&saved).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return &entities.PushSubscription{ID: saved.ID, UserID: saved.UserID, Endpoint: saved.Endpoint, P256DH: saved.P256DH, Auth: saved.Auth, State: saved.State, CreatedAt: saved.CreatedAt, UpdatedAt: saved.UpdatedAt, DisabledAt: saved.DisabledAt}, nil
+}
+
+func (r *NotificationRepository) DeactivatePushSubscription(ctx context.Context, userID uint64, endpoint string, now time.Time) error {
+	return handleRepositoryError(r.getDB(ctx).Model(&models.PushSubscription{}).
+		Where("user_id = ? AND endpoint = ? AND state = ?", userID, endpoint, "active").
+		Updates(map[string]any{"state": "inactive", "disabled_at": now, "updated_at": now}).Error)
+}
+
+func (r *NotificationRepository) CreateQueueCall(ctx context.Context, notification *entities.Notification, now time.Time) (bool, error) {
+	row := mappers.MapNotificationEntityToModel(notification)
+	result := r.getDB(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(row)
+	if result.Error != nil {
+		return false, handleRepositoryError(result.Error)
+	}
+	if result.RowsAffected == 0 {
+		var existing models.Notification
+		if err := r.getDB(ctx).Where("user_id = ? AND source_type = ? AND source_id = ?", notification.UserID, notification.SourceType, notification.SourceID).Take(&existing).Error; err != nil {
+			return false, handleRepositoryError(err)
+		}
+		notification.ID = existing.ID
+		return false, nil
+	}
+	_, err := r.CreatePendingDeliveries(ctx, []*entities.Notification{notification}, now)
+	return true, err
+}
+
+// CreatePendingDeliveries materializes the transaction outbox. It never calls
+// a push provider, keeping domain writes independent from browser delivery.
+func (r *NotificationRepository) CreatePendingDeliveries(ctx context.Context, notifications []*entities.Notification, now time.Time) (int, error) {
+	if len(notifications) == 0 {
+		return 0, nil
+	}
+	userIDs := make([]uint64, 0, len(notifications))
+	byUser := make(map[uint64][]string, len(notifications))
+	for _, notification := range notifications {
+		if _, ok := byUser[notification.UserID]; !ok {
+			userIDs = append(userIDs, notification.UserID)
+		}
+		byUser[notification.UserID] = append(byUser[notification.UserID], notification.ID)
+	}
+	var subscriptions []models.PushSubscription
+	if err := r.getDB(ctx).Where("user_id IN ? AND state = ?", userIDs, "active").Find(&subscriptions).Error; err != nil {
+		return 0, handleRepositoryError(err)
+	}
+	deliveries := make([]*models.NotificationDelivery, 0)
+	for _, subscription := range subscriptions {
+		for _, notificationID := range byUser[subscription.UserID] {
+			deliveries = append(deliveries, &models.NotificationDelivery{ID: uuid.NewString(), NotificationID: notificationID, SubscriptionID: subscription.ID, State: "pending", CreatedAt: now, UpdatedAt: now})
+		}
+	}
+	if len(deliveries) == 0 {
+		return 0, nil
+	}
+	err := r.getDB(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "notification_id"}, {Name: "subscription_id"}}, DoNothing: true}).CreateInBatches(deliveries, 500).Error
+	if err != nil {
+		return 0, handleRepositoryError(err)
+	}
+	return len(deliveries), nil
 }
 
 func (r *NotificationRepository) FindOperation(

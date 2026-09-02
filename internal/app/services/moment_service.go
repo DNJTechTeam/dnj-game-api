@@ -38,6 +38,11 @@ type MomentService struct {
 	cursorSecret func() string
 }
 
+type activeMomentChallengeRepository interface {
+	FindActiveMomentChallengeForUpdate(context.Context, time.Time) (string, int, error)
+	HasMomentForActivity(context.Context, uint64, string) (bool, error)
+}
+
 func NewMomentService(
 	base *BaseService,
 	moments momentInterfaces.Repository,
@@ -227,6 +232,7 @@ type createMomentIntent struct {
 	MediaAssetID    string  `json:"mediaAssetId"`
 	PublishConsent  bool    `json:"publishConsent"`
 	ParticipationID *string `json:"participationId,omitempty"`
+	ChallengeMode   bool    `json:"challengeMode,omitempty"`
 }
 
 func (s *MomentService) Create(
@@ -259,6 +265,7 @@ func (s *MomentService) Create(
 		MediaAssetID:    assetID.String(),
 		PublishConsent:  request.PublishConsent,
 		ParticipationID: participationID,
+		ChallengeMode:   request.ChallengeMode,
 	})
 	now := utcNow(s.now)
 	signingTime := now
@@ -325,6 +332,29 @@ func (s *MomentService) Create(
 			if request.PublishConsent {
 				points = activityPoints
 			}
+		} else if request.ChallengeMode {
+			repo, ok := s.moments.(activeMomentChallengeRepository)
+			if !ok {
+				return appErrors.InternalError
+			}
+			challengeID, challengePoints, findErr := repo.FindActiveMomentChallengeForUpdate(tx, now)
+			if errors.Is(findErr, appErrors.ErrNotFound) || errors.Is(findErr, appErrors.ErrConflict) {
+				return mediaMomentError(http.StatusConflict, "MOMENT_UNAVAILABLE", "Não há desafio do momento ativo agora.")
+			}
+			if findErr != nil {
+				return appErrors.InternalError
+			}
+			already, duplicateErr := repo.HasMomentForActivity(tx, actor.ID, challengeID)
+			if duplicateErr != nil {
+				return appErrors.InternalError
+			}
+			if already {
+				return challengeAlreadyCompletedError()
+			}
+			origin = momentEntities.OriginChallenge
+			rewardStatus = momentEntities.RewardDenied
+			activityID = &challengeID
+			points = challengePoints
 		}
 		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
 			return authErr
@@ -350,13 +380,19 @@ func (s *MomentService) Create(
 		}
 		if createErr := s.moments.CreateMoment(tx, moment); createErr != nil {
 			if errors.Is(createErr, appErrors.ErrConflict) {
+				if request.ChallengeMode {
+					return challengeAlreadyCompletedError()
+				}
 				return momentAlreadyCreatedError()
 			}
 			return appErrors.InternalError
 		}
-		if origin == momentEntities.OriginChallenge && request.PublishConsent {
+		if origin == momentEntities.OriginChallenge {
 			if awardErr := s.moments.AwardMoment(tx, moment.ID, actor.ID, *activityID, points, now); awardErr != nil {
 				if errors.Is(awardErr, appErrors.ErrConflict) {
+					if request.ChallengeMode {
+						return challengeAlreadyCompletedError()
+					}
 					return momentAlreadyCreatedError()
 				}
 				return appErrors.InternalError
@@ -452,5 +488,13 @@ func momentAlreadyCreatedError() error {
 		http.StatusConflict,
 		"MOMENT_ALREADY_CREATED",
 		"Este asset ou Participation já possui um Moment.",
+	)
+}
+
+func challengeAlreadyCompletedError() error {
+	return mediaMomentError(
+		http.StatusConflict,
+		"MOMENT_ALREADY_COMPLETED",
+		"Você já concluiu este desafio do momento.",
 	)
 }

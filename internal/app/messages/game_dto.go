@@ -71,6 +71,14 @@ type CreateRunRequestDTO struct {
 	GameID string `json:"gameId"`
 }
 
+type CreateManagerGameRequestDTO struct {
+	Name string `json:"name"`
+}
+
+type UpdateManagerGameRequestDTO struct {
+	Name string `json:"name"`
+}
+
 type RunParticipantResponseDTO struct {
 	ID            string    `json:"id"`
 	Name          string    `json:"name"`
@@ -119,9 +127,25 @@ type ManagerGameOverviewActionsDTO struct {
 	Run   *ManagerDashboardRunResponseDTO `json:"run"`
 }
 
+type ManagerSpaceItemResponseDTO struct {
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	StartsAt    *time.Time `json:"startsAt"`
+	StartedAt   *time.Time `json:"startedAt"`
+	Status      string     `json:"status"`
+	FlexMinutes int        `json:"flexMinutes"`
+	SpaceName   string     `json:"spaceName,omitempty"`
+}
+
+type ManagerSpaceOverviewDTO struct {
+	Current  *ManagerSpaceItemResponseDTO  `json:"current,omitempty"`
+	Upcoming []ManagerSpaceItemResponseDTO `json:"upcoming"`
+}
+
 type ManagerGameOverviewResponseDTO struct {
 	Scope   string                        `json:"scope"`
 	Actions ManagerGameOverviewActionsDTO `json:"actions"`
+	Space   *ManagerSpaceOverviewDTO      `json:"space,omitempty"`
 }
 
 type QRResponseDTO struct {
@@ -154,6 +178,8 @@ type ParticipationResponseDTO struct {
 
 type ParticipationEnvelopeDTO struct {
 	Participation ParticipationResponseDTO `json:"participation"`
+	Action        string                   `json:"action,omitempty"`
+	PointsAwarded int                      `json:"pointsAwarded,omitempty"`
 }
 
 type ParticipantRunResponseDTO struct {

@@ -20,4 +20,5 @@ type Handlers struct {
 	MediaHandler               *MediaHandler
 	MomentHandler              *MomentHandler
 	NotificationHandler        *NotificationHandler
+	SpecialEventHandler        *SpecialEventHandler
 }

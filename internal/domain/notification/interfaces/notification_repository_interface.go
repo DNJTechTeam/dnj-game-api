@@ -27,6 +27,9 @@ type Repository interface {
 	// the broadcast to that set instead of every eligible user.
 	ResolveAnnouncementRecipients(ctx context.Context, explicitUserIDs []uint64) ([]uint64, error)
 	CreateBroadcast(ctx context.Context, notifications []*entities.Notification) error
+	UpsertPushSubscription(ctx context.Context, subscription *entities.PushSubscription) (*entities.PushSubscription, error)
+	DeactivatePushSubscription(ctx context.Context, userID uint64, endpoint string, now time.Time) error
+	CreateQueueCall(ctx context.Context, notification *entities.Notification, now time.Time) (bool, error)
 
 	FindOperation(ctx context.Context, actorID uint64, key string) (*entities.Operation, error)
 	CreateOperation(ctx context.Context, operation *entities.Operation) error

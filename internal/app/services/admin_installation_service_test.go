@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -14,8 +15,11 @@ import (
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/repositories"
+	"github.com/dnjtechteam/dnj-game-api/internal/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,11 +35,11 @@ func setupAdminInstallationTest(t *testing.T) *AdminInstallationService {
 	t.Helper()
 	TestSuite.DefaultSetup(t)
 	for _, model := range []interface{ TableName() string }{
-		&models.AdminOperation{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{},
+		&models.NotificationDelivery{}, &models.PushSubscription{}, &models.Notification{}, &models.AdminOperation{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{},
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
-	return NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository).(*AdminInstallationService)
+	return NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository, repositories.NewNotificationRepository(TestSuite.DbConn)).(*AdminInstallationService)
 }
 
 func seedAdminInstallationUser(t *testing.T, email string, role userEntities.UserRole, onboarding bool) (*userEntities.User, context.Context) {
@@ -100,7 +104,7 @@ func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.
 	_, managerErr := service.ListSpaces(managerCtx, &messages.ListAdminSpacesFilterDTO{})
 	_, defaultErr := service.ListActivities(defaultCtx, &messages.ListAdminActivitiesFilterDTO{})
 	_, missingIdentityErr := service.ListSpaces(context.Background(), &messages.ListAdminSpacesFilterDTO{})
-	_, invalidRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "DEFAULT"})
+	_, invalidRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "INVALID"})
 
 	// then
 	require.NoError(t, spacesErr)
@@ -124,6 +128,49 @@ func TestAdminInstallationService_AuthorizationAndDeterministicLists(t *testing.
 	assertAdminError(t, defaultErr, http.StatusForbidden, "FORBIDDEN")
 	assertAdminError(t, missingIdentityErr, http.StatusUnauthorized, "UNAUTHENTICATED")
 	assertAdminError(t, invalidRoleErr, http.StatusBadRequest, "INVALID_REQUEST")
+}
+
+func TestAdminInstallationService_ChallengeActivationNotifications(t *testing.T) {
+	service := setupAdminInstallationTest(t)
+	_, _ = seedAdminInstallationUser(t, "challenge-admin@example.com", userEntities.RoleAdmin, true)
+	recipient, _ := seedAdminInstallationUser(t, "challenge-player@example.com", userEntities.RoleDefault, true)
+	now := time.Now().UTC()
+
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{
+		ID: uuid.NewString(), Name: "Corrida do saco", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, CreatedAt: now,
+	}, now))
+
+	description := "Registre uma foto no chafariz"
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{
+		ID: uuid.NewString(), Name: "Chafariz", Description: &description, Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, AllowsMoment: true, CreatedAt: now,
+	}, now))
+
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Ignorado", Kind: activityEntities.KindLive, Status: activityEntities.StatusActive}, now))
+	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Pausado", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusPaused}, now))
+
+	var notifications []models.Notification
+	require.NoError(t, TestSuite.DbConn.Where("user_id = ?", recipient.ID).Order("created_at, title").Find(&notifications).Error)
+	require.Len(t, notifications, 2)
+	assert.ElementsMatch(t, []string{"challenge", "moment_challenge"}, []string{notifications[0].Category, notifications[1].Category})
+	assert.ElementsMatch(t, []string{"Corrida do saco", description}, []string{notifications[0].Body, notifications[1].Body})
+	var deliveries int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.NotificationDelivery{}).Where("notification_id IN ?", []string{notifications[0].ID, notifications[1].ID}).Count(&deliveries).Error)
+	assert.Zero(t, deliveries)
+}
+
+func TestAdminInstallationService_ChallengeNotificationFailureIsInternal(t *testing.T) {
+	notifications := mocks.NewMockNotificationRepository(t)
+	notifications.On("ResolveAnnouncementRecipients", TestSuite.Ctx, ([]uint64)(nil)).Return(nil, errors.New("db down")).Once()
+	service := &AdminInstallationService{notifications: notifications}
+	err := service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Desafio", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive}, time.Now().UTC())
+	assert.ErrorIs(t, err, appErrors.InternalError)
+
+	notifications = mocks.NewMockNotificationRepository(t)
+	notifications.On("ResolveAnnouncementRecipients", TestSuite.Ctx, ([]uint64)(nil)).Return([]uint64{1}, nil).Once()
+	notifications.On("CreateBroadcast", TestSuite.Ctx, mock.Anything).Return(errors.New("db down")).Once()
+	service = &AdminInstallationService{notifications: notifications}
+	err = service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{ID: uuid.NewString(), Name: "Desafio", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive}, time.Now().UTC())
+	assert.ErrorIs(t, err, appErrors.InternalError)
 }
 
 func TestAdminInstallationService_EveryOperationRequiresDatabaseAdminRole(t *testing.T) {
@@ -249,6 +296,8 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	// when
 	created, createErr := service.CreateActivity(adminCtx, createKey, validCreateActivity("desafio-foto", &space.ID))
 	retried, retryErr := service.CreateActivity(adminCtx, createKey, validCreateActivity("desafio-foto", &space.ID))
+	activated, activateErr := service.UpdateActivity(adminCtx, created.ID, uuid.NewString(), &messages.UpdateAdminActivityRequestDTO{Status: optional("active")})
+	paused, pauseErr := service.UpdateActivity(adminCtx, created.ID, uuid.NewString(), &messages.UpdateAdminActivityRequestDTO{Status: optional("paused")})
 	updated, updateErr := service.UpdateActivity(adminCtx, created.ID, uuid.NewString(), &messages.UpdateAdminActivityRequestDTO{SpaceID: nullOptional[string](), Description: nullOptional[string](), MomentPoints: optional(25), AllowsMoment: optional(false)})
 	list, listErr := service.ListActivities(adminCtx, &messages.ListAdminActivitiesFilterDTO{})
 	require.NoError(t, TestSuite.DbConn.Model(&models.Activity{}).Where("id = ?", created.ID).Update("status", "active").Error)
@@ -264,11 +313,15 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	// then
 	require.NoError(t, createErr)
 	require.NoError(t, retryErr)
+	require.NoError(t, activateErr)
+	require.NoError(t, pauseErr)
 	require.NoError(t, updateErr)
 	require.NoError(t, listErr)
 	require.NoError(t, archiveErr)
 	require.NoError(t, archiveRetryErr)
 	assertAdminActivityResponseEqual(t, created, retried)
+	assert.Equal(t, "active", activated.Status)
+	assert.Equal(t, "paused", paused.Status)
 	assert.Equal(t, "draft", created.Status)
 	assert.Nil(t, updated.SpaceID)
 	assert.Nil(t, updated.Description)
@@ -279,7 +332,7 @@ func TestAdminInstallationService_ActivityLifecycleValidationAndOriginalRetries(
 	assertAdminActivityResponseEqual(t, archived, archiveRetry)
 	assertAdminError(t, activeArchiveErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
 	assertAdminError(t, reconfigureArchivedErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
-	assertAdminError(t, startSimulationErr, http.StatusBadRequest, "INVALID_REQUEST")
+	assertAdminError(t, startSimulationErr, http.StatusConflict, "ACTIVITY_STATE_CONFLICT")
 	assertAdminError(t, missingErr, http.StatusNotFound, "NOT_FOUND")
 	var stored models.Activity
 	require.NoError(t, TestSuite.DbConn.First(&stored, "id = ?", created.ID).Error)
@@ -530,8 +583,9 @@ func TestAdminInstallationService_RolesAssignmentsIsolationAndNoOps(t *testing.T
 	removeRetryErr := service.RemoveManager(adminCtx, activity.ID, managerID, removeKey)
 	removeNoOpErr := service.RemoveManager(adminCtx, activity.ID, managerID, uuid.NewString())
 	demoted, demoteErr := service.UpdateUserRole(adminCtx, managerID, uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("DEFAULT")})
-	promoted, promoteErr := service.UpdateUserRole(adminCtx, fmt.Sprint(participant.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("EVENT_MANAGER")})
-	promoteNoOp, promoteNoOpErr := service.UpdateUserRole(adminCtx, fmt.Sprint(participant.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("EVENT_MANAGER")})
+	promoted, promoteErr := service.UpdateUserRole(adminCtx, participant.Email, uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("EVENT_MANAGER"), Scope: pointer("actions")})
+	promoteNoOp, promoteNoOpErr := service.UpdateUserRole(adminCtx, fmt.Sprint(participant.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("EVENT_MANAGER"), Scope: pointer("actions")})
+	_, invalidScopeErr := service.UpdateUserRole(adminCtx, fmt.Sprint(participant.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("EVENT_MANAGER"), Scope: pointer("invalid")})
 	_, invalidRoleErr := service.UpdateUserRole(adminCtx, fmt.Sprint(participant.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("ADMIN")})
 	_, missingUserErr := service.AssignManager(adminCtx, activity.ID, "999999999", uuid.NewString())
 	_, missingActivityErr := service.AssignManager(adminCtx, uuid.NewString(), fmt.Sprint(participant.ID), uuid.NewString())
@@ -551,6 +605,7 @@ func TestAdminInstallationService_RolesAssignmentsIsolationAndNoOps(t *testing.T
 	assert.Equal(t, managerID, managers.Data[0].ID.String())
 	assert.Equal(t, "DEFAULT", demoted.Role)
 	assert.Equal(t, "EVENT_MANAGER", promoted.Role)
+	assert.Equal(t, "actions", promoted.Scope)
 	assert.Equal(t, promoted, promoteNoOp)
 	assert.Nil(t, adminRoleChange)
 	assertAdminError(t, demoteWithAssignmentErr, http.StatusConflict, "MANAGER_HAS_ASSIGNMENTS")
@@ -559,6 +614,7 @@ func TestAdminInstallationService_RolesAssignmentsIsolationAndNoOps(t *testing.T
 	assertAdminError(t, adminAssignmentErr, http.StatusConflict, "MANAGER_NOT_ELIGIBLE")
 	assertAdminError(t, adminRoleChangeErr, http.StatusConflict, "ROLE_CHANGE_NOT_ALLOWED")
 	assertAdminError(t, invalidRoleErr, http.StatusBadRequest, "INVALID_REQUEST")
+	assertAdminError(t, invalidScopeErr, http.StatusBadRequest, "INVALID_REQUEST")
 	assertAdminError(t, missingUserErr, http.StatusNotFound, "NOT_FOUND")
 	assertAdminError(t, missingActivityErr, http.StatusNotFound, "NOT_FOUND")
 	var assignments int64
@@ -587,7 +643,7 @@ func TestAdminInstallationService_ManagerAndRoleIdentifierErrors(t *testing.T) {
 	_, missingRoleUserErr := service.UpdateUserRole(adminCtx, "999999", uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{Role: pointer("DEFAULT")})
 	_, nilRoleRequestErr := service.UpdateUserRole(adminCtx, fmt.Sprint(manager.ID), uuid.NewString(), nil)
 	_, nilRoleFieldErr := service.UpdateUserRole(adminCtx, fmt.Sprint(manager.ID), uuid.NewString(), &messages.UpdateAdminUserRoleRequestDTO{})
-	_, invalidStaffRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "DEFAULT"})
+	_, invalidStaffRoleErr := service.ListStaff(adminCtx, &messages.ListAdminStaffFilterDTO{Role: "INVALID"})
 	_, deletedAdminCtx := seedAdminInstallationUser(t, "deleted-admin@example.com", userEntities.RoleAdmin, true)
 	var deletedID uint64
 	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("email = ?", "deleted-admin@example.com").Pluck("id", &deletedID).Error)

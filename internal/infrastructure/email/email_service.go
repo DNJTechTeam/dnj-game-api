@@ -62,7 +62,7 @@ func (s *EmailService) SendVerificationCodeEmail(ctx context.Context, email stri
 // SendEmail is a no-op on localhost/test environments so local development and
 // the test suite never hit a real provider.
 func (s *EmailService) SendEmail(email string, subject string, htmlContent string) error {
-	if common.EnvironmentIs(common.EnvironmentTest) {
+	if common.EnvironmentIs(common.EnvironmentLocalhost) || common.EnvironmentIs(common.EnvironmentTest) {
 		log.Printf("Skipping email sending in test/localhost environment for: %s", email)
 		return nil
 	}

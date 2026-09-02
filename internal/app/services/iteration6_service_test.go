@@ -30,7 +30,7 @@ func setupIteration6Test(t *testing.T) *GameService {
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
-	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
+	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
 	service.now = func() time.Time { return iteration6Now }
 	service.secret = func() string { return "iteration-6-qr-secret" }
 	return service
@@ -115,6 +115,36 @@ func TestIteration6_GameCatalogVisibilityOrderingPaginationAndDetail(t *testing.
 	apiServiceError(t, malformedErr, http.StatusNotFound, "NOT_FOUND")
 }
 
+func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Special manager", userEntities.RoleEventManager, true, 0)
+	participant, participantCtx := seedIteration6User(t, "Scored participant", userEntities.RoleDefault, true, 0)
+	activityID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: activityID, Slug: "special-" + activityID, Name: "Desafio espacial", Kind: string(activityEntities.KindLive), Status: string(activityEntities.StatusActive), CheckInPoints: 25, CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	assignIteration6Manager(t, activityID, manager.ID)
+	run := createIteration6Run(t, service, managerCtx, activityID)
+	qr := rotateIteration6QR(t, service, managerCtx, run.ID)
+
+	key := uuid.NewString()
+	validated, status, err := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
+	retry, retryStatus, retryErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
+	currentRun, currentRunErr := service.CurrentRun(participantCtx, "")
+	var refreshed models.User
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", participant.ID).Take(&refreshed).Error)
+
+	require.NoError(t, err)
+	require.NoError(t, retryErr)
+	require.NoError(t, currentRunErr)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, http.StatusCreated, retryStatus)
+	assert.Equal(t, "scored", validated.Action)
+	assert.Equal(t, "scored", retry.Action)
+	assert.Equal(t, 25, validated.PointsAwarded)
+	assert.Equal(t, 25, *validated.Participation.NewTotalPoints)
+	assert.Nil(t, currentRun)
+	assert.Equal(t, 25, refreshed.Points)
+}
+
 func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) {
 	// given
 	service := setupIteration6Test(t)
@@ -130,7 +160,11 @@ func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) 
 	gameID := seedIteration6Game(t, "Ranking Game", activityEntities.StatusActive, nil)
 	runID := uuid.NewString()
 	require.NoError(t, TestSuite.DbConn.Create(&models.ActivityRun{ID: runID, ActivityID: gameID, StartedBy: bia.ID, Status: string(gameEntities.RunStatusCompleted), PointRules: []byte(`{"first":50,"second":30,"third":20,"participation":10}`), EndedAt: timePointer(iteration6Now), CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
-	require.NoError(t, TestSuite.DbConn.Create(&models.PointEntry{ID: uuid.NewString(), UserID: ana.ID, Origin: "legacy_balance", Reason: "legacy_balance", Delta: 50, CreatedAt: iteration6Now.Add(-time.Minute)}).Error)
+	qrID := uuid.NewString()
+	participationID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.ActivityRunQRCode{ID: qrID, ActivityID: gameID, ActivityRunID: runID, TokenHash: "hash", ExpiresAt: iteration6Now, Status: string(gameEntities.QRCodeStatusDisabled), CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	require.NoError(t, TestSuite.DbConn.Create(&models.Participation{ID: participationID, UserID: ana.ID, ActivityID: gameID, ActivityRunID: runID, QRCodeID: qrID, CheckedInAt: iteration6Now, Status: string(gameEntities.ParticipationStatusCompleted), CreatedAt: iteration6Now}).Error)
+	require.NoError(t, TestSuite.DbConn.Create(&models.PointEntry{ID: uuid.NewString(), UserID: ana.ID, ActivityID: &gameID, ActivityRunID: &runID, ParticipationID: &participationID, Origin: "activity_run_results", Reason: "activity_run_first", Delta: 50, CreatedAt: iteration6Now.Add(-time.Minute)}).Error)
 
 	// when
 	individual, individualErr := service.Rankings(TestSuite.Ctx, "individual", 0)
@@ -153,8 +187,8 @@ func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) 
 	assert.Equal(t, uint64(1), overview.Current.RankPosition)
 	assert.Equal(t, 50, overview.Current.Points)
 	assert.Equal(t, uint64(1), *overview.Current.GroupRankPosition)
-	assert.Equal(t, "Pontos DNJ", overview.PointEntries[0].Label)
-	assert.Equal(t, "points", overview.PointEntries[0].Icon)
+	assert.Equal(t, "1º lugar em Ranking Game", overview.PointEntries[0].Label)
+	assert.Equal(t, "trophy", overview.PointEntries[0].Icon)
 	apiServiceError(t, invalidErr, http.StatusBadRequest, "INVALID_REQUEST")
 }
 
@@ -206,6 +240,77 @@ func TestIteration6_ManagerAuthorizationCreationIdempotencyAndOpenRunConflict(t 
 	assert.Equal(t, int64(1), audits)
 	_ = outsider
 	_ = participant
+}
+
+func TestIteration6_ManagerGameCreationUpdateAuthorizationAndIdempotency(t *testing.T) {
+	// given
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Game Manager", userEntities.RoleEventManager, true, 0)
+	_, outsiderCtx := seedIteration6User(t, "Other Manager", userEntities.RoleEventManager, true, 0)
+	wrongScope, wrongScopeCtx := seedIteration6User(t, "Space Manager", userEntities.RoleEventManager, true, 0)
+	specialManager, specialManagerCtx := seedIteration6User(t, "Special Manager", userEntities.RoleEventManager, true, 0)
+	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("id = ?", wrongScope.ID).Update("manager_scope", "space").Error)
+	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("id = ?", specialManager.ID).Update("manager_scope", "special_events").Error)
+
+	unsupportedID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: unsupportedID, Slug: "schedule-" + unsupportedID, Name: "Programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	assignIteration6Manager(t, unsupportedID, manager.ID)
+	createKey := uuid.NewString()
+	updateKey := uuid.NewString()
+
+	// when
+	created, status, createErr := service.CreateManagerGame(managerCtx, createKey, &messages.CreateManagerGameRequestDTO{Name: "  Corrida do Saco  "})
+	require.NoError(t, createErr)
+	require.NotNil(t, created)
+	updated, updateErr := service.UpdateManagerGame(managerCtx, created.ID, updateKey, &messages.UpdateManagerGameRequestDTO{Name: "Corrida Atualizada"})
+	require.NoError(t, updateErr)
+	require.NotNil(t, updated)
+	_, _, reusedCreateErr := service.CreateManagerGame(managerCtx, createKey, &messages.CreateManagerGameRequestDTO{Name: "Deve sofrer rollback"})
+	_, reusedUpdateErr := service.UpdateManagerGame(managerCtx, created.ID, updateKey, &messages.UpdateManagerGameRequestDTO{Name: "Também deve sofrer rollback"})
+	_, outsiderErr := service.UpdateManagerGame(outsiderCtx, created.ID, uuid.NewString(), &messages.UpdateManagerGameRequestDTO{Name: "Invasão"})
+	_, unsupportedErr := service.UpdateManagerGame(managerCtx, unsupportedID, uuid.NewString(), &messages.UpdateManagerGameRequestDTO{Name: "Programação alterada"})
+	_, _, wrongScopeErr := service.CreateManagerGame(wrongScopeCtx, uuid.NewString(), &messages.CreateManagerGameRequestDTO{Name: "Sem permissão"})
+	specialCreated, specialStatus, specialErr := service.CreateManagerGame(specialManagerCtx, uuid.NewString(), &messages.CreateManagerGameRequestDTO{Name: "Caça ao tesouro"})
+	require.NoError(t, specialErr)
+	require.NotNil(t, specialCreated)
+	_, _, nilCreateErr := service.CreateManagerGame(managerCtx, uuid.NewString(), nil)
+	_, _, blankCreateErr := service.CreateManagerGame(managerCtx, uuid.NewString(), &messages.CreateManagerGameRequestDTO{Name: "  "})
+	_, _, malformedCreateKeyErr := service.CreateManagerGame(managerCtx, "not-a-uuid", &messages.CreateManagerGameRequestDTO{Name: "Nome válido"})
+	_, nilUpdateErr := service.UpdateManagerGame(managerCtx, created.ID, uuid.NewString(), nil)
+	_, malformedGameErr := service.UpdateManagerGame(managerCtx, "not-a-uuid", uuid.NewString(), &messages.UpdateManagerGameRequestDTO{Name: "Nome válido"})
+	_, malformedUpdateKeyErr := service.UpdateManagerGame(managerCtx, created.ID, "not-a-uuid", &messages.UpdateManagerGameRequestDTO{Name: "Nome válido"})
+
+	var persisted, specialPersisted models.Activity
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", created.ID).Take(&persisted).Error)
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", specialCreated.ID).Take(&specialPersisted).Error)
+	var rolledBackCreates int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Activity{}).Where("name = ?", "Deve sofrer rollback").Count(&rolledBackCreates).Error)
+	var audits int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).Where("actor_user_id = ? AND action IN ?", manager.ID, []string{"manager.game.create", "manager.game.update"}).Count(&audits).Error)
+
+	// then
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "Corrida do Saco", created.Name)
+	assert.Equal(t, 50, created.Points.First)
+	assert.Equal(t, created.ID, updated.ID)
+	assert.Equal(t, "Corrida Atualizada", updated.Name)
+	assert.Equal(t, "Corrida Atualizada", persisted.Name)
+	assert.Equal(t, string(activityEntities.KindCompetitive), persisted.Kind)
+	assert.Zero(t, rolledBackCreates)
+	assert.Equal(t, int64(2), audits)
+	apiServiceError(t, reusedCreateErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
+	apiServiceError(t, reusedUpdateErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
+	apiServiceError(t, outsiderErr, http.StatusNotFound, "NOT_FOUND")
+	apiServiceError(t, unsupportedErr, http.StatusNotFound, "NOT_FOUND")
+	apiServiceError(t, wrongScopeErr, http.StatusForbidden, "FORBIDDEN")
+	assert.Equal(t, http.StatusCreated, specialStatus)
+	assert.Equal(t, string(activityEntities.KindLive), specialPersisted.Kind)
+	apiServiceError(t, nilCreateErr, http.StatusBadRequest, "INVALID_REQUEST")
+	apiServiceError(t, blankCreateErr, http.StatusBadRequest, "INVALID_REQUEST")
+	apiServiceError(t, malformedCreateKeyErr, http.StatusBadRequest, "INVALID_REQUEST")
+	apiServiceError(t, nilUpdateErr, http.StatusBadRequest, "INVALID_REQUEST")
+	apiServiceError(t, malformedGameErr, http.StatusNotFound, "NOT_FOUND")
+	apiServiceError(t, malformedUpdateKeyErr, http.StatusBadRequest, "INVALID_REQUEST")
 }
 
 func TestIteration6_QRRotationValidationRetryAndExpiry(t *testing.T) {
@@ -361,7 +466,7 @@ func TestIteration6_FinalizeResultsAwardsExactlyOnceAndRollsBackInvalidSets(t *t
 	var awardNotifications int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.Notification{}).
 		Where("user_id = ? AND category = ?", firstUser.ID, "points").Count(&awardNotifications).Error)
-	assert.Equal(t, int64(1), awardNotifications)
+	assert.Zero(t, awardNotifications)
 	mismatches, mismatchErr := TestSuite.GameRepository.ListPointBalanceMismatches(TestSuite.Ctx)
 	require.NoError(t, mismatchErr)
 	assert.Empty(t, mismatches)

@@ -18,6 +18,7 @@ func MapNotificationToEntity(row *models.Notification) *entities.Notification {
 		Body:       row.Body,
 		SourceType: row.SourceType,
 		SourceID:   row.SourceID,
+		Metadata:   row.Metadata,
 		CreatedAt:  row.CreatedAt,
 		ReadAt:     row.ReadAt,
 	}
@@ -36,6 +37,7 @@ func MapNotificationEntityToModel(item *entities.Notification) *models.Notificat
 		Body:       item.Body,
 		SourceType: item.SourceType,
 		SourceID:   item.SourceID,
+		Metadata:   item.Metadata,
 		CreatedAt:  item.CreatedAt,
 		ReadAt:     item.ReadAt,
 	}

@@ -1222,4 +1222,177 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "add_manager_scope_to_users",
+		Description: "Adds the operational area used to route event managers to their dashboard.",
+		Version:     "2.11.0",
+		Definition:  "manager-scope-v1",
+		Up: func(db *gorm.DB) error {
+			if err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_scope VARCHAR(32)`).Error; err != nil {
+				return err
+			}
+			return addConstraintIfMissing(db, "users", "users_manager_scope_check", `CHECK (manager_scope IS NULL OR manager_scope IN ('actions','space','pastoral_queue','special_events'))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "add_schedule_runtime_state",
+		Description: "Persist actual start and flex time for scheduled activities",
+		Version:     "2.12.0",
+		Definition:  "schedule-runtime-state-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS actual_started_at TIMESTAMPTZ; ALTER TABLE activities ADD COLUMN IF NOT EXISTS flex_minutes INTEGER NOT NULL DEFAULT 0`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(createModelMigration(
+		"create_special_events_table",
+		"2.13.0",
+		&models.SpecialEvent{},
+	))
+
+	registry.Register(Migration{
+		Name:        "contract_challenge_moments_without_qr",
+		Description: "Allow photo challenges to award Moments without QR participations",
+		Version:     "2.14.0",
+		Definition:  "challenge-moments-without-qr-v1",
+		Up: func(db *gorm.DB) error {
+			for _, constraint := range []struct{ table, name string }{
+				{"moments", "moments_origin_status_check"},
+				{"point_entries", "point_entries_origin_check"},
+			} {
+				if db.Migrator().HasConstraint(constraint.table, constraint.name) {
+					if err := db.Migrator().DropConstraint(constraint.table, constraint.name); err != nil {
+						return err
+					}
+				}
+			}
+			if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS moments_challenge_user_activity_unique ON moments (user_id, activity_id) WHERE origin = 'challenge'`).Error; err != nil {
+				return err
+			}
+			if err := addConstraintIfMissing(db, "moments", "moments_origin_status_check", `CHECK ((origin = 'free' AND participation_id IS NULL AND activity_id IS NULL AND points_awarded = 0 AND reward_status = 'not_applicable') OR (origin = 'challenge' AND activity_id IS NOT NULL AND points_awarded >= 0 AND reward_status IN ('awarded','denied','reversed')))`); err != nil {
+				return err
+			}
+			return addConstraintIfMissing(db, "point_entries", "point_entries_origin_check", `CHECK ((origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL AND moment_id IS NULL) OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL) OR (origin = 'moment' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND moment_id IS NOT NULL))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "remove_moment_points_notifications",
+		Description: "Moment challenge scoring is shown in DNJ Game and must not create a generic points notification.",
+		Version:     "2.15.0",
+		Definition:  "remove-moment-points-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`DELETE FROM notifications WHERE category = 'points' AND source_type = 'moment'`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "remove_activity_run_points_notifications",
+		Description: "Game result scoring is shown in DNJ Game and must not create a generic points notification.",
+		Version:     "2.16.0",
+		Definition:  "remove-activity-run-points-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`DELETE FROM notifications WHERE category = 'points' AND source_type = 'activity_run_participant'`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "create_push_notification_outbox_v1",
+		Description: "Persist browser subscriptions and transactional Web Push delivery outbox",
+		Version:     "2.17.0",
+		Definition:  "push-notification-outbox-v1",
+		Up: func(db *gorm.DB) error {
+			statements := []string{
+				`CREATE TABLE IF NOT EXISTS push_subscriptions (
+					id UUID PRIMARY KEY, user_id BIGINT NOT NULL, endpoint TEXT NOT NULL, p256dh TEXT NOT NULL, auth TEXT NOT NULL,
+					state VARCHAR(16) NOT NULL, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL, disabled_at TIMESTAMPTZ
+				)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS push_subscriptions_endpoint_unique ON push_subscriptions (endpoint)`,
+				`CREATE INDEX IF NOT EXISTS push_subscriptions_active_user_idx ON push_subscriptions (user_id, state)`,
+				`CREATE TABLE IF NOT EXISTS notification_deliveries (
+					id UUID PRIMARY KEY, notification_id UUID NOT NULL, subscription_id UUID NOT NULL, state VARCHAR(16) NOT NULL,
+					attempt_count INTEGER NOT NULL DEFAULT 0, next_attempt_at TIMESTAMPTZ, sent_at TIMESTAMPTZ, error_class VARCHAR(64),
+					created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+				)`,
+				`CREATE UNIQUE INDEX IF NOT EXISTS notification_deliveries_notification_subscription_unique ON notification_deliveries (notification_id, subscription_id)`,
+				`CREATE INDEX IF NOT EXISTS notification_deliveries_pending_idx ON notification_deliveries (state, next_attempt_at, created_at)`,
+			}
+			for _, statement := range statements {
+				if err := db.Exec(statement).Error; err != nil {
+					return err
+				}
+			}
+			for _, constraint := range []struct{ table, name, definition string }{
+				{"push_subscriptions", "push_subscriptions_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"push_subscriptions", "push_subscriptions_state_check", `CHECK (state IN ('active','inactive'))`},
+				{"notification_deliveries", "notification_deliveries_notification_fk", `FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE RESTRICT`},
+				{"notification_deliveries", "notification_deliveries_subscription_fk", `FOREIGN KEY (subscription_id) REFERENCES push_subscriptions(id) ON DELETE RESTRICT`},
+				{"notification_deliveries", "notification_deliveries_state_check", `CHECK (state IN ('pending','sent','retrying','failed','inactive'))`},
+			} {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "allow_queue_call_notifications_v1",
+		Description: "Add the trusted pastoral queue-call notification category",
+		Version:     "2.18.0",
+		Definition:  "queue-call-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("notifications", "notifications_category_check") {
+				if err := db.Migrator().DropConstraint("notifications", "notifications_category_check"); err != nil {
+					return err
+				}
+			}
+			if err := addConstraintIfMissing(db, "notifications", "notifications_category_check", `CHECK (category IN ('moment_moderation','points','announcement','queue_call'))`); err != nil {
+				return err
+			}
+			return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS notifications_queue_call_once_unique ON notifications (user_id, source_type, source_id) WHERE source_type = 'pastoral_queue_call'`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "allow_challenge_notifications_v1",
+		Description: "Add challenge notification categories to the server notification feed",
+		Version:     "2.19.0",
+		Definition:  "challenge-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("notifications", "notifications_category_check") {
+				if err := db.Migrator().DropConstraint("notifications", "notifications_category_check"); err != nil {
+					return err
+				}
+			}
+			return addConstraintIfMissing(db, "notifications", "notifications_category_check", `CHECK (category IN ('moment_moderation','points','announcement','queue_call','challenge','moment_challenge'))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
+	registry.Register(Migration{
+		Name:        "allow_special_event_notifications_v1",
+		Description: "Add the special-event notification category to the server notification feed",
+		Version:     "2.20.0",
+		Definition:  "special-event-notifications-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("notifications", "notifications_category_check") {
+				if err := db.Migrator().DropConstraint("notifications", "notifications_category_check"); err != nil {
+					return err
+				}
+			}
+			return addConstraintIfMissing(db, "notifications", "notifications_category_check", `CHECK (category IN ('moment_moderation','points','announcement','queue_call','challenge','moment_challenge','special_event'))`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

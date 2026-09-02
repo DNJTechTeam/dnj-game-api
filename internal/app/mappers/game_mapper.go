@@ -2,6 +2,7 @@ package mappers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
@@ -21,19 +22,32 @@ func MapGroupRankingToResponseDTO(item gameEntities.GroupRanking) messages.Group
 	return messages.GroupRankingResponseDTO{ID: messages.Uint64StringFromUint64(item.GroupID), Name: item.Name, Members: item.Members, Points: item.Points, Position: item.Position}
 }
 
-func pointPresentation(reason string) (string, string) {
+func pointPresentation(reason, activityName string) (string, string) {
+	activityName = strings.TrimSpace(activityName)
+	withActivity := func(label, fallback string) string {
+		if activityName == "" {
+			return fallback
+		}
+		return label + " em " + activityName
+	}
 	switch reason {
 	case "activity_run_first":
-		return "1º lugar em jogo", "trophy"
+		return withActivity("1º lugar", "1º lugar em jogo"), "trophy"
 	case "activity_run_second":
-		return "2º lugar em jogo", "medal"
+		return withActivity("2º lugar", "2º lugar em jogo"), "medal"
 	case "activity_run_third":
-		return "3º lugar em jogo", "medal"
+		return withActivity("3º lugar", "3º lugar em jogo"), "medal"
 	case "activity_run_participation":
-		return "Participação em jogo", "game"
+		return withActivity("Participação", "Participação em jogo"), "game"
 	case "moment_challenge_award":
+		if activityName != "" {
+			return "Desafio Momento - " + activityName, "camera"
+		}
 		return "Momento em desafio", "camera"
 	case "moment_moderation_reversal":
+		if activityName != "" {
+			return "Ajuste de Momento - " + activityName, "shield"
+		}
 		return "Ajuste de Momento", "shield"
 	default:
 		return "Pontos DNJ", "points"
@@ -41,7 +55,7 @@ func pointPresentation(reason string) (string, string) {
 }
 
 func MapPointEntryToResponseDTO(item gameEntities.PointEntry) messages.PointEntryResponseDTO {
-	label, icon := pointPresentation(item.Reason)
+	label, icon := pointPresentation(item.Reason, item.ActivityName)
 	return messages.PointEntryResponseDTO{ID: item.ID, Label: label, Points: item.Delta, Icon: icon, CreatedAt: item.CreatedAt.UTC()}
 }
 

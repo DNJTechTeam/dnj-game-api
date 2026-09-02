@@ -11,6 +11,8 @@ func (r *Router) RegisterGameRoutes() {
 
 	manager := r.v2Group.Group("/manager")
 	manager.GET("/game-overview", append(r.authProtected(), r.handlers.GameHandler.ManagerOverview)...)
+	manager.POST("/games", append(r.authProtected(), r.handlers.GameHandler.CreateManagerGame)...)
+	manager.PATCH("/games/:gameId", append(r.authProtected(), r.handlers.GameHandler.UpdateManagerGame)...)
 	manager.GET("/runs/:runId", append(r.authProtected(), r.handlers.GameHandler.ManagerRun)...)
 	manager.POST("/runs", append(r.authProtected(), r.handlers.GameHandler.CreateRun)...)
 	manager.POST("/runs/:runId/qr", append(r.authProtected(), r.handlers.GameHandler.RotateQR)...)

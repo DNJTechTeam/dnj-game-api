@@ -84,7 +84,8 @@ func InitializeServer() *api.API {
 		ActivityService: activityServiceInterface,
 	}
 	adminOperationRepositoryInterface := repositories.ProvideAdminOperationRepository(gormDB)
-	adminInstallationServiceInterface := services.ProvideAdminInstallationService(baseService, spaceRepositoryInterface, activityRepositoryInterface, operationAuditRepositoryInterface, adminOperationRepositoryInterface, userRepositoryInterface)
+	repository := repositories.ProvideNotificationRepository(gormDB)
+	adminInstallationServiceInterface := services.ProvideAdminInstallationService(baseService, spaceRepositoryInterface, activityRepositoryInterface, operationAuditRepositoryInterface, adminOperationRepositoryInterface, userRepositoryInterface, repository)
 	adminInstallationHandler := &handlers.AdminInstallationHandler{
 		AdminInstallationService: adminInstallationServiceInterface,
 	}
@@ -98,24 +99,28 @@ func InitializeServer() *api.API {
 		FavoriteService: favoriteServiceInterface,
 	}
 	gameRepositoryInterface := repositories.ProvideGameRepository(gormDB)
-	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
+	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, activityRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
 	gameHandler := &handlers.GameHandler{
 		GameService: gameServiceInterface,
 	}
-	repository := repositories.ProvideMediaRepository(gormDB)
-	mediaServiceInterface := services.ProvideMediaService(baseService, repository, interfacesStorage, userRepositoryInterface)
+	interfacesRepository := repositories.ProvideMediaRepository(gormDB)
+	mediaServiceInterface := services.ProvideMediaService(baseService, interfacesRepository, interfacesStorage, userRepositoryInterface)
 	mediaHandler := &handlers.MediaHandler{
 		MediaService: mediaServiceInterface,
 	}
-	interfacesRepository := repositories.ProvideMomentRepository(gormDB)
-	momentServiceInterface := services.ProvideMomentService(baseService, interfacesRepository, repository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface)
+	repository2 := repositories.ProvideMomentRepository(gormDB)
+	momentServiceInterface := services.ProvideMomentService(baseService, repository2, interfacesRepository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface)
 	momentHandler := &handlers.MomentHandler{
 		MomentService: momentServiceInterface,
 	}
-	repository2 := repositories.ProvideNotificationRepository(gormDB)
-	notificationServiceInterface := services.ProvideNotificationService(baseService, repository2, userRepositoryInterface)
+	notificationServiceInterface := services.ProvideNotificationService(baseService, repository, userRepositoryInterface)
 	notificationHandler := &handlers.NotificationHandler{
 		NotificationService: notificationServiceInterface,
+	}
+	repository3 := repositories.ProvideSpecialEventRepository(gormDB)
+	specialEventServiceInterface := services.ProvideSpecialEventService(baseService, repository3, activityRepositoryInterface, gameRepositoryInterface, userRepositoryInterface, repository)
+	specialEventHandler := &handlers.SpecialEventHandler{
+		Service: specialEventServiceInterface,
 	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
@@ -135,6 +140,7 @@ func InitializeServer() *api.API {
 		MediaHandler:               mediaHandler,
 		MomentHandler:              momentHandler,
 		NotificationHandler:        notificationHandler,
+		SpecialEventHandler:        specialEventHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

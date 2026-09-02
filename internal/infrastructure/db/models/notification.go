@@ -33,3 +33,32 @@ type Notification struct {
 }
 
 func (*Notification) TableName() string { return "notifications" }
+
+type PushSubscription struct {
+	ID         string `gorm:"type:uuid;primaryKey"`
+	UserID     uint64
+	Endpoint   string
+	P256DH     string `gorm:"column:p256dh"`
+	Auth       string
+	State      string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DisabledAt *time.Time
+}
+
+func (*PushSubscription) TableName() string { return "push_subscriptions" }
+
+type NotificationDelivery struct {
+	ID             string `gorm:"type:uuid;primaryKey"`
+	NotificationID string
+	SubscriptionID string
+	State          string
+	AttemptCount   int
+	NextAttemptAt  *time.Time
+	SentAt         *time.Time
+	ErrorClass     *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+func (*NotificationDelivery) TableName() string { return "notification_deliveries" }

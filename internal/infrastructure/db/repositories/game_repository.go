@@ -81,7 +81,7 @@ func (r *GameRepository) FindPublicGame(
 
 func manageableGameQuery(db *gorm.DB, actorUserID uint64, global bool, generatedAt time.Time) *gorm.DB {
 	query := publiclyVisibleActivities(
-		publicActivityQuery(db).Where("activities.kind = ?", string(activityEntities.KindCompetitive)),
+		publicActivityQuery(db).Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}),
 		generatedAt,
 	)
 	if !global {
@@ -121,7 +121,7 @@ func (r *GameRepository) FindManageableActivityForUpdate(
 	query := r.getDB(ctx).
 		Model(&models.Activity{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("activities.id = ? AND activities.kind = ? AND activities.status IN ('active','paused')", activityID, string(activityEntities.KindCompetitive))
+		Where("activities.id = ? AND activities.kind IN ? AND activities.status IN ('active','paused')", activityID, []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)})
 	query = publiclyVisibleActivities(query, generatedAt)
 	if !global {
 		query = query.Joins(
@@ -460,7 +460,7 @@ func (r *GameRepository) FindQRByTokenHashForUpdate(
 		Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_run_qr_codes"}}).
 		Joins("JOIN activity_runs ON activity_runs.id = activity_run_qr_codes.activity_run_id").
 		Joins("JOIN activities ON activities.id = activity_run_qr_codes.activity_id").
-		Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind = ?", tokenHash, string(activityEntities.KindCompetitive))
+		Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind IN ?", tokenHash, []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)})
 	query = publiclyVisibleActivities(query, generatedAt)
 	if err := query.Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
@@ -741,17 +741,6 @@ func (r *GameRepository) ApplyAward(
 	if balance.RowsAffected != 1 {
 		return appErrors.ErrConflict
 	}
-	if entry.Delta != 0 {
-		title, body := "Pontos concedidos", "Você recebeu pontos por um resultado de atividade."
-		if entry.Delta < 0 {
-			title, body = "Pontos revertidos", "Uma pontuação da sua atividade foi revertida."
-		}
-		if err := writeDerivedNotification(
-			r.getDB(ctx), entry.UserID, "points", title, body, "activity_run_participant", participantID, entry.CreatedAt,
-		); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -924,8 +913,22 @@ func (r *GameRepository) ListPointEntries(
 	userID uint64,
 	limit int,
 ) ([]gameEntities.PointEntry, error) {
-	var rows []models.PointEntry
-	if err := r.getDB(ctx).Where("user_id = ?", userID).Order("created_at DESC").Order("id DESC").Limit(limit).Find(&rows).Error; err != nil {
+	type pointEntryRow struct {
+		models.PointEntry
+		ActivityName string `gorm:"column:activity_name"`
+	}
+	var rows []pointEntryRow
+	query := r.getDB(ctx).
+		Model(&models.PointEntry{}).
+		Select("point_entries.*, COALESCE(activities.name, '') AS activity_name").
+		Joins("LEFT JOIN activities ON activities.id = point_entries.activity_id").
+		Where("point_entries.user_id = ?", userID).
+		Order("point_entries.created_at DESC").
+		Order("point_entries.id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.PointEntry, len(rows))
@@ -938,6 +941,7 @@ func (r *GameRepository) ListPointEntries(
 			ID:              rows[i].ID,
 			UserID:          rows[i].UserID,
 			ActivityID:      activityID,
+			ActivityName:    rows[i].ActivityName,
 			ActivityRunID:   rows[i].ActivityRunID,
 			ParticipationID: rows[i].ParticipationID,
 			MomentID:        rows[i].MomentID,

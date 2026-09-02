@@ -16,3 +16,6 @@ coverage.maintained.out
 /migrate
 /media-worker
 /api
+
+# Graphify generated output
+/graphify-out/

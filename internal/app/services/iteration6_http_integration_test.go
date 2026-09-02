@@ -3,11 +3,13 @@ package services
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/routers"
 	"github.com/gin-gonic/gin"
@@ -40,7 +42,21 @@ func TestIteration6HTTP_MiddlewareHandlerServiceRepositoryAndDatabase(t *testing
 	unauthenticated := adminHTTPRequest(engine, http.MethodGet, "/v2/manager/game-overview", "", "", "")
 	managerOverview := adminHTTPRequest(engine, http.MethodGet, "/v2/manager/game-overview", "", managerToken, "")
 
-	created := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/runs", `{"gameId":"`+gameID+`"}`, managerToken, uuid.NewString())
+	// Create and update a manager-owned game through the complete HTTP stack,
+	// then use that persisted game in the run lifecycle below.
+	createdGame := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/games", `{"name":"  Jogo criado por HTTP  "}`, managerToken, uuid.NewString())
+	require.Equal(t, http.StatusCreated, createdGame.Code, createdGame.Body.String())
+	var managerGame messages.ManagerGameResponseDTO
+	require.NoError(t, json.Unmarshal(createdGame.Body.Bytes(), &managerGame))
+	updatedGame := adminHTTPRequest(engine, http.MethodPatch, "/v2/manager/games/"+managerGame.ID, `{"name":"Jogo atualizado por HTTP"}`, managerToken, uuid.NewString())
+	createUnknownQuery := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/games?unexpected=1", `{"name":"Inválido"}`, managerToken, uuid.NewString())
+	createUnknownField := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/games", `{"name":"Inválido","actorId":"1"}`, managerToken, uuid.NewString())
+	createInvalidName := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/games", `{"name":" "}`, managerToken, uuid.NewString())
+	updateUnknownQuery := adminHTTPRequest(engine, http.MethodPatch, "/v2/manager/games/"+managerGame.ID+"?unexpected=1", `{"name":"Inválido"}`, managerToken, uuid.NewString())
+	updateUnknownField := adminHTTPRequest(engine, http.MethodPatch, "/v2/manager/games/"+managerGame.ID, `{"name":"Inválido","actorId":"1"}`, managerToken, uuid.NewString())
+	updateMissingGame := adminHTTPRequest(engine, http.MethodPatch, "/v2/manager/games/"+uuid.NewString(), `{"name":"Não encontrado"}`, managerToken, uuid.NewString())
+
+	created := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/runs", `{"gameId":"`+managerGame.ID+`"}`, managerToken, uuid.NewString())
 	var run messages.ManagerRunResponseDTO
 	require.NoError(t, json.Unmarshal(created.Body.Bytes(), &run))
 	managerRun := adminHTTPRequest(engine, http.MethodGet, "/v2/manager/runs/"+run.ID, "", managerToken, "")
@@ -73,23 +89,45 @@ func TestIteration6HTTP_MiddlewareHandlerServiceRepositoryAndDatabase(t *testing
 	for name, response := range map[string]int{
 		"catalog": catalog.Code, "detail": detail.Code, "individual": individual.Code,
 		"groups": groups.Code, "managerOverview": managerOverview.Code, "managerRun": managerRun.Code,
-		"currentRun": currentRun.Code, "currentParticipation": currentParticipation.Code,
+		"updatedGame": updatedGame.Code,
+		"currentRun":  currentRun.Code, "currentParticipation": currentParticipation.Code,
 		"gameOverview": gameOverview.Code, "managerRunAfterJoin": managerRunAfterJoin.Code,
 		"started": started.Code, "paused": paused.Code, "resumed": resumed.Code,
 		"completed": completed.Code, "terminalCurrent": terminalCurrent.Code, "cancelled": cancelled.Code,
 	} {
 		assert.Equal(t, http.StatusOK, response, name)
 	}
-	for name, response := range map[string]int{"created": created.Code, "qr": qrResponse.Code, "joined": joined.Code, "secondCreated": secondCreated.Code} {
+	for name, response := range map[string]int{"createdGame": createdGame.Code, "created": created.Code, "qr": qrResponse.Code, "joined": joined.Code, "secondCreated": secondCreated.Code} {
 		assert.Equal(t, http.StatusCreated, response, name)
 	}
 	assert.Equal(t, http.StatusUnauthorized, unauthenticated.Code)
+	for name, response := range map[string]*httptest.ResponseRecorder{
+		"createUnknownQuery": createUnknownQuery, "createUnknownField": createUnknownField, "createInvalidName": createInvalidName,
+		"updateUnknownQuery": updateUnknownQuery, "updateUnknownField": updateUnknownField,
+	} {
+		assert.Equal(t, http.StatusBadRequest, response.Code, "%s: %s", name, response.Body.String())
+		assert.Contains(t, response.Body.String(), "INVALID_REQUEST", name)
+	}
+	assert.Equal(t, http.StatusNotFound, updateMissingGame.Code, updateMissingGame.Body.String())
+	assert.Contains(t, updateMissingGame.Body.String(), "NOT_FOUND")
 	assert.Equal(t, http.StatusNoContent, noCurrent.Code)
 	assert.Equal(t, http.StatusNoContent, noParticipation.Code)
 	assert.Contains(t, catalog.Body.String(), `"name":"HTTP Game"`)
 	assert.Contains(t, individual.Body.String(), `"generatedAt":"2026-10-18T15:00:00.123Z"`)
 	assert.Contains(t, managerOverview.Body.String(), `"scope":"actions"`)
+	assert.Contains(t, createdGame.Body.String(), `"name":"Jogo criado por HTTP"`)
+	assert.Contains(t, updatedGame.Body.String(), `"name":"Jogo atualizado por HTTP"`)
 	assert.NotContains(t, joined.Body.String(), "qrToken")
 	assert.Contains(t, completed.Body.String(), `"status":"completed"`)
 	assert.Contains(t, cancelled.Body.String(), `"status":"cancelled"`)
+
+	var persisted models.Activity
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", managerGame.ID).Take(&persisted).Error)
+	assert.Equal(t, "Jogo atualizado por HTTP", persisted.Name)
+	assert.Equal(t, string(activityEntities.KindCompetitive), persisted.Kind)
+	var gameAudits int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).
+		Where("entity_id = ? AND action IN ?", managerGame.ID, []string{"manager.game.create", "manager.game.update"}).
+		Count(&gameAudits).Error)
+	assert.Equal(t, int64(2), gameAudits)
 }

@@ -30,3 +30,16 @@ func TestIteration5PublicContentMapper_ExactProjectionAndNilSafety(t *testing.T)
 	assert.Equal(t, time.UTC, schedule.StartsAt.Location())
 	assert.Equal(t, "live", schedule.State)
 }
+
+func TestIteration5PublicContentMapper_NilTimeAndSpaceFields(t *testing.T) {
+	item := &activityEntities.PublicActivity{
+		Activity: activityEntities.Activity{ID: "activity-without-window", Name: "Activity"},
+	}
+
+	result := MapPublicActivityToResponseDTO(item, nil)
+
+	require.NotNil(t, result)
+	assert.Nil(t, result.StartsAt)
+	assert.Nil(t, result.EndsAt)
+	assert.Nil(t, result.Space)
+}

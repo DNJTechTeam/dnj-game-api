@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -21,6 +22,8 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/entities"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
+	notificationEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/entities"
+	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	auditEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/entities"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	spaceEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/space/entities"
@@ -34,16 +37,44 @@ var adminSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type AdminInstallationService struct {
 	*BaseService
-	spaces     spaceInterfaces.SpaceRepositoryInterface
-	activities activityInterfaces.ActivityRepositoryInterface
-	audits     auditInterfaces.OperationAuditRepositoryInterface
-	operations adminInterfaces.AdminOperationRepositoryInterface
-	users      userInterfaces.UserRepositoryInterface
-	now        func() time.Time
+	spaces        spaceInterfaces.SpaceRepositoryInterface
+	activities    activityInterfaces.ActivityRepositoryInterface
+	audits        auditInterfaces.OperationAuditRepositoryInterface
+	operations    adminInterfaces.AdminOperationRepositoryInterface
+	users         userInterfaces.UserRepositoryInterface
+	notifications notificationInterfaces.Repository
+	now           func() time.Time
 }
 
-func NewAdminInstallationService(base *BaseService, spaces spaceInterfaces.SpaceRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, operations adminInterfaces.AdminOperationRepositoryInterface, users userInterfaces.UserRepositoryInterface) appInterfaces.AdminInstallationServiceInterface {
-	return &AdminInstallationService{BaseService: base, spaces: spaces, activities: activities, audits: audits, operations: operations, users: users, now: time.Now}
+func NewAdminInstallationService(base *BaseService, spaces spaceInterfaces.SpaceRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, operations adminInterfaces.AdminOperationRepositoryInterface, users userInterfaces.UserRepositoryInterface, notifications notificationInterfaces.Repository) appInterfaces.AdminInstallationServiceInterface {
+	return &AdminInstallationService{BaseService: base, spaces: spaces, activities: activities, audits: audits, operations: operations, users: users, notifications: notifications, now: time.Now}
+}
+
+func (s *AdminInstallationService) announceChallenge(ctx context.Context, activity *activityEntities.Activity, now time.Time) error {
+	if activity.Kind != activityEntities.KindChallenge || activity.Status != activityEntities.StatusActive {
+		return nil
+	}
+	recipients, err := s.notifications.ResolveAnnouncementRecipients(ctx, nil)
+	if err != nil {
+		return appErrors.InternalError
+	}
+	category, title := notificationEntities.CategoryChallenge, "Novo desafio disponível"
+	if activity.AllowsMoment {
+		category, title = notificationEntities.CategoryMomentChallenge, "Desafio Momento disponível"
+	}
+	body := activity.Name
+	if activity.Description != nil && strings.TrimSpace(*activity.Description) != "" {
+		body = strings.TrimSpace(*activity.Description)
+	}
+	rows := make([]*notificationEntities.Notification, len(recipients))
+	for i, userID := range recipients {
+		activityID := activity.ID
+		rows[i] = &notificationEntities.Notification{ID: uuid.NewString(), UserID: userID, Category: category, State: notificationEntities.StateUnread, Title: title, Body: body, SourceType: "activity", SourceID: &activityID, CreatedAt: now}
+	}
+	if err := s.notifications.CreateBroadcast(ctx, rows); err != nil {
+		return appErrors.InternalError
+	}
+	return nil
 }
 
 func adminAPIError(status int, code, message string) error {
@@ -207,7 +238,11 @@ func mapAdminActivity(activity *activityEntities.Activity) *messages.AdminActivi
 }
 
 func mapAdminStaff(user *userEntities.User) messages.AdminStaffResponseDTO {
-	return messages.AdminStaffResponseDTO{ID: messages.Uint64StringFromUint64(user.ID), Name: user.Name, Role: string(user.Role), OnboardingComplete: user.OnboardingComplete}
+	scope := ""
+	if user.ManagerScope != nil {
+		scope = *user.ManagerScope
+	}
+	return messages.AdminStaffResponseDTO{ID: messages.Uint64StringFromUint64(user.ID), Name: user.Name, Email: user.Email, Role: string(user.Role), Scope: scope, OnboardingComplete: user.OnboardingComplete}
 }
 
 func (s *AdminInstallationService) ListSpaces(ctx context.Context, filter *messages.ListAdminSpacesFilterDTO) (*messages.PaginatedResponse[messages.SpaceResponseDTO], error) {
@@ -528,16 +563,23 @@ func (s *AdminInstallationService) UpdateActivity(ctx context.Context, rawActivi
 			fields = append(fields, "allowsMoment")
 		}
 		if request.Status.Set {
-			if request.Status.Value == nil || *request.Status.Value != string(activityEntities.StatusArchived) {
-				return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "status administrativo aceita somente archived.")
+			if request.Status.Value == nil {
+				return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "status não aceita null.")
 			}
-			if current.Status == activityEntities.StatusActive {
-				return nil, adminAPIError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "Pause a Activity antes de arquivá-la.")
+			target := activityEntities.Status(*request.Status.Value)
+			allowed := false
+			switch target {
+			case activityEntities.StatusActive:
+				allowed = current.Status == activityEntities.StatusDraft || current.Status == activityEntities.StatusPaused
+			case activityEntities.StatusPaused:
+				allowed = current.Status == activityEntities.StatusActive
+			case activityEntities.StatusArchived:
+				allowed = current.Status == activityEntities.StatusDraft || current.Status == activityEntities.StatusPaused || current.Status == activityEntities.StatusCompleted || current.Status == activityEntities.StatusArchived
 			}
-			if current.Status != activityEntities.StatusDraft && current.Status != activityEntities.StatusPaused && current.Status != activityEntities.StatusCompleted && current.Status != activityEntities.StatusArchived {
-				return nil, adminAPIError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "Transição para archived inválida.")
+			if !allowed {
+				return nil, adminAPIError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "Transição de status inválida para o estado atual.")
 			}
-			current.Status = activityEntities.StatusArchived
+			current.Status = target
 			fields = append(fields, "status")
 		}
 		if err := validateActivityEntity(current); err != nil {
@@ -552,6 +594,11 @@ func (s *AdminInstallationService) UpdateActivity(ctx context.Context, rawActivi
 			}
 			if err != nil {
 				return nil, appErrors.InternalError
+			}
+			if before.Status != activityEntities.StatusActive && current.Status == activityEntities.StatusActive {
+				if err := s.announceChallenge(txCtx, current, current.UpdatedAt); err != nil {
+					return nil, err
+				}
 			}
 		}
 		response := mapAdminActivity(current)
@@ -578,8 +625,10 @@ func (s *AdminInstallationService) ListStaff(ctx context.Context, filter *messag
 		roles = []userEntities.UserRole{userEntities.RoleAdmin}
 	case filter.Role == string(userEntities.RoleEventManager):
 		roles = []userEntities.UserRole{userEntities.RoleEventManager}
+	case filter.Role == string(userEntities.RoleDefault):
+		roles = []userEntities.UserRole{userEntities.RoleDefault}
 	default:
-		return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role deve ser ADMIN ou EVENT_MANAGER.")
+		return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role deve ser DEFAULT, ADMIN ou EVENT_MANAGER.")
 	}
 	if filter != nil {
 		page = filter.GetPage()
@@ -603,16 +652,35 @@ func parseAdminUserID(raw string) (uint64, error) {
 	return id, nil
 }
 
+func validManagerScope(value string) bool {
+	switch value {
+	case "actions", "space", "pastoral_queue", "special_events":
+		return true
+	default:
+		return false
+	}
+}
+
+func sameScope(left, right *string) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
+}
+
+func scopeValue(scope *string) string {
+	if scope == nil {
+		return ""
+	}
+	return *scope
+}
+
 func (s *AdminInstallationService) UpdateUserRole(ctx context.Context, rawUserID, key string, request *messages.UpdateAdminUserRoleRequestDTO) (*messages.AdminUserRoleResponseDTO, error) {
 	intent := struct {
 		ID      string
 		Request *messages.UpdateAdminUserRoleRequestDTO
 	}{rawUserID, request}
 	return runAdminWrite(s, ctx, key, "admin.user.role.update", intent, func(txCtx context.Context, _ uint64) (*adminWriteOutcome[messages.AdminUserRoleResponseDTO], error) {
-		userID, err := parseAdminUserID(rawUserID)
-		if err != nil {
-			return nil, err
-		}
 		if request == nil || request.Role == nil {
 			return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role é obrigatório.")
 		}
@@ -620,7 +688,30 @@ func (s *AdminInstallationService) UpdateUserRole(ctx context.Context, rawUserID
 		if targetRole != userEntities.RoleDefault && targetRole != userEntities.RoleEventManager {
 			return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "role aceita somente DEFAULT ou EVENT_MANAGER.")
 		}
-		target, err := s.users.FindByIDForUpdate(txCtx, userID)
+		if request.Scope != nil && !validManagerScope(*request.Scope) {
+			return nil, adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "scope deve ser actions, space, pastoral_queue ou special_events.")
+		}
+		identifier, unescapeErr := url.PathUnescape(rawUserID)
+		if unescapeErr != nil {
+			return nil, adminAPIError(http.StatusNotFound, "NOT_FOUND", "Usuário não encontrado.")
+		}
+		var userID uint64
+		var target *userEntities.User
+		var err error
+		if parsedID, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil && parsedID > 0 {
+			userID = parsedID
+			target, err = s.users.FindByIDForUpdate(txCtx, userID)
+		} else if strings.Contains(identifier, "@") {
+			target, err = s.users.FindByEmail(txCtx, strings.ToLower(strings.TrimSpace(identifier)))
+			if target != nil {
+				userID = target.ID
+			}
+		} else {
+			return nil, adminAPIError(http.StatusNotFound, "NOT_FOUND", "Usuário não encontrado.")
+		}
+		if target == nil && err == nil {
+			err = appErrors.ErrNotFound
+		}
 		if errors.Is(err, appErrors.ErrNotFound) {
 			return nil, adminAPIError(http.StatusNotFound, "NOT_FOUND", "Usuário não encontrado.")
 		}
@@ -640,15 +731,25 @@ func (s *AdminInstallationService) UpdateUserRole(ctx context.Context, rawUserID
 			}
 		}
 		fromRole := target.Role
-		changed := fromRole != targetRole
+		fromScope := target.ManagerScope
+		toScope := target.ManagerScope
+		if targetRole == userEntities.RoleDefault {
+			toScope = nil
+		} else if request.Scope != nil {
+			scope := *request.Scope
+			toScope = &scope
+		}
+		changed := fromRole != targetRole || !sameScope(fromScope, toScope)
 		if changed {
-			if err := s.users.UpdateRole(txCtx, userID, targetRole); err != nil {
+			target.Role = targetRole
+			target.ManagerScope = toScope
+			if _, err := s.users.Update(txCtx, target); err != nil {
 				return nil, appErrors.InternalError
 			}
 		}
-		response := &messages.AdminUserRoleResponseDTO{ID: messages.Uint64StringFromUint64(userID), Role: string(targetRole)}
+		response := &messages.AdminUserRoleResponseDTO{ID: messages.Uint64StringFromUint64(userID), Role: string(targetRole), Scope: scopeValue(toScope)}
 		ref := strconv.FormatUint(userID, 10)
-		return &adminWriteOutcome[messages.AdminUserRoleResponseDTO]{Response: response, EntityType: "user", EntityRef: ref, AuditMetadata: map[string]any{"changed": changed, "fromRole": string(fromRole), "toRole": string(targetRole)}, HTTPStatus: http.StatusOK}, nil
+		return &adminWriteOutcome[messages.AdminUserRoleResponseDTO]{Response: response, EntityType: "user", EntityRef: ref, AuditMetadata: map[string]any{"changed": changed, "fromRole": string(fromRole), "toRole": string(targetRole), "fromScope": scopeValue(fromScope), "toScope": scopeValue(toScope)}, HTTPStatus: http.StatusOK}, nil
 	})
 }
 

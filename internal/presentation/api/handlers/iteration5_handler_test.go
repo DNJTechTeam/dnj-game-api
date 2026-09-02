@@ -91,11 +91,13 @@ func TestIteration5Handlers_RejectUnknownRepeatedAndInvalidPageQueries(t *testin
 	// when
 	responses := []*httptest.ResponseRecorder{
 		iteration5Request(engine, http.MethodGet, "/v2/schedule?admin=true", ""),
+		iteration5Request(engine, http.MethodGet, "/v2/activities?admin=true", ""),
 		iteration5Request(engine, http.MethodGet, "/v2/schedule?view=home&view=home", ""),
 		iteration5Request(engine, http.MethodGet, "/v2/activities?page=-1", ""),
 		iteration5Request(engine, http.MethodGet, "/v2/activities?page=1000001", ""),
 		iteration5Request(engine, http.MethodGet, "/v2/activities/11111111-1111-4111-8111-111111111111?include=assignments", ""),
 		iteration5Request(engine, http.MethodGet, "/v2/users/me/favorites?page=abc", ""),
+		iteration5Request(engine, http.MethodGet, "/v2/users/me/favorites?admin=true", ""),
 		iteration5Request(engine, http.MethodPut, "/v2/users/me/favorites/11111111-1111-4111-8111-111111111111?userId=9", ""),
 		iteration5Request(engine, http.MethodPut, "/v2/users/me/favorites/11111111-1111-4111-8111-111111111111", ""),
 		massAssignment,

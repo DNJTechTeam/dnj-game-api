@@ -120,9 +120,13 @@ func (s *IdentityService) userResponse(ctx context.Context, user *userEntities.U
 		}
 	}
 	legacy := mappers.MapUserToResponseDTO(user, group)
+	scope := ""
+	if user.ManagerScope != nil {
+		scope = *user.ManagerScope
+	}
 	return &messages.IdentityUserResponseDTO{
 		ID: legacy.ID, Email: legacy.Email, Name: legacy.Name, MobilePhone: legacy.MobilePhone,
-		DocumentMasked: legacy.DocumentMasked, Role: legacy.Role, Group: legacy.Group,
+		DocumentMasked: legacy.DocumentMasked, Role: legacy.Role, Scope: scope, Group: legacy.Group,
 		OnboardingComplete: user.OnboardingComplete,
 	}, nil
 }
@@ -264,7 +268,11 @@ func (s *IdentityService) SignupWithEmail(ctx context.Context, request *messages
 	if err := s.email.SendVerificationCodeEmail(ctx, email, plainCode); err != nil {
 		return nil, appErrors.NewError("Erro ao enviar email de verificação. Tente novamente.", nil)
 	}
-	return &messages.EmailSignupResponseDTO{Status: "CODE_SENT"}, nil
+	response := &messages.EmailSignupResponseDTO{Status: "CODE_SENT"}
+	if common.EnvironmentIs(common.EnvironmentLocalhost) {
+		response.DebugCode = plainCode
+	}
+	return response, nil
 }
 
 // VerifyEmailSignup confirms the code and issues a session — creating a

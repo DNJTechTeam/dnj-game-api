@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -354,6 +356,9 @@ func (s *NotificationService) AdminSend(
 				SourceID:   &batchID,
 				CreatedAt:  now,
 			}
+			if request.Urgent {
+				rows[i].Metadata = []byte(`{"urgent":true}`)
+			}
 		}
 		if createErr := s.notifications.CreateBroadcast(tx, rows); createErr != nil {
 			return appErrors.InternalError
@@ -388,4 +393,149 @@ func (s *NotificationService) AdminSend(
 		return nil, err
 	}
 	return response, nil
+}
+
+func (s *NotificationService) GetPushConfig(ctx context.Context) (*messages.PushConfigResponseDTO, error) {
+	if _, err := requireDefaultActor(ctx, s.users, false); err != nil {
+		return nil, err
+	}
+	key := strings.TrimSpace(os.Getenv("VAPID_PUBLIC_KEY"))
+	if key == "" {
+		return nil, mediaMomentError(http.StatusServiceUnavailable, "PUSH_UNAVAILABLE", "Notificações do dispositivo ainda não estão disponíveis.")
+	}
+	return &messages.PushConfigResponseDTO{PublicKey: key}, nil
+}
+
+func (s *NotificationService) UpsertPushSubscription(
+	ctx context.Context,
+	rawKey string,
+	request *messages.UpsertPushSubscriptionRequestDTO,
+) (*messages.PushSubscriptionResponseDTO, error) {
+	key, err := parseIdempotencyKey(rawKey)
+	if err != nil {
+		return nil, err
+	}
+	if request == nil || strings.TrimSpace(request.Endpoint) == "" || strings.TrimSpace(request.P256DH) == "" || strings.TrimSpace(request.Auth) == "" {
+		return nil, mediaMomentError(http.StatusBadRequest, "INVALID_REQUEST", "endpoint, p256dh e auth são obrigatórios.")
+	}
+	parsed, err := url.ParseRequestURI(request.Endpoint)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || len(request.Endpoint) > 2048 || len(request.P256DH) > 512 || len(request.Auth) > 512 {
+		return nil, mediaMomentError(http.StatusBadRequest, "INVALID_REQUEST", "Inscrição de dispositivo inválida.")
+	}
+	actor, err := requireDefaultActor(ctx, s.users, false)
+	if err != nil {
+		return nil, err
+	}
+	operation := "notifications.push_subscription.upsert"
+	fingerprint := intentHash(operation, request)
+	now := utcNow(s.now)
+	var response *messages.PushSubscriptionResponseDTO
+	err = s.WithTransaction(ctx, func(tx context.Context) error {
+		prior, priorErr := findNotificationOperation(tx, s.notifications, actor.ID, key, operation, fingerprint)
+		if priorErr != nil {
+			return priorErr
+		}
+		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+			return authErr
+		}
+		if prior != nil {
+			response = &messages.PushSubscriptionResponseDTO{ID: valueOrEmpty(prior.ResultRef), State: "active", CreatedAt: now, UpdatedAt: now}
+			return nil
+		}
+		subscription, upsertErr := s.notifications.UpsertPushSubscription(tx, &notificationEntities.PushSubscription{ID: uuid.NewString(), UserID: actor.ID, Endpoint: request.Endpoint, P256DH: request.P256DH, Auth: request.Auth, State: "active", CreatedAt: now, UpdatedAt: now})
+		if upsertErr != nil {
+			return appErrors.InternalError
+		}
+		completedAt := now
+		if createErr := createNotificationOperation(tx, s.notifications, &notificationEntities.Operation{ID: uuid.NewString(), ActorUserID: actor.ID, IdempotencyKey: key, Operation: operation, IntentHash: fingerprint, State: "completed", ResultRef: &subscription.ID, ResponseSnapshot: []byte(`{}`), HTTPStatus: http.StatusOK, CreatedAt: now, CompletedAt: &completedAt}); createErr != nil {
+			return createErr
+		}
+		response = &messages.PushSubscriptionResponseDTO{ID: subscription.ID, State: subscription.State, CreatedAt: subscription.CreatedAt.UTC(), UpdatedAt: subscription.UpdatedAt.UTC()}
+		return nil
+	})
+	if errors.Is(err, errIdempotencyRace) {
+		return s.UpsertPushSubscription(ctx, rawKey, request)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (s *NotificationService) DeactivatePushSubscription(ctx context.Context, rawKey string, request *messages.DeactivatePushSubscriptionRequestDTO) error {
+	key, err := parseIdempotencyKey(rawKey)
+	if err != nil {
+		return err
+	}
+	if request == nil || strings.TrimSpace(request.Endpoint) == "" {
+		return mediaMomentError(http.StatusBadRequest, "INVALID_REQUEST", "endpoint é obrigatório.")
+	}
+	parsed, err := url.ParseRequestURI(request.Endpoint)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || len(request.Endpoint) > 2048 {
+		return mediaMomentError(http.StatusBadRequest, "INVALID_REQUEST", "Inscrição de dispositivo inválida.")
+	}
+	actor, err := requireDefaultActor(ctx, s.users, false)
+	if err != nil {
+		return err
+	}
+	operation := "notifications.push_subscription.deactivate"
+	fingerprint := intentHash(operation, request)
+	now := utcNow(s.now)
+	err = s.WithTransaction(ctx, func(tx context.Context) error {
+		prior, priorErr := findNotificationOperation(tx, s.notifications, actor.ID, key, operation, fingerprint)
+		if priorErr != nil {
+			return priorErr
+		}
+		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+			return authErr
+		}
+		if prior != nil {
+			return nil
+		}
+		if deactivateErr := s.notifications.DeactivatePushSubscription(tx, actor.ID, request.Endpoint, now); deactivateErr != nil {
+			return appErrors.InternalError
+		}
+		completedAt := now
+		return createNotificationOperation(tx, s.notifications, &notificationEntities.Operation{ID: uuid.NewString(), ActorUserID: actor.ID, IdempotencyKey: key, Operation: operation, IntentHash: fingerprint, State: "completed", ResponseSnapshot: []byte(`{}`), HTTPStatus: http.StatusNoContent, CreatedAt: now, CompletedAt: &completedAt})
+	})
+	if errors.Is(err, errIdempotencyRace) {
+		return s.DeactivatePushSubscription(ctx, rawKey, request)
+	}
+	return err
+}
+
+func valueOrEmpty(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func (s *NotificationService) CreateQueueCalled(
+	ctx context.Context,
+	request *messages.QueueCalledNotificationRequestDTO,
+) (*messages.QueueCalledNotificationResponseDTO, error) {
+	if request == nil || strings.TrimSpace(request.QueueID) == "" || strings.TrimSpace(request.EntryID) == "" || uint64(request.ParticipantUserID) == 0 || request.CalledAt.IsZero() {
+		return nil, mediaMomentError(http.StatusBadRequest, "INVALID_REQUEST", "queueId, entryId, participantUserId e calledAt são obrigatórios.")
+	}
+	now := utcNow(s.now)
+	calledAt := request.CalledAt.UTC()
+	sourceID := strings.TrimSpace(request.QueueID) + ":" + strings.TrimSpace(request.EntryID)
+	notification := &notificationEntities.Notification{
+		ID: uuid.NewString(), UserID: uint64(request.ParticipantUserID), Category: "queue_call", State: notificationEntities.StateUnread,
+		Title: "É sua vez na fila", Body: "Dirija-se à fila agora.", SourceType: "pastoral_queue_call", SourceID: &sourceID, CreatedAt: calledAt,
+	}
+	var created bool
+	err := s.WithTransaction(ctx, func(tx context.Context) error {
+		createdNow, createErr := s.notifications.CreateQueueCall(tx, notification, now)
+		if createErr != nil {
+			return appErrors.InternalError
+		}
+		created = createdNow
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &messages.QueueCalledNotificationResponseDTO{NotificationID: notification.ID, Created: created}, nil
 }

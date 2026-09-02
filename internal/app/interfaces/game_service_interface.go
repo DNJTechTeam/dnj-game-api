@@ -17,6 +17,8 @@ type GameServiceInterface interface {
 
 	ManagerOverview(ctx context.Context) (*messages.ManagerGameOverviewResponseDTO, error)
 	ManagerRun(ctx context.Context, runID string) (*messages.ManagerRunResponseDTO, error)
+	CreateManagerGame(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error)
+	UpdateManagerGame(ctx context.Context, gameID, key string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error)
 	CreateRun(ctx context.Context, key string, request *messages.CreateRunRequestDTO) (*messages.ManagerRunResponseDTO, int, error)
 	RotateQR(ctx context.Context, runID, key string) (*messages.QRResponseDTO, int, error)
 	StartRun(ctx context.Context, runID, key string) (*messages.ManagerRunResponseDTO, error)

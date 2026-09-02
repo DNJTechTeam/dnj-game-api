@@ -96,17 +96,21 @@ type ListAdminStaffFilterDTO struct {
 type AdminStaffResponseDTO struct {
 	ID                 Uint64String `json:"id"`
 	Name               string       `json:"name"`
+	Email              string       `json:"email"`
 	Role               string       `json:"role"`
+	Scope              string       `json:"scope,omitempty"`
 	OnboardingComplete bool         `json:"onboardingComplete"`
 }
 
 type UpdateAdminUserRoleRequestDTO struct {
-	Role *string `json:"role"`
+	Role  *string `json:"role"`
+	Scope *string `json:"scope"`
 }
 
 type AdminUserRoleResponseDTO struct {
-	ID   Uint64String `json:"id"`
-	Role string       `json:"role"`
+	ID    Uint64String `json:"id"`
+	Role  string       `json:"role"`
+	Scope string       `json:"scope,omitempty"`
 }
 
 type ListAdminManagersFilterDTO struct{ PaginationFilter }
