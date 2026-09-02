@@ -242,6 +242,25 @@ func TestIteration6_ManagerAuthorizationCreationIdempotencyAndOpenRunConflict(t 
 	_ = participant
 }
 
+func TestIteration6_ManagerGameCreationAndUpdate(t *testing.T) {
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Game Manager", userEntities.RoleEventManager, true, 0)
+
+	created, status, err := service.CreateManagerGame(managerCtx, uuid.NewString(), &messages.CreateManagerGameRequestDTO{Name: "  Corrida do Saco  "})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, created)
+	assert.Equal(t, "Corrida do Saco", created.Name)
+	assert.Equal(t, 50, created.Points.First)
+
+	updated, err := service.UpdateManagerGame(managerCtx, created.ID, uuid.NewString(), &messages.UpdateManagerGameRequestDTO{Name: "Corrida Atualizada"})
+	require.NoError(t, err)
+	require.NotNil(t, updated)
+	assert.Equal(t, created.ID, updated.ID)
+	assert.Equal(t, "Corrida Atualizada", updated.Name)
+	assert.NotZero(t, manager.ID)
+}
+
 func TestIteration6_QRRotationValidationRetryAndExpiry(t *testing.T) {
 	// given
 	service := setupIteration6Test(t)
