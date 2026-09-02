@@ -11,6 +11,9 @@ const (
 	CategoryMomentModeration Category = "moment_moderation"
 	CategoryPoints           Category = "points"
 	CategoryAnnouncement     Category = "announcement"
+	CategoryChallenge        Category = "challenge"
+	CategoryMomentChallenge  Category = "moment_challenge"
+	CategorySpecialEvent     Category = "special_event"
 )
 
 type State string
@@ -33,6 +36,7 @@ type Notification struct {
 	Body       string
 	SourceType string
 	SourceID   *string
+	Metadata   json.RawMessage
 	CreatedAt  time.Time
 	ReadAt     *time.Time
 }
@@ -44,6 +48,33 @@ type Preferences struct {
 	PointsEnabled       bool
 	AnnouncementEnabled bool
 	UpdatedAt           time.Time
+}
+
+// PushSubscription is a browser/device capability owned by one authenticated
+// participant. Endpoint and keys are intentionally never returned to clients.
+type PushSubscription struct {
+	ID         string
+	UserID     uint64
+	Endpoint   string
+	P256DH     string
+	Auth       string
+	State      string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DisabledAt *time.Time
+}
+
+type Delivery struct {
+	ID             string
+	NotificationID string
+	SubscriptionID string
+	State          string
+	AttemptCount   int
+	NextAttemptAt  *time.Time
+	SentAt         *time.Time
+	ErrorClass     *string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // Operation is one row of the unified idempotency_operations ledger shared

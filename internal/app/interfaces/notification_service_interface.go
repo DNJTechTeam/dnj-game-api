@@ -20,4 +20,12 @@ type NotificationServiceInterface interface {
 		rawKey string,
 		request *messages.AdminSendNotificationRequestDTO,
 	) (*messages.AdminSendNotificationResponseDTO, error)
+	GetPushConfig(ctx context.Context) (*messages.PushConfigResponseDTO, error)
+	UpsertPushSubscription(
+		ctx context.Context,
+		rawKey string,
+		request *messages.UpsertPushSubscriptionRequestDTO,
+	) (*messages.PushSubscriptionResponseDTO, error)
+	DeactivatePushSubscription(ctx context.Context, rawKey string, request *messages.DeactivatePushSubscriptionRequestDTO) error
+	CreateQueueCalled(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error)
 }

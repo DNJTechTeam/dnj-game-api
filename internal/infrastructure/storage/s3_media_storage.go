@@ -26,10 +26,10 @@ import (
 )
 
 type S3MediaStorage struct {
-	client           *s3.Client
-	config           aws.Config
-	endpoint, region string
-	pathStyle        bool
+	client                           *s3.Client
+	config                           aws.Config
+	endpoint, publicEndpoint, region string
+	pathStyle                        bool
 }
 
 func NewS3MediaStorage() mediaInterfaces.Storage {
@@ -49,6 +49,10 @@ func NewS3MediaStorage() mediaInterfaces.Storage {
 	}
 	cfg, _ := config.LoadDefaultConfig(ctx, options...)
 	endpoint := strings.TrimRight(strings.TrimSpace(os.Getenv("S3_ENDPOINT")), "/")
+	publicEndpoint := strings.TrimRight(strings.TrimSpace(os.Getenv("S3_PUBLIC_ENDPOINT")), "/")
+	if publicEndpoint == "" {
+		publicEndpoint = endpoint
+	}
 	pathStyle, _ := strconv.ParseBool(os.Getenv("S3_USE_PATH_STYLE"))
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.UsePathStyle = pathStyle
@@ -56,7 +60,7 @@ func NewS3MediaStorage() mediaInterfaces.Storage {
 			o.BaseEndpoint = aws.String(endpoint)
 		}
 	})
-	return &S3MediaStorage{client: client, config: cfg, endpoint: endpoint, region: region, pathStyle: pathStyle}
+	return &S3MediaStorage{client: client, config: cfg, endpoint: endpoint, publicEndpoint: publicEndpoint, region: region, pathStyle: pathStyle}
 }
 
 func (s *S3MediaStorage) ValidateConfiguration() error {
@@ -66,12 +70,15 @@ func (s *S3MediaStorage) ValidateConfiguration() error {
 	if bucket == "" || s.region == "" || retentionErr != nil || retentionAnchor == "" {
 		return entities.ErrProviderUnavailable
 	}
-	if s.endpoint != "" {
-		parsed, err := url.Parse(s.endpoint)
+	for _, endpoint := range []string{s.endpoint, s.publicEndpoint} {
+		if endpoint == "" {
+			continue
+		}
+		parsed, err := url.Parse(endpoint)
 		if err != nil || parsed.Host == "" {
 			return entities.ErrProviderUnavailable
 		}
-		if os.Getenv("SERVER_ENVIRONMENT") != "localhost" && os.Getenv("SERVER_ENVIRONMENT") != "test" &&
+		if endpoint == s.publicEndpoint && os.Getenv("SERVER_ENVIRONMENT") != "localhost" && os.Getenv("SERVER_ENVIRONMENT") != "test" &&
 			parsed.Scheme != "https" {
 			return entities.ErrProviderUnavailable
 		}
@@ -95,8 +102,8 @@ func escapeKey(key string) string {
 	return strings.Join(parts, "/")
 }
 func (s *S3MediaStorage) objectURL(bucket, key string) (string, error) {
-	if s.endpoint != "" {
-		base, err := url.Parse(s.endpoint)
+	if s.publicEndpoint != "" {
+		base, err := url.Parse(s.publicEndpoint)
 		if err != nil {
 			return "", err
 		}

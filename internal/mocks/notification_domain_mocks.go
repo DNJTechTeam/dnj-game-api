@@ -36,6 +36,44 @@ type MockNotificationRepository_Expecter struct {
 	mock *mock.Mock
 }
 
+func (_mock *MockNotificationRepository) DeactivatePushSubscription(ctx context.Context, userID uint64, endpoint string, now time.Time) error {
+	ret := _mock.Called(ctx, userID, endpoint, now)
+	if len(ret) == 0 {
+		panic("no return value specified for DeactivatePushSubscription")
+	}
+	return ret.Error(0)
+}
+
+func (_mock *MockNotificationRepository) CreateQueueCall(ctx context.Context, notification *entities.Notification, now time.Time) (bool, error) {
+	ret := _mock.Called(ctx, notification, now)
+	if len(ret) == 0 {
+		panic("no return value specified for CreateQueueCall")
+	}
+	if fn, ok := ret.Get(0).(func(context.Context, *entities.Notification, time.Time) bool); ok {
+		return fn(ctx, notification, now), ret.Error(1)
+	}
+	return ret.Get(0).(bool), ret.Error(1)
+}
+
+// UpsertPushSubscription provides a mock function for the type MockNotificationRepository.
+// This small addition mirrors mockery's generated behavior; mockery is not installed in the current host.
+func (_mock *MockNotificationRepository) UpsertPushSubscription(ctx context.Context, subscription *entities.PushSubscription) (*entities.PushSubscription, error) {
+	ret := _mock.Called(ctx, subscription)
+	if len(ret) == 0 {
+		panic("no return value specified for UpsertPushSubscription")
+	}
+	var r0 *entities.PushSubscription
+	if fn, ok := ret.Get(0).(func(context.Context, *entities.PushSubscription) *entities.PushSubscription); ok {
+		r0 = fn(ctx, subscription)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*entities.PushSubscription)
+	}
+	if fn, ok := ret.Get(1).(func(context.Context, *entities.PushSubscription) error); ok {
+		return r0, fn(ctx, subscription)
+	}
+	return r0, ret.Error(1)
+}
+
 func (_m *MockNotificationRepository) EXPECT() *MockNotificationRepository_Expecter {
 	return &MockNotificationRepository_Expecter{mock: &_m.Mock}
 }

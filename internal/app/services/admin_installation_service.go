@@ -22,6 +22,8 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	adminEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/entities"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
+	notificationEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/entities"
+	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	auditEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/entities"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	spaceEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/space/entities"
@@ -35,16 +37,44 @@ var adminSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type AdminInstallationService struct {
 	*BaseService
-	spaces     spaceInterfaces.SpaceRepositoryInterface
-	activities activityInterfaces.ActivityRepositoryInterface
-	audits     auditInterfaces.OperationAuditRepositoryInterface
-	operations adminInterfaces.AdminOperationRepositoryInterface
-	users      userInterfaces.UserRepositoryInterface
-	now        func() time.Time
+	spaces        spaceInterfaces.SpaceRepositoryInterface
+	activities    activityInterfaces.ActivityRepositoryInterface
+	audits        auditInterfaces.OperationAuditRepositoryInterface
+	operations    adminInterfaces.AdminOperationRepositoryInterface
+	users         userInterfaces.UserRepositoryInterface
+	notifications notificationInterfaces.Repository
+	now           func() time.Time
 }
 
-func NewAdminInstallationService(base *BaseService, spaces spaceInterfaces.SpaceRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, operations adminInterfaces.AdminOperationRepositoryInterface, users userInterfaces.UserRepositoryInterface) appInterfaces.AdminInstallationServiceInterface {
-	return &AdminInstallationService{BaseService: base, spaces: spaces, activities: activities, audits: audits, operations: operations, users: users, now: time.Now}
+func NewAdminInstallationService(base *BaseService, spaces spaceInterfaces.SpaceRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, operations adminInterfaces.AdminOperationRepositoryInterface, users userInterfaces.UserRepositoryInterface, notifications notificationInterfaces.Repository) appInterfaces.AdminInstallationServiceInterface {
+	return &AdminInstallationService{BaseService: base, spaces: spaces, activities: activities, audits: audits, operations: operations, users: users, notifications: notifications, now: time.Now}
+}
+
+func (s *AdminInstallationService) announceChallenge(ctx context.Context, activity *activityEntities.Activity, now time.Time) error {
+	if activity.Kind != activityEntities.KindChallenge || activity.Status != activityEntities.StatusActive {
+		return nil
+	}
+	recipients, err := s.notifications.ResolveAnnouncementRecipients(ctx, nil)
+	if err != nil {
+		return appErrors.InternalError
+	}
+	category, title := notificationEntities.CategoryChallenge, "Novo desafio disponível"
+	if activity.AllowsMoment {
+		category, title = notificationEntities.CategoryMomentChallenge, "Desafio Momento disponível"
+	}
+	body := activity.Name
+	if activity.Description != nil && strings.TrimSpace(*activity.Description) != "" {
+		body = strings.TrimSpace(*activity.Description)
+	}
+	rows := make([]*notificationEntities.Notification, len(recipients))
+	for i, userID := range recipients {
+		activityID := activity.ID
+		rows[i] = &notificationEntities.Notification{ID: uuid.NewString(), UserID: userID, Category: category, State: notificationEntities.StateUnread, Title: title, Body: body, SourceType: "activity", SourceID: &activityID, CreatedAt: now}
+	}
+	if err := s.notifications.CreateBroadcast(ctx, rows); err != nil {
+		return appErrors.InternalError
+	}
+	return nil
 }
 
 func adminAPIError(status int, code, message string) error {
@@ -564,6 +594,11 @@ func (s *AdminInstallationService) UpdateActivity(ctx context.Context, rawActivi
 			}
 			if err != nil {
 				return nil, appErrors.InternalError
+			}
+			if before.Status != activityEntities.StatusActive && current.Status == activityEntities.StatusActive {
+				if err := s.announceChallenge(txCtx, current, current.UpdatedAt); err != nil {
+					return nil, err
+				}
 			}
 		}
 		response := mapAdminActivity(current)

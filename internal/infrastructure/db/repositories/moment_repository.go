@@ -439,12 +439,8 @@ func (r *MomentRepository) ApplyModeration(
 				return nil, nil, false, handleRepositoryError(err)
 			}
 			changed = true
-			if err := writeDerivedNotification(
-				r.getDB(ctx), row.UserID, "moment_moderation",
-				"Sua foto foi aprovada", "Sua foto foi aprovada e já está publicada.", "moment", row.ID, now,
-			); err != nil {
-				return nil, nil, false, err
-			}
+			// Approval is intentionally non-interruptive. Rejection, deletion and
+			// point reversal below remain the only moderation notification cases.
 		}
 		return mappers.MapMomentToEntity(&row), mappers.MapMediaAssetToEntity(&asset), changed, nil
 	}
@@ -468,7 +464,7 @@ func (r *MomentRepository) ApplyModeration(
 			body = "Sua foto foi removida da galeria."
 		}
 		if err := writeDerivedNotification(
-			r.getDB(ctx), row.UserID, "moment_moderation",
+			ctx, r.getDB(ctx), row.UserID, "moment_moderation",
 			"Sua foto foi moderada", body, "moment", row.ID, now,
 		); err != nil {
 			return nil, nil, false, err

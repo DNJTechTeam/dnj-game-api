@@ -19,6 +19,8 @@ import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
+	notificationEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/entities"
+	notificationInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/notification/interfaces"
 	specialEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/specialevent/entities"
 	specialInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/specialevent/interfaces"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
@@ -31,16 +33,37 @@ const specialEventTeaser = 15 * time.Second
 
 type SpecialEventService struct {
 	*BaseService
-	events     specialInterfaces.Repository
-	activities activityInterfaces.ActivityRepositoryInterface
-	games      gameInterfaces.GameRepositoryInterface
-	users      userInterfaces.UserRepositoryInterface
-	now        func() time.Time
-	secret     func() string
+	events        specialInterfaces.Repository
+	activities    activityInterfaces.ActivityRepositoryInterface
+	games         gameInterfaces.GameRepositoryInterface
+	users         userInterfaces.UserRepositoryInterface
+	notifications notificationInterfaces.Repository
+	now           func() time.Time
+	secret        func() string
 }
 
-func NewSpecialEventService(base *BaseService, events specialInterfaces.Repository, activities activityInterfaces.ActivityRepositoryInterface, games gameInterfaces.GameRepositoryInterface, users userInterfaces.UserRepositoryInterface) appInterfaces.SpecialEventServiceInterface {
-	return &SpecialEventService{BaseService: base, events: events, activities: activities, games: games, users: users, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
+func NewSpecialEventService(base *BaseService, events specialInterfaces.Repository, activities activityInterfaces.ActivityRepositoryInterface, games gameInterfaces.GameRepositoryInterface, users userInterfaces.UserRepositoryInterface, notifications notificationInterfaces.Repository) appInterfaces.SpecialEventServiceInterface {
+	return &SpecialEventService{BaseService: base, events: events, activities: activities, games: games, users: users, notifications: notifications, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
+}
+
+func (s *SpecialEventService) announceActivation(ctx context.Context, event *specialEntities.Event, now time.Time) error {
+	recipients, err := s.notifications.ResolveAnnouncementRecipients(ctx, nil)
+	if err != nil {
+		return appErrors.InternalError
+	}
+	body := event.Title
+	if event.Description != nil && strings.TrimSpace(*event.Description) != "" {
+		body = strings.TrimSpace(*event.Description)
+	}
+	rows := make([]*notificationEntities.Notification, len(recipients))
+	for i, userID := range recipients {
+		eventID := event.ID
+		rows[i] = &notificationEntities.Notification{ID: uuid.NewString(), UserID: userID, Category: notificationEntities.CategorySpecialEvent, State: notificationEntities.StateUnread, Title: "Desafio Especial disponível", Body: body, SourceType: "special_event", SourceID: &eventID, CreatedAt: now}
+	}
+	if err := s.notifications.CreateBroadcast(ctx, rows); err != nil {
+		return appErrors.InternalError
+	}
+	return nil
 }
 
 func specialError(status int, code, message string) error {
@@ -200,6 +223,7 @@ func (s *SpecialEventService) ReleaseQR(ctx context.Context, eventID string) (*m
 		if event.Status != specialEntities.StatusTeaser && event.Status != specialEntities.StatusActive {
 			return specialError(http.StatusConflict, "EVENT_STATE_CONFLICT", "Este evento não pode liberar QR.")
 		}
+		activating := event.Status != specialEntities.StatusActive
 		var runID string
 		if event.ActivityRunID == nil {
 			run := &gameEntities.ActivityRun{ID: uuid.NewString(), ActivityID: event.ActivityID, StartedBy: actor.ID, Status: gameEntities.RunStatusDraft, PointRules: gameEntities.DefaultPointRules(), CreatedAt: now, UpdatedAt: now}
@@ -226,6 +250,11 @@ func (s *SpecialEventService) ReleaseQR(ctx context.Context, eventID string) (*m
 		event.UpdatedAt = now
 		if err = s.events.Save(tx, event); err != nil {
 			return appErrors.InternalError
+		}
+		if activating {
+			if err = s.announceActivation(tx, event, now); err != nil {
+				return err
+			}
 		}
 		result = &messages.SpecialEventQRResponseDTO{QRToken: token, ExpiresAt: expires}
 		return nil

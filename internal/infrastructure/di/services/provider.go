@@ -36,6 +36,7 @@ func ProvideAdminInstallationService(
 	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
 	adminOperationRepository adminInterfaces.AdminOperationRepositoryInterface,
 	userRepository uInterfaces.UserRepositoryInterface,
+	notificationRepository notificationInterfaces.Repository,
 ) appInterfaces.AdminInstallationServiceInterface {
 	return services.NewAdminInstallationService(
 		baseService,
@@ -44,6 +45,7 @@ func ProvideAdminInstallationService(
 		auditRepository,
 		adminOperationRepository,
 		userRepository,
+		notificationRepository,
 	)
 }
 
@@ -86,8 +88,8 @@ func ProvideGameService(
 	return services.NewGameService(baseService, gameRepository, activityRepository, userRepository, auditRepository)
 }
 
-func ProvideSpecialEventService(baseService *services.BaseService, repository specialInterfaces.Repository, activityRepository activityInterfaces.ActivityRepositoryInterface, gameRepository gameInterfaces.GameRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface) appInterfaces.SpecialEventServiceInterface {
-	return services.NewSpecialEventService(baseService, repository, activityRepository, gameRepository, userRepository)
+func ProvideSpecialEventService(baseService *services.BaseService, repository specialInterfaces.Repository, activityRepository activityInterfaces.ActivityRepositoryInterface, gameRepository gameInterfaces.GameRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface, notificationRepository notificationInterfaces.Repository) appInterfaces.SpecialEventServiceInterface {
+	return services.NewSpecialEventService(baseService, repository, activityRepository, gameRepository, userRepository, notificationRepository)
 }
 
 func ProvideMediaService(

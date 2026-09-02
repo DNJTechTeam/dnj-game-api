@@ -14,6 +14,7 @@ import (
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/repositories"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,11 +32,11 @@ func setupAdminInstallationTest(t *testing.T) *AdminInstallationService {
 	t.Helper()
 	TestSuite.DefaultSetup(t)
 	for _, model := range []interface{ TableName() string }{
-		&models.AdminOperation{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{},
+		&models.NotificationDelivery{}, &models.PushSubscription{}, &models.Notification{}, &models.AdminOperation{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.Activity{}, &models.Space{}, &models.User{},
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
-	return NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository).(*AdminInstallationService)
+	return NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository, repositories.NewNotificationRepository(TestSuite.DbConn)).(*AdminInstallationService)
 }
 
 func seedAdminInstallationUser(t *testing.T, email string, role userEntities.UserRole, onboarding bool) (*userEntities.User, context.Context) {

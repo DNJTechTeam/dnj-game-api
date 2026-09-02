@@ -5018,6 +5018,62 @@ type MockNotificationServiceInterface_Expecter struct {
 	mock *mock.Mock
 }
 
+func (_mock *MockNotificationServiceInterface) DeactivatePushSubscription(ctx context.Context, key string, request *messages.DeactivatePushSubscriptionRequestDTO) error {
+	ret := _mock.Called(ctx, key, request)
+	if len(ret) == 0 {
+		panic("no return value specified for DeactivatePushSubscription")
+	}
+	return ret.Error(0)
+}
+
+func (_mock *MockNotificationServiceInterface) CreateQueueCalled(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error) {
+	ret := _mock.Called(ctx, request)
+	if len(ret) == 0 {
+		panic("no return value specified for CreateQueueCalled")
+	}
+	var r0 *messages.QueueCalledNotificationResponseDTO
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.QueueCalledNotificationResponseDTO)
+	}
+	return r0, ret.Error(1)
+}
+
+// GetPushConfig provides a mock function for the type MockNotificationServiceInterface.
+func (_mock *MockNotificationServiceInterface) GetPushConfig(ctx context.Context) (*messages.PushConfigResponseDTO, error) {
+	ret := _mock.Called(ctx)
+	if len(ret) == 0 {
+		panic("no return value specified for GetPushConfig")
+	}
+	var r0 *messages.PushConfigResponseDTO
+	if fn, ok := ret.Get(0).(func(context.Context) *messages.PushConfigResponseDTO); ok {
+		r0 = fn(ctx)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.PushConfigResponseDTO)
+	}
+	if fn, ok := ret.Get(1).(func(context.Context) error); ok {
+		return r0, fn(ctx)
+	}
+	return r0, ret.Error(1)
+}
+
+// UpsertPushSubscription provides a mock function for the type MockNotificationServiceInterface.
+func (_mock *MockNotificationServiceInterface) UpsertPushSubscription(ctx context.Context, key string, request *messages.UpsertPushSubscriptionRequestDTO) (*messages.PushSubscriptionResponseDTO, error) {
+	ret := _mock.Called(ctx, key, request)
+	if len(ret) == 0 {
+		panic("no return value specified for UpsertPushSubscription")
+	}
+	var r0 *messages.PushSubscriptionResponseDTO
+	if fn, ok := ret.Get(0).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) *messages.PushSubscriptionResponseDTO); ok {
+		r0 = fn(ctx, key, request)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.PushSubscriptionResponseDTO)
+	}
+	if fn, ok := ret.Get(1).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) error); ok {
+		return r0, fn(ctx, key, request)
+	}
+	return r0, ret.Error(1)
+}
+
 func (_m *MockNotificationServiceInterface) EXPECT() *MockNotificationServiceInterface_Expecter {
 	return &MockNotificationServiceInterface_Expecter{mock: &_m.Mock}
 }
