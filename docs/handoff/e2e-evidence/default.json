@@ -6,13 +6,13 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PATCH",
-    "path": "/v2/admin/users/32/role",
+    "path": "/v2/admin/users/34/role",
     "status": 200,
     "request": {
       "role": "EVENT_MANAGER"
     },
     "response": {
-      "id": "32",
+      "id": "34",
       "role": "EVENT_MANAGER"
     },
     "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
@@ -54,7 +54,7 @@
       "csrfToken": "[redacted]",
       "onboardingRequired": true,
       "user": {
-        "id": "33",
+        "id": "35",
         "email": "e2e-default-player@example.com",
         "name": "e2e-default-player",
         "mobilePhone": "",
@@ -78,7 +78,7 @@
     "response": {
       "onboardingRequired": true,
       "user": {
-        "id": "33",
+        "id": "35",
         "email": "e2e-default-player@example.com",
         "name": "e2e-default-player",
         "mobilePhone": "",
@@ -106,7 +106,7 @@
     "response": {
       "onboardingRequired": false,
       "user": {
-        "id": "33",
+        "id": "35",
         "email": "e2e-default-player@example.com",
         "name": "e2e-default-player",
         "mobilePhone": "5541999990000",
@@ -131,14 +131,14 @@
       "id": "3",
       "groupId": "3",
       "status": "ACTIVE",
-      "expiresAt": "2026-09-08T23:50:03.246524Z",
+      "expiresAt": "2026-09-10T01:49:24.3041052Z",
       "revokedAt": null,
       "consumedAt": null,
       "consumedByUserId": null,
-      "createdByUserId": "31",
+      "createdByUserId": "33",
       "replacesInviteId": null,
-      "createdAt": "2026-09-01T20:50:03.2472409-03:00",
-      "code": "Af8VJ7xhDR8L8sSiTDSO2w"
+      "createdAt": "2026-09-02T22:49:24.3050373-03:00",
+      "code": "z04TTNurj-maguyqVSWCyw"
     },
     "proves": "POST .../invites cria um convite de uso único (201)."
   },
@@ -152,7 +152,7 @@
     "path": "/v2/groups/invites/consume",
     "status": 200,
     "request": {
-      "code": "Af8VJ7xhDR8L8sSiTDSO2w"
+      "code": "z04TTNurj-maguyqVSWCyw"
     },
     "response": {
       "group": {
@@ -161,9 +161,9 @@
       },
       "membership": {
         "id": "2",
-        "userId": "33",
+        "userId": "35",
         "groupId": "3",
-        "joinedAt": "2026-09-01T20:50:03.248702-03:00"
+        "joinedAt": "2026-09-02T22:49:24.311846-03:00"
       }
     },
     "proves": "POST /v2/groups/invites/consume vincula o jogador ao grupo do convite (200)."
@@ -184,9 +184,9 @@
       },
       "membership": {
         "id": "2",
-        "userId": "33",
+        "userId": "35",
         "groupId": "3",
-        "joinedAt": "2026-09-01T20:50:03.248702-03:00"
+        "joinedAt": "2026-09-02T22:49:24.311846-03:00"
       }
     },
     "proves": "GET /v2/groups/me confirma a associação (200)."
@@ -203,10 +203,10 @@
     "response": {
       "data": [
         {
-          "id": "33",
+          "id": "35",
           "name": "e2e-default-player",
           "role": "DEFAULT",
-          "joinedAt": "2026-09-01T20:50:03.248702-03:00"
+          "joinedAt": "2026-09-02T22:49:24.311846-03:00"
         }
       ],
       "pagination": {
@@ -230,7 +230,7 @@
       "name": "Jogador E2E"
     },
     "response": {
-      "id": "33",
+      "id": "35",
       "email": "e2e-default-player@example.com",
       "name": "Jogador E2E",
       "mobilePhone": "5541999990000",
@@ -243,8 +243,8 @@
       "points": 0,
       "rankPosition": 3,
       "onboardingComplete": true,
-      "createdAt": "2026-09-01T20:50:03.237231-03:00",
-      "updatedAt": "2026-09-01T20:50:03.2576325-03:00"
+      "createdAt": "2026-09-02T22:49:24.27966-03:00",
+      "updatedAt": "2026-09-02T22:49:24.3299257-03:00"
     },
     "proves": "PATCH /v2/users/me só permite editar name e mobilePhone (200)."
   },
@@ -263,7 +263,7 @@
       "mapReference": "map:default-journey"
     },
     "response": {
-      "id": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+      "id": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
       "name": "Espaço default-journey",
       "slug": "default-journey-space",
       "mapReference": "map:default-journey"
@@ -280,7 +280,7 @@
     "path": "/v2/admin/activities",
     "status": 201,
     "request": {
-      "spaceId": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+      "spaceId": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
       "slug": "default-journey",
       "name": "Atividade default-journey",
       "description": null,
@@ -293,8 +293,8 @@
       "allowsMoment": true
     },
     "response": {
-      "id": "930a0c02-c965-401d-87a3-ca7083714670",
-      "spaceId": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+      "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
+      "spaceId": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
       "slug": "default-journey",
       "name": "Atividade default-journey",
       "description": null,
@@ -316,11 +316,11 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PUT",
-    "path": "/v2/admin/activities/930a0c02-c965-401d-87a3-ca7083714670/managers/32",
+    "path": "/v2/admin/activities/829fc068-ee88-4890-b4a7-6aa1867865b5/managers/34",
     "status": 200,
     "response": {
-      "activityId": "930a0c02-c965-401d-87a3-ca7083714670",
-      "userId": "32"
+      "activityId": "829fc068-ee88-4890-b4a7-6aa1867865b5",
+      "userId": "34"
     },
     "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
   },
@@ -331,10 +331,10 @@
     "role": "EVENT_MANAGER",
     "actor": "manager",
     "method": "POST",
-    "path": "/v2/manager/activities/930a0c02-c965-401d-87a3-ca7083714670/start",
+    "path": "/v2/manager/activities/829fc068-ee88-4890-b4a7-6aa1867865b5/start",
     "status": 200,
     "response": {
-      "id": "930a0c02-c965-401d-87a3-ca7083714670",
+      "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
       "status": "active"
     },
     "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
@@ -350,7 +350,7 @@
     "status": 200,
     "response": {
       "items": [],
-      "generatedAt": "2026-09-01T23:50:03.2770108Z"
+      "generatedAt": "2026-09-03T01:49:24.3915314Z"
     },
     "proves": "GET /v2/schedule lista activities publicadas, sem exigir autenticação (200)."
   },
@@ -366,9 +366,9 @@
     "response": {
       "data": [
         {
-          "id": "930a0c02-c965-401d-87a3-ca7083714670",
+          "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
           "space": {
-            "id": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+            "id": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
             "name": "Espaço default-journey",
             "slug": "default-journey-space"
           },
@@ -400,7 +400,7 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "PUT",
-    "path": "/v2/users/me/favorites/930a0c02-c965-401d-87a3-ca7083714670",
+    "path": "/v2/users/me/favorites/829fc068-ee88-4890-b4a7-6aa1867865b5",
     "status": 204,
     "proves": "PUT .../favorites/:activityId marca a activity como favorita (204)."
   },
@@ -416,9 +416,9 @@
     "response": {
       "data": [
         {
-          "id": "930a0c02-c965-401d-87a3-ca7083714670",
+          "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
           "space": {
-            "id": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+            "id": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
             "name": "Espaço default-journey",
             "slug": "default-journey-space"
           },
@@ -453,12 +453,12 @@
     "path": "/v2/manager/runs",
     "status": 201,
     "request": {
-      "gameId": "930a0c02-c965-401d-87a3-ca7083714670"
+      "gameId": "829fc068-ee88-4890-b4a7-6aa1867865b5"
     },
     "response": {
-      "id": "cb6cf9a2-1d3c-4926-91e7-bcc3071d28e3",
+      "id": "a9b48ecd-d97e-4628-a31c-3bbcb5b0f987",
       "game": {
-        "id": "930a0c02-c965-401d-87a3-ca7083714670",
+        "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
         "name": "Atividade default-journey"
       },
       "status": "draft",
@@ -475,13 +475,13 @@
     "role": "EVENT_MANAGER",
     "actor": "manager",
     "method": "POST",
-    "path": "/v2/manager/runs/cb6cf9a2-1d3c-4926-91e7-bcc3071d28e3/qr",
+    "path": "/v2/manager/runs/a9b48ecd-d97e-4628-a31c-3bbcb5b0f987/qr",
     "status": 201,
     "response": {
-      "runId": "cb6cf9a2-1d3c-4926-91e7-bcc3071d28e3",
-      "qrId": "5e9eb6eb-8906-4d54-a392-796b7e689620",
-      "qrToken": "fZ-lC8X-ut-kAY33cToltmgkwpLrdbvgSmRB0xgxvII",
-      "expiresAt": "2026-09-02T00:35:03.2969468Z"
+      "runId": "a9b48ecd-d97e-4628-a31c-3bbcb5b0f987",
+      "qrId": "0e7bace8-775f-463e-9133-ead01f580179",
+      "qrToken": "K7yhxrIQ7ySslgtlK9Gmcn49nx7gr04-ubaJKV_AiUY",
+      "expiresAt": "2026-09-03T02:34:24.4739968Z"
     },
     "proves": "POST .../qr emite o QR que o jogador vai validar (201)."
   },
@@ -495,25 +495,26 @@
     "path": "/v2/qr/validate",
     "status": 201,
     "request": {
-      "qrToken": "fZ-lC8X-ut-kAY33cToltmgkwpLrdbvgSmRB0xgxvII"
+      "qrToken": "K7yhxrIQ7ySslgtlK9Gmcn49nx7gr04-ubaJKV_AiUY"
     },
     "response": {
       "participation": {
-        "id": "602ad6e3-e625-4f29-9ea2-6ccc655d647c",
+        "id": "b631e287-fe3c-4f66-948f-b382fa11a572",
         "activity": {
-          "id": "930a0c02-c965-401d-87a3-ca7083714670",
+          "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
           "name": "Atividade default-journey"
         },
         "place": {
-          "id": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+          "id": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
           "name": "Espaço default-journey"
         },
-        "checkedInAt": "2026-09-01T23:50:03.302262Z",
+        "checkedInAt": "2026-09-03T01:49:24.492733Z",
         "status": "active",
         "canShareMoment": true,
         "checkInPoints": 0,
         "newTotalPoints": 0
       },
+      "activityKind": "competitive",
       "action": "joined"
     },
     "proves": "POST /v2/qr/validate cria a Participation do jogador no run (201)."
@@ -529,7 +530,7 @@
     "status": 200,
     "response": {
       "run": {
-        "id": "cb6cf9a2-1d3c-4926-91e7-bcc3071d28e3",
+        "id": "a9b48ecd-d97e-4628-a31c-3bbcb5b0f987",
         "status": "draft",
         "gameName": "Atividade default-journey",
         "startedAt": null,
@@ -549,16 +550,16 @@
     "status": 200,
     "response": {
       "participation": {
-        "id": "602ad6e3-e625-4f29-9ea2-6ccc655d647c",
+        "id": "b631e287-fe3c-4f66-948f-b382fa11a572",
         "activity": {
-          "id": "930a0c02-c965-401d-87a3-ca7083714670",
+          "id": "829fc068-ee88-4890-b4a7-6aa1867865b5",
           "name": "Atividade default-journey"
         },
         "place": {
-          "id": "ab6b81f5-c2d8-4961-9a63-e10cdcb67dce",
+          "id": "f5f0daec-7363-40bb-ade6-a22777cc7fa8",
           "name": "Espaço default-journey"
         },
-        "checkedInAt": "2026-09-01T23:50:03.302262Z",
+        "checkedInAt": "2026-09-03T01:49:24.492733Z",
         "status": "active",
         "canShareMoment": true,
         "checkInPoints": 0
@@ -581,14 +582,14 @@
       "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
     },
     "response": {
-      "id": "ce7e4c98-f82d-451d-9b10-bd7d9c65b153",
-      "uploadUrl": "https://storage.example/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
+      "id": "3ea7d45f-c423-4763-9da8-60579083cdbe",
+      "uploadUrl": "https://storage.example/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
       "method": "PUT",
       "headers": {
         "Content-Type": "image/jpeg",
         "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
       },
-      "expiresAt": "2026-09-02T00:00:03.3133917Z"
+      "expiresAt": "2026-09-03T01:59:24.5295996Z"
     },
     "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
   },
@@ -599,15 +600,15 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/media/ce7e4c98-f82d-451d-9b10-bd7d9c65b153/complete",
+    "path": "/v2/media/3ea7d45f-c423-4763-9da8-60579083cdbe/complete",
     "status": 200,
     "response": {
-      "id": "ce7e4c98-f82d-451d-9b10-bd7d9c65b153",
+      "id": "3ea7d45f-c423-4763-9da8-60579083cdbe",
       "contentType": "image/jpeg",
       "bytes": 636,
       "state": "available",
-      "availableAt": "2026-09-01T23:50:03.3241723Z",
-      "retentionDueAt": "2026-11-30T23:50:03.313391Z"
+      "availableAt": "2026-09-03T01:49:24.5585316Z",
+      "retentionDueAt": "2026-12-02T01:49:24.529599Z"
     },
     "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
   },
@@ -621,21 +622,21 @@
     "path": "/v2/moments",
     "status": 201,
     "request": {
-      "mediaAssetId": "ce7e4c98-f82d-451d-9b10-bd7d9c65b153",
+      "mediaAssetId": "3ea7d45f-c423-4763-9da8-60579083cdbe",
       "publishConsent": true,
-      "participationId": "602ad6e3-e625-4f29-9ea2-6ccc655d647c"
+      "participationId": "b631e287-fe3c-4f66-948f-b382fa11a572"
     },
     "response": {
-      "id": "21e47291-5384-4ab1-83d0-918f587735e1",
+      "id": "488998ac-3923-48ab-95b9-eb5c1ee62c72",
       "origin": "challenge",
-      "participationId": "602ad6e3-e625-4f29-9ea2-6ccc655d647c",
-      "imageUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-      "thumbnailUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-      "shareImageUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-      "imageExpiresAt": "2026-09-01T23:55:03.3278095Z",
+      "participationId": "b631e287-fe3c-4f66-948f-b382fa11a572",
+      "imageUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+      "imageExpiresAt": "2026-09-03T01:54:24.5683074Z",
       "placeName": "Espaço default-journey",
       "authorName": "Jogador E2E",
-      "capturedAt": "2026-09-01T23:50:03.327809Z",
+      "capturedAt": "2026-09-03T01:49:24.568307Z",
       "publicationStatus": "public",
       "moderationStatus": "pending",
       "pointsAwarded": 20,
@@ -657,16 +658,16 @@
     "response": {
       "items": [
         {
-          "id": "21e47291-5384-4ab1-83d0-918f587735e1",
+          "id": "488998ac-3923-48ab-95b9-eb5c1ee62c72",
           "origin": "challenge",
-          "participationId": "602ad6e3-e625-4f29-9ea2-6ccc655d647c",
-          "imageUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-          "thumbnailUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-          "shareImageUrl": "https://storage.example/read/ce7e4c98-f82d-451d-9b10-bd7d9c65b153?signed=redacted",
-          "imageExpiresAt": "2026-09-01T23:55:03.3395176Z",
+          "participationId": "b631e287-fe3c-4f66-948f-b382fa11a572",
+          "imageUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+          "thumbnailUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+          "shareImageUrl": "https://storage.example/read/3ea7d45f-c423-4763-9da8-60579083cdbe?signed=redacted",
+          "imageExpiresAt": "2026-09-03T01:54:24.5999216Z",
           "placeName": "Espaço default-journey",
           "authorName": "Jogador E2E",
-          "capturedAt": "2026-09-01T23:50:03.327809Z",
+          "capturedAt": "2026-09-03T01:49:24.568307Z",
           "publicationStatus": "public",
           "moderationStatus": "pending",
           "pointsAwarded": 20,
@@ -686,10 +687,10 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/moments/21e47291-5384-4ab1-83d0-918f587735e1/likes",
+    "path": "/v2/moments/488998ac-3923-48ab-95b9-eb5c1ee62c72/likes",
     "status": 200,
     "response": {
-      "momentId": "21e47291-5384-4ab1-83d0-918f587735e1",
+      "momentId": "488998ac-3923-48ab-95b9-eb5c1ee62c72",
       "liked": true,
       "likesCount": 1
     },
@@ -707,7 +708,7 @@
     "response": {
       "individual": [
         {
-          "id": "33",
+          "id": "35",
           "name": "Jogador E2E",
           "groupName": "E2E Default Journey Group",
           "points": 20,
@@ -725,11 +726,11 @@
       ],
       "pointEntries": [
         {
-          "id": "b53ee7d9-6451-416c-a85b-634fac1f8617",
+          "id": "99ce62ed-635e-4c77-979d-cc95e204dfb8",
           "label": "Desafio Momento - Atividade default-journey",
           "points": 20,
           "icon": "camera",
-          "createdAt": "2026-09-01T23:50:03.327809Z"
+          "createdAt": "2026-09-03T01:49:24.568307Z"
         }
       ],
       "current": {
@@ -753,7 +754,7 @@
     "response": {
       "data": [
         {
-          "id": "33",
+          "id": "35",
           "name": "Jogador E2E",
           "groupName": "E2E Default Journey Group",
           "points": 20,
@@ -765,7 +766,7 @@
         "hasNextPage": false,
         "limit": 10
       },
-      "generatedAt": "2026-09-01T23:50:03.3569896Z"
+      "generatedAt": "2026-09-03T01:49:24.6530514Z"
     },
     "proves": "GET /v2/rankings é público mas também acessível autenticado (200)."
   },
@@ -782,7 +783,7 @@
       "momentModerationEnabled": true,
       "pointsEnabled": true,
       "announcementEnabled": true,
-      "updatedAt": "2026-09-01T23:50:03.3587799Z"
+      "updatedAt": "2026-09-03T01:49:24.6573719Z"
     },
     "proves": "GET /v2/notifications/preferences retorna os defaults (200)."
   },
@@ -802,7 +803,7 @@
       "momentModerationEnabled": true,
       "pointsEnabled": false,
       "announcementEnabled": true,
-      "updatedAt": "2026-09-01T23:50:03.3592151Z"
+      "updatedAt": "2026-09-03T01:49:24.658297Z"
     },
     "proves": "PUT /v2/notifications/preferences aceita atualização parcial (200)."
   },
@@ -836,14 +837,14 @@
     "response": {
       "data": [
         {
-          "id": "89a8e1df-4442-4f0d-b21a-a1a6a0e5e885",
+          "id": "3a32076c-fd40-47dd-8748-76a2f365547d",
           "category": "announcement",
           "state": "unread",
           "title": "Bem-vindo",
           "body": "Sua jornada começou.",
           "sourceType": "admin_broadcast",
-          "sourceId": "d7fdc310-7f24-4452-a9a0-20dd2908f886",
-          "createdAt": "2026-09-01T23:50:03.362955Z"
+          "sourceId": "cfb50678-573a-42a8-8de9-e3fd899e8d24",
+          "createdAt": "2026-09-03T01:49:24.665798Z"
         }
       ],
       "pagination": {
@@ -862,18 +863,18 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/notifications/89a8e1df-4442-4f0d-b21a-a1a6a0e5e885/read",
+    "path": "/v2/notifications/3a32076c-fd40-47dd-8748-76a2f365547d/read",
     "status": 200,
     "response": {
-      "id": "89a8e1df-4442-4f0d-b21a-a1a6a0e5e885",
+      "id": "3a32076c-fd40-47dd-8748-76a2f365547d",
       "category": "announcement",
       "state": "read",
       "title": "Bem-vindo",
       "body": "Sua jornada começou.",
       "sourceType": "admin_broadcast",
-      "sourceId": "d7fdc310-7f24-4452-a9a0-20dd2908f886",
-      "createdAt": "2026-09-01T23:50:03.362955Z",
-      "readAt": "2026-09-01T23:50:03.36931Z"
+      "sourceId": "cfb50678-573a-42a8-8de9-e3fd899e8d24",
+      "createdAt": "2026-09-03T01:49:24.665798Z",
+      "readAt": "2026-09-03T01:49:24.678238Z"
     },
     "proves": "POST .../read marca a notificação como lida (200)."
   },

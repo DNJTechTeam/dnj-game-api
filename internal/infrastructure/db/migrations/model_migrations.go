@@ -1395,4 +1395,23 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(Migration{
+		Name:        "add_user_avatar_url",
+		Description: "Persist the public profile photo used by Moments authors",
+		Version:     "2.21.0",
+		Definition:  "user-avatar-url-v1",
+		Up: func(db *gorm.DB) error {
+			if !db.Migrator().HasTable(&models.User{}) || db.Migrator().HasColumn(&models.User{}, "avatar_url") {
+				return nil
+			}
+			return db.Exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT DEFAULT NULL`).Error
+		},
+		Down: func(db *gorm.DB) error {
+			if db.Migrator().HasColumn(&models.User{}, "avatar_url") {
+				return db.Exec(`ALTER TABLE users DROP COLUMN avatar_url`).Error
+			}
+			return nil
+		},
+	})
 }

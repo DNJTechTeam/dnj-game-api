@@ -28,6 +28,7 @@ type IdentityUserResponseDTO struct {
 	ID                 Uint64String     `json:"id"`
 	Email              string           `json:"email"`
 	Name               string           `json:"name"`
+	AvatarURL          *string          `json:"avatarUrl,omitempty"`
 	MobilePhone        string           `json:"mobilePhone"`
 	DocumentMasked     string           `json:"documentMasked"`
 	Role               string           `json:"role"`

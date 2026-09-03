@@ -17,6 +17,7 @@ func MapUserToResponseDTO(user *entities.User, group *groupEntities.Group) *mess
 		ID:                 messages.Uint64StringFromUint64(user.ID),
 		Email:              user.Email,
 		Name:               user.Name,
+		AvatarURL:          user.AvatarURL,
 		MobilePhone:        user.MobilePhone,
 		Document:           user.Document,
 		DocumentMasked:     maskDocumentLast4(user.DocumentLast4),

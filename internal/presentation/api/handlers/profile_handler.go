@@ -24,7 +24,7 @@ func (h *ProfileHandler) Current(c *gin.Context) {
 func (h *ProfileHandler) Update(c *gin.Context) {
 	var request messages.UpdateCurrentProfileRequestDTO
 	if err := ParseStrictRequest(c, &request); err != nil {
-		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Somente name e mobilePhone podem ser editados.", nil)
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Somente name, mobilePhone e avatarUrl podem ser editados.", nil)
 		return
 	}
 	result, err := h.ProfileService.Update(c.Request.Context(), &request)

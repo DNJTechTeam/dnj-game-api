@@ -10,6 +10,7 @@ type User struct {
 	ID                 uint64         `gorm:"primaryKey;autoIncrement"`
 	Email              string         `gorm:"uniqueIndex;not null"`
 	Name               string         `gorm:"not null"`
+	AvatarURL          *string        `gorm:"type:text;default:null"`
 	MobilePhone        string         `gorm:"default:null"`
 	Document           string         `gorm:"default:null"`
 	DocumentHash       string         `gorm:"size:64;default:null"`

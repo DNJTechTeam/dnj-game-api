@@ -69,6 +69,26 @@ func TestProfileService_CurrentAndUpdate(t *testing.T) {
 		assert.Equal(t, userEntities.RoleEventManager, stored.Role)
 		assert.Equal(t, groupID, *stored.GroupID)
 	})
+
+	t.Run("persists a profile photo for the Moments feed", func(t *testing.T) {
+		// given
+		service := setupProfileServiceTest(t)
+		user, err := TestSuite.UserRepository.Create(TestSuite.Ctx, &userEntities.User{Email: "avatar@example.com", Name: "Avatar User", Role: userEntities.RoleDefault})
+		require.NoError(t, err)
+		avatarURL := "data:image/png;base64,aGVsbG8="
+
+		// when
+		response, updateErr := service.Update(TestSuite.ContextWithUser(user.ID), &messages.UpdateCurrentProfileRequestDTO{AvatarURL: &avatarURL})
+
+		// then
+		require.NoError(t, updateErr)
+		require.NotNil(t, response.AvatarURL)
+		assert.Equal(t, avatarURL, *response.AvatarURL)
+		stored, findErr := TestSuite.UserRepository.FindByID(TestSuite.Ctx, user.ID)
+		require.NoError(t, findErr)
+		require.NotNil(t, stored.AvatarURL)
+		assert.Equal(t, avatarURL, *stored.AvatarURL)
+	})
 }
 
 func TestProfileService_ValidationAndAuthorization(t *testing.T) {

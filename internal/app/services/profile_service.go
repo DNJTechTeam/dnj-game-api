@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -21,6 +22,35 @@ type ProfileService struct {
 	*BaseService
 	users  userInterfaces.UserRepositoryInterface
 	groups groupInterfaces.GroupRepositoryInterface
+}
+
+const maxAvatarDataURLLength = 4_500_000
+
+func normalizeAvatarURL(raw string) (*string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return nil, nil
+	}
+	if strings.HasPrefix(value, "https://") {
+		if len(value) > 2048 {
+			return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "avatarUrl inválido.")
+		}
+		return &value, nil
+	}
+	if len(value) > maxAvatarDataURLLength {
+		return nil, identityError(http.StatusRequestEntityTooLarge, "IMAGE_TOO_LARGE", "A foto de perfil deve ter no máximo 3 MB.")
+	}
+	for _, contentType := range []string{"jpeg", "png", "webp"} {
+		prefix := "data:image/" + contentType + ";base64,"
+		if strings.HasPrefix(value, prefix) {
+			decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(value, prefix))
+			if err != nil || len(decoded) > 3*1024*1024 {
+				return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "avatarUrl inválido.")
+			}
+			return &value, nil
+		}
+	}
+	return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "avatarUrl deve ser uma URL HTTPS ou uma imagem válida.")
 }
 
 func NewProfileService(base *BaseService, users userInterfaces.UserRepositoryInterface, groups groupInterfaces.GroupRepositoryInterface) interfaces.ProfileServiceInterface {
@@ -60,8 +90,8 @@ func (s *ProfileService) Update(ctx context.Context, request *messages.UpdateCur
 	if err != nil {
 		return nil, err
 	}
-	if request.Name == nil && request.MobilePhone == nil {
-		return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "Informe name ou mobilePhone.")
+	if request.Name == nil && request.MobilePhone == nil && request.AvatarURL == nil {
+		return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "Informe name, mobilePhone ou avatarUrl.")
 	}
 	user, err := s.users.FindByID(ctx, userID)
 	if errors.Is(err, appErrors.ErrNotFound) {
@@ -83,6 +113,13 @@ func (s *ProfileService) Update(ctx context.Context, request *messages.UpdateCur
 			return nil, identityError(http.StatusBadRequest, "INVALID_REQUEST", "mobilePhone deve ser um telefone móvel válido.")
 		}
 		user.MobilePhone = phone
+	}
+	if request.AvatarURL != nil {
+		avatarURL, avatarErr := normalizeAvatarURL(*request.AvatarURL)
+		if avatarErr != nil {
+			return nil, avatarErr
+		}
+		user.AvatarURL = avatarURL
 	}
 	user.OnboardingComplete = user.DocumentHash != "" && common.ValidatePhone(user.MobilePhone, true) && user.GroupID != nil
 	updated, err := s.users.Update(ctx, user)

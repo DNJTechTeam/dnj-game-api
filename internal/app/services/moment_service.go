@@ -85,6 +85,7 @@ func (s *MomentService) responseFor(
 		ParticipationID:    moment.ParticipationID,
 		PlaceName:          moment.PlaceName,
 		AuthorName:         moment.AuthorName,
+		AuthorAvatarURL:    moment.AuthorAvatarURL,
 		CapturedAt:         moment.CapturedAt.UTC(),
 		PublicationStatus:  string(moment.PublicationStatus),
 		ModerationStatus:   string(moment.ModerationStatus),

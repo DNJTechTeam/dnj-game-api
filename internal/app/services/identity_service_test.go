@@ -44,7 +44,7 @@ func setupIdentityServiceTest(t *testing.T, payload *appInterfaces.GooglePayload
 func verifiedGooglePayload(subject, email string) *appInterfaces.GooglePayload {
 	return &appInterfaces.GooglePayload{
 		Issuer: "https://accounts.google.com", Audience: "test-google-client", Subject: subject,
-		Email: email, EmailVerified: true, Name: "Ana Google",
+		Email: email, EmailVerified: true, Name: "Ana Google", Picture: "https://lh3.googleusercontent.com/avatar",
 	}
 }
 
@@ -61,6 +61,7 @@ func TestIdentityService_AuthenticateGoogle(t *testing.T) {
 		assert.True(t, response.OnboardingRequired)
 		assert.False(t, response.User.OnboardingComplete)
 		assert.Equal(t, "ana@example.com", response.User.Email)
+		assert.Equal(t, "https://lh3.googleusercontent.com/avatar", *response.User.AvatarURL)
 		assert.NotEmpty(t, response.AccessToken)
 		assert.NotEmpty(t, response.RefreshToken)
 		var stored models.RefreshSession

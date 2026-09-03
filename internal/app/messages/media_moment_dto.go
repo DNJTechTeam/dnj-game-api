@@ -56,6 +56,7 @@ type MomentResponseDTO struct {
 	ImageExpiresAt     *time.Time    `json:"imageExpiresAt"`
 	PlaceName          *string       `json:"placeName"`
 	AuthorName         string        `json:"authorName"`
+	AuthorAvatarURL    *string       `json:"authorAvatarUrl,omitempty"`
 	CapturedAt         time.Time     `json:"capturedAt"`
 	PublicationStatus  string        `json:"publicationStatus"`
 	ModerationStatus   string        `json:"moderationStatus"`
@@ -77,6 +78,7 @@ func (d MomentResponseDTO) MarshalJSON() ([]byte, error) {
 		ImageExpiresAt     *time.Time    `json:"imageExpiresAt"`
 		PlaceName          *string       `json:"placeName"`
 		AuthorName         string        `json:"authorName"`
+		AuthorAvatarURL    *string       `json:"authorAvatarUrl,omitempty"`
 		CapturedAt         time.Time     `json:"capturedAt"`
 		PublicationStatus  string        `json:"publicationStatus"`
 		ModerationStatus   string        `json:"moderationStatus"`
@@ -97,6 +99,7 @@ func (d MomentResponseDTO) MarshalJSON() ([]byte, error) {
 			d.ImageExpiresAt,
 			d.PlaceName,
 			d.AuthorName,
+			d.AuthorAvatarURL,
 			d.CapturedAt,
 			d.PublicationStatus,
 			d.ModerationStatus,

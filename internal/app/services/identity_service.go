@@ -126,6 +126,7 @@ func (s *IdentityService) userResponse(ctx context.Context, user *userEntities.U
 	}
 	return &messages.IdentityUserResponseDTO{
 		ID: legacy.ID, Email: legacy.Email, Name: legacy.Name, MobilePhone: legacy.MobilePhone,
+		AvatarURL:      user.AvatarURL,
 		DocumentMasked: legacy.DocumentMasked, Role: legacy.Role, Scope: scope, Group: legacy.Group,
 		OnboardingComplete: user.OnboardingComplete,
 	}, nil
@@ -181,6 +182,10 @@ func (s *IdentityService) AuthenticateGoogle(ctx context.Context, request *messa
 		return nil, identityError(http.StatusUnauthorized, "INVALID_GOOGLE_TOKEN", "Token Google inválido.")
 	}
 	email := strings.ToLower(strings.TrimSpace(payload.Email))
+	picture := strings.TrimSpace(payload.Picture)
+	if !strings.HasPrefix(picture, "https://") {
+		picture = ""
+	}
 	var user *userEntities.User
 	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
 		linked, err := s.identities.FindByProviderAndSubject(txCtx, identityEntities.ProviderGoogle, payload.Subject)
@@ -195,6 +200,12 @@ func (s *IdentityService) AuthenticateGoogle(ctx context.Context, request *messa
 			if err != nil || !strings.EqualFold(user.Email, email) {
 				return identityError(http.StatusConflict, "IDENTITY_CONFLICT", "A identidade Google não corresponde à conta vinculada.")
 			}
+			if user.AvatarURL == nil && picture != "" {
+				user.AvatarURL = &picture
+				if _, err = s.users.Update(txCtx, user); err != nil {
+					return err
+				}
+			}
 			return nil
 		}
 
@@ -207,8 +218,17 @@ func (s *IdentityService) AuthenticateGoogle(ctx context.Context, request *messa
 			if name == "" {
 				name = strings.Split(email, "@")[0]
 			}
-			user, err = s.users.Create(txCtx, &userEntities.User{Email: email, Name: name, Role: userEntities.RoleDefault, OnboardingComplete: false})
+			var avatarURL *string
+			if picture != "" {
+				avatarURL = &picture
+			}
+			user, err = s.users.Create(txCtx, &userEntities.User{Email: email, Name: name, AvatarURL: avatarURL, Role: userEntities.RoleDefault, OnboardingComplete: false})
 			if err != nil {
+				return err
+			}
+		} else if user.AvatarURL == nil && picture != "" {
+			user.AvatarURL = &picture
+			if _, err = s.users.Update(txCtx, user); err != nil {
 				return err
 			}
 		}

@@ -16,6 +16,7 @@ func MapUserToCurrentProfileDTO(user *userEntities.User, group *groupEntities.Gr
 	}
 	return &messages.CurrentProfileResponseDTO{
 		ID: messages.Uint64StringFromUint64(user.ID), Email: user.Email, Name: user.Name,
+		AvatarURL:   user.AvatarURL,
 		MobilePhone: user.MobilePhone, DocumentMasked: maskDocumentLast4(user.DocumentLast4),
 		Role: string(user.Role), Group: MapGroupToSummaryDTO(group), Points: user.Points,
 		RankPosition: rank, OnboardingComplete: user.OnboardingComplete,

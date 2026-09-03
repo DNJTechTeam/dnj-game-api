@@ -28,6 +28,7 @@ type User struct {
 	ID                 uint64
 	Email              string
 	Name               string
+	AvatarURL          *string
 	MobilePhone        string
 	Document           string
 	DocumentHash       string
