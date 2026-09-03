@@ -9,12 +9,14 @@ import (
 type UpdateCurrentProfileRequestDTO struct {
 	Name        *string `json:"name"`
 	MobilePhone *string `json:"mobilePhone"`
+	AvatarURL   *string `json:"avatarUrl"`
 }
 
 type CurrentProfileResponseDTO struct {
 	ID                 Uint64String     `json:"id"`
 	Email              string           `json:"email"`
 	Name               string           `json:"name"`
+	AvatarURL          *string          `json:"avatarUrl,omitempty"`
 	MobilePhone        string           `json:"mobilePhone"`
 	DocumentMasked     string           `json:"documentMasked"`
 	Role               string           `json:"role"`

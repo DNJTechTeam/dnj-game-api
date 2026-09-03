@@ -6,6 +6,7 @@ type UserResponseDTO struct {
 	ID                 Uint64String     `json:"id"`
 	Email              string           `json:"email"`
 	Name               string           `json:"name"`
+	AvatarURL          *string          `json:"avatarUrl,omitempty"`
 	MobilePhone        string           `json:"mobilePhone"`
 	Document           string           `json:"document"`
 	DocumentMasked     string           `json:"documentMasked,omitempty"`

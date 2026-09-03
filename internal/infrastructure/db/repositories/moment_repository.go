@@ -129,6 +129,7 @@ func (r *MomentRepository) CreateMoment(ctx context.Context, item *momentEntitie
 type momentProjection struct {
 	models.Moment
 	AuthorName              string
+	AuthorAvatarURL         *string
 	GroupID                 *uint64
 	ActivityName, PlaceName *string
 	AssetState              string
@@ -141,6 +142,7 @@ type momentProjection struct {
 func projectMoment(row *momentProjection) *momentEntities.Moment {
 	item := mappers.MapMomentToEntity(&row.Moment)
 	item.AuthorName = row.AuthorName
+	item.AuthorAvatarURL = row.AuthorAvatarURL
 	item.GroupID = row.GroupID
 	item.ActivityName = row.ActivityName
 	item.PlaceName = row.PlaceName
@@ -153,7 +155,7 @@ func projectMoment(row *momentProjection) *momentEntities.Moment {
 }
 func projectionQuery(db *gorm.DB, actor uint64) *gorm.DB {
 	return db.Table("moments").
-		Select(`moments.*,users.name AS author_name,users.group_id,activities.name AS activity_name,spaces.name AS place_name,media_assets.state AS asset_state,media_assets.retention_due_at AS asset_retention_due_at,(users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT') AS author_eligible,(SELECT COUNT(*) FROM moment_likes ml WHERE ml.moment_id=moments.id) AS likes_count,EXISTS(SELECT 1 FROM moment_likes mine_like WHERE mine_like.moment_id=moments.id AND mine_like.user_id=?) AS liked_by_current_user`, actor).
+		Select(`moments.*,users.name AS author_name,users.avatar_url AS author_avatar_url,users.group_id,activities.name AS activity_name,spaces.name AS place_name,media_assets.state AS asset_state,media_assets.retention_due_at AS asset_retention_due_at,(users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT') AS author_eligible,(SELECT COUNT(*) FROM moment_likes ml WHERE ml.moment_id=moments.id) AS likes_count,EXISTS(SELECT 1 FROM moment_likes mine_like WHERE mine_like.moment_id=moments.id AND mine_like.user_id=?) AS liked_by_current_user`, actor).
 		Joins("JOIN users ON users.id=moments.user_id").
 		Joins("JOIN media_assets ON media_assets.id=moments.media_asset_id").
 		Joins("LEFT JOIN activities ON activities.id=moments.activity_id").

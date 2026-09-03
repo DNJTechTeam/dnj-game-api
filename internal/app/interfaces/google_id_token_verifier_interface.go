@@ -9,6 +9,7 @@ type GooglePayload struct {
 	Email         string
 	EmailVerified bool
 	Name          string
+	Picture       string
 	ExpiresAt     int64
 }
 

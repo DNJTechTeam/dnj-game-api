@@ -34,12 +34,13 @@ func validatedPayload(payload *idtoken.Payload) (*interfaces.GooglePayload, erro
 	email, _ := payload.Claims["email"].(string)
 	emailVerified, _ := payload.Claims["email_verified"].(bool)
 	name, _ := payload.Claims["name"].(string)
+	picture, _ := payload.Claims["picture"].(string)
 	if payload.Subject == "" || email == "" || !emailVerified {
 		return nil, fmt.Errorf("required verified google identity claims are missing")
 	}
 	return &interfaces.GooglePayload{
 		Issuer: payload.Issuer, Audience: payload.Audience, Subject: payload.Subject,
 		Email: strings.ToLower(strings.TrimSpace(email)), EmailVerified: emailVerified,
-		Name: strings.TrimSpace(name), ExpiresAt: payload.Expires,
+		Name: strings.TrimSpace(name), Picture: strings.TrimSpace(picture), ExpiresAt: payload.Expires,
 	}, nil
 }

@@ -6,13 +6,13 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PATCH",
-    "path": "/v2/admin/users/35/role",
+    "path": "/v2/admin/users/37/role",
     "status": 200,
     "request": {
       "role": "EVENT_MANAGER"
     },
     "response": {
-      "id": "35",
+      "id": "37",
       "role": "EVENT_MANAGER"
     },
     "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
@@ -24,13 +24,13 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PATCH",
-    "path": "/v2/admin/users/36/role",
+    "path": "/v2/admin/users/38/role",
     "status": 200,
     "request": {
       "role": "EVENT_MANAGER"
     },
     "response": {
-      "id": "36",
+      "id": "38",
       "role": "EVENT_MANAGER"
     },
     "proves": "PATCH /v2/admin/users/:userId/role promove DEFAULT-\u003eEVENT_MANAGER (200)."
@@ -50,7 +50,7 @@
       "mapReference": "map:em-journey-a"
     },
     "response": {
-      "id": "c34cf6d2-4e1e-427c-952e-f3138bcdc823",
+      "id": "10a2d895-5794-4386-a1ee-5aab35e7d25d",
       "name": "Espaço em-journey-a",
       "slug": "em-journey-a-space",
       "mapReference": "map:em-journey-a"
@@ -67,7 +67,7 @@
     "path": "/v2/admin/activities",
     "status": 201,
     "request": {
-      "spaceId": "c34cf6d2-4e1e-427c-952e-f3138bcdc823",
+      "spaceId": "10a2d895-5794-4386-a1ee-5aab35e7d25d",
       "slug": "em-journey-a",
       "name": "Atividade em-journey-a",
       "description": null,
@@ -80,8 +80,8 @@
       "allowsMoment": true
     },
     "response": {
-      "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
-      "spaceId": "c34cf6d2-4e1e-427c-952e-f3138bcdc823",
+      "id": "febaadc9-80a0-4907-822f-960e091dc501",
+      "spaceId": "10a2d895-5794-4386-a1ee-5aab35e7d25d",
       "slug": "em-journey-a",
       "name": "Atividade em-journey-a",
       "description": null,
@@ -103,11 +103,11 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PUT",
-    "path": "/v2/admin/activities/5cc5cca4-7e83-4164-bf3a-10d10da1341b/managers/35",
+    "path": "/v2/admin/activities/febaadc9-80a0-4907-822f-960e091dc501/managers/37",
     "status": 200,
     "response": {
-      "activityId": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
-      "userId": "35"
+      "activityId": "febaadc9-80a0-4907-822f-960e091dc501",
+      "userId": "37"
     },
     "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
   },
@@ -118,10 +118,10 @@
     "role": "EVENT_MANAGER",
     "actor": "manager",
     "method": "POST",
-    "path": "/v2/manager/activities/5cc5cca4-7e83-4164-bf3a-10d10da1341b/start",
+    "path": "/v2/manager/activities/febaadc9-80a0-4907-822f-960e091dc501/start",
     "status": 200,
     "response": {
-      "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+      "id": "febaadc9-80a0-4907-822f-960e091dc501",
       "status": "active"
     },
     "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
@@ -141,7 +141,7 @@
       "mapReference": "map:em-journey-b"
     },
     "response": {
-      "id": "4b0ee9ed-431b-4e96-a6aa-21e085d41c8d",
+      "id": "aad9439f-1d9c-40f0-9e7a-1b57e56dc07d",
       "name": "Espaço em-journey-b",
       "slug": "em-journey-b-space",
       "mapReference": "map:em-journey-b"
@@ -158,7 +158,7 @@
     "path": "/v2/admin/activities",
     "status": 201,
     "request": {
-      "spaceId": "4b0ee9ed-431b-4e96-a6aa-21e085d41c8d",
+      "spaceId": "aad9439f-1d9c-40f0-9e7a-1b57e56dc07d",
       "slug": "em-journey-b",
       "name": "Atividade em-journey-b",
       "description": null,
@@ -171,8 +171,8 @@
       "allowsMoment": true
     },
     "response": {
-      "id": "2d701174-f63d-476a-a219-0b0d88a2d2b4",
-      "spaceId": "4b0ee9ed-431b-4e96-a6aa-21e085d41c8d",
+      "id": "4bfc78ad-c9a4-4749-9c69-55f3b94c8964",
+      "spaceId": "aad9439f-1d9c-40f0-9e7a-1b57e56dc07d",
       "slug": "em-journey-b",
       "name": "Atividade em-journey-b",
       "description": null,
@@ -194,11 +194,11 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PUT",
-    "path": "/v2/admin/activities/2d701174-f63d-476a-a219-0b0d88a2d2b4/managers/36",
+    "path": "/v2/admin/activities/4bfc78ad-c9a4-4749-9c69-55f3b94c8964/managers/38",
     "status": 200,
     "response": {
-      "activityId": "2d701174-f63d-476a-a219-0b0d88a2d2b4",
-      "userId": "36"
+      "activityId": "4bfc78ad-c9a4-4749-9c69-55f3b94c8964",
+      "userId": "38"
     },
     "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
   },
@@ -209,10 +209,10 @@
     "role": "EVENT_MANAGER",
     "actor": "manager",
     "method": "POST",
-    "path": "/v2/manager/activities/2d701174-f63d-476a-a219-0b0d88a2d2b4/start",
+    "path": "/v2/manager/activities/4bfc78ad-c9a4-4749-9c69-55f3b94c8964/start",
     "status": 200,
     "response": {
-      "id": "2d701174-f63d-476a-a219-0b0d88a2d2b4",
+      "id": "4bfc78ad-c9a4-4749-9c69-55f3b94c8964",
       "status": "active"
     },
     "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
@@ -231,7 +231,7 @@
       "actions": {
         "games": [
           {
-            "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+            "id": "febaadc9-80a0-4907-822f-960e091dc501",
             "name": "Atividade em-journey-a",
             "points": {
               "first": 50,
@@ -259,12 +259,12 @@
     "path": "/v2/manager/runs",
     "status": 201,
     "request": {
-      "gameId": "5cc5cca4-7e83-4164-bf3a-10d10da1341b"
+      "gameId": "febaadc9-80a0-4907-822f-960e091dc501"
     },
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "draft",
@@ -281,13 +281,13 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4/qr",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028/qr",
     "status": 201,
     "response": {
-      "runId": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
-      "qrId": "3c8f0da7-197e-4a96-875e-44f1a8f4ee2a",
-      "qrToken": "E7FSuhRhXYZNv85uIDUUx04HYhnGHN8Xl98qzR_c024",
-      "expiresAt": "2026-09-02T00:35:03.5816899Z"
+      "runId": "0aad669e-d409-4951-8763-b6528de8c028",
+      "qrId": "10f7c516-539c-40c6-a4cf-00797c42fb20",
+      "qrToken": "swpqvyb1OtxyMpbTQKkoHVbLh6fjUA13TpLIxhbrbTM",
+      "expiresAt": "2026-09-03T01:50:57.1626547Z"
     },
     "proves": "POST .../qr emite um QR válido para check-in (201)."
   },
@@ -298,12 +298,12 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "GET",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028",
     "status": 200,
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "draft",
@@ -320,16 +320,16 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4/start",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028/start",
     "status": 200,
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "active",
-      "startedAt": "2026-09-01T23:50:03.5898092Z",
+      "startedAt": "2026-09-03T01:05:57.1794608Z",
       "endedAt": null,
       "participants": []
     },
@@ -342,16 +342,16 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4/pause",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028/pause",
     "status": 200,
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "paused",
-      "startedAt": "2026-09-01T23:50:03.589809Z",
+      "startedAt": "2026-09-03T01:05:57.17946Z",
       "endedAt": null,
       "participants": []
     },
@@ -364,16 +364,16 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4/resume",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028/resume",
     "status": 200,
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "active",
-      "startedAt": "2026-09-01T23:50:03.589809Z",
+      "startedAt": "2026-09-03T01:05:57.17946Z",
       "endedAt": null,
       "participants": []
     },
@@ -386,20 +386,20 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/manager/runs/29af26c3-9328-4988-9f12-c5e2cfed23e4/results",
+    "path": "/v2/manager/runs/0aad669e-d409-4951-8763-b6528de8c028/results",
     "status": 200,
     "request": {
       "results": []
     },
     "response": {
-      "id": "29af26c3-9328-4988-9f12-c5e2cfed23e4",
+      "id": "0aad669e-d409-4951-8763-b6528de8c028",
       "game": {
-        "id": "5cc5cca4-7e83-4164-bf3a-10d10da1341b",
+        "id": "febaadc9-80a0-4907-822f-960e091dc501",
         "name": "Atividade em-journey-a"
       },
       "status": "completed",
-      "startedAt": "2026-09-01T23:50:03.589809Z",
-      "endedAt": "2026-09-01T23:50:03.6077902Z",
+      "startedAt": "2026-09-03T01:05:57.17946Z",
+      "endedAt": "2026-09-03T01:05:57.2104291Z",
       "participants": []
     },
     "proves": "POST .../results finaliza o run mesmo sem check-ins (200)."
@@ -414,12 +414,12 @@
     "path": "/v2/manager/runs",
     "status": 201,
     "request": {
-      "gameId": "2d701174-f63d-476a-a219-0b0d88a2d2b4"
+      "gameId": "4bfc78ad-c9a4-4749-9c69-55f3b94c8964"
     },
     "response": {
-      "id": "2e034a98-0c1f-41a8-95cd-3d3780309125",
+      "id": "e6ce32a9-c20a-4699-ad37-a21269531a6d",
       "game": {
-        "id": "2d701174-f63d-476a-a219-0b0d88a2d2b4",
+        "id": "4bfc78ad-c9a4-4749-9c69-55f3b94c8964",
         "name": "Atividade em-journey-b"
       },
       "status": "draft",
@@ -436,7 +436,7 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "GET",
-    "path": "/v2/manager/runs/2e034a98-0c1f-41a8-95cd-3d3780309125",
+    "path": "/v2/manager/runs/e6ce32a9-c20a-4699-ad37-a21269531a6d",
     "status": 404,
     "response": {
       "code": "NOT_FOUND",
@@ -489,7 +489,7 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-a",
     "method": "POST",
-    "path": "/v2/admin/moments/cadf4820-8320-46f8-8d88-81ac4717f7d0/moderation",
+    "path": "/v2/admin/moments/5a0ccfea-5139-4adc-a924-b77b4a1e05c6/moderation",
     "status": 403,
     "request": {
       "action": "approve"

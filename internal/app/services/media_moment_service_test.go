@@ -375,6 +375,10 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	participant, participantCtx := seedMediaMomentUser(t, "moment-owner@example.com", userEntities.RoleDefault, true)
 	_, adminCtx := seedMediaMomentUser(t, "moment-admin@example.com", userEntities.RoleAdmin, true)
+	avatarURL := "https://images.example/avatar.jpg"
+	participant.AvatarURL = &avatarURL
+	_, err := TestSuite.UserRepository.Update(TestSuite.Ctx, participant)
+	require.NoError(t, err)
 
 	asset := createAvailableAsset(t, mediaService, storage, participantCtx, "image/jpeg")
 	participationID := seedChallengeParticipation(t, participant.ID, true, "active")
@@ -386,6 +390,8 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 201, status)
+	require.NotNil(t, moment.AuthorAvatarURL)
+	assert.Equal(t, avatarURL, *moment.AuthorAvatarURL)
 	assert.Equal(t, "challenge", moment.Origin)
 	assert.Equal(t, 25, moment.PointsAwarded)
 	assert.Equal(t, "public", moment.PublicationStatus)

@@ -52,13 +52,15 @@ func TestIteration3Handlers_ProfileAndCompatibilityAlias(t *testing.T) {
 	invites := mocks.NewMockGroupInviteServiceInterface(t)
 	profileResponse := &messages.CurrentProfileResponseDTO{ID: 1, Email: "ana@example.com", Name: "Ana", DocumentMasked: "***.***.*47-25"}
 	profile.On("Current", mock.Anything).Return(profileResponse, nil).Once()
-	profile.On("Update", mock.Anything, mock.Anything).Return(profileResponse, nil).Once()
+	profile.On("Update", mock.Anything, mock.MatchedBy(func(request *messages.UpdateCurrentProfileRequestDTO) bool { return request.Name != nil })).Return(profileResponse, nil).Once()
+	profile.On("Update", mock.Anything, mock.MatchedBy(func(request *messages.UpdateCurrentProfileRequestDTO) bool { return request.AvatarURL != nil })).Return(profileResponse, nil).Once()
 	groups.On("UpdateCurrent", mock.Anything, mock.Anything).Return(profileResponse, nil).Twice()
 	engine := iteration3Engine(t, profile, groups, invites)
 
 	// when
 	current := performJSON(engine, http.MethodGet, "/v2/users/me", "")
 	updated := performJSON(engine, http.MethodPatch, "/v2/users/me", `{"name":"Ana"}`)
+	avatarUpdated := performJSON(engine, http.MethodPatch, "/v2/users/me", `{"avatarUrl":"data:image/png;base64,aGVsbG8="}`)
 	unknownField := performJSON(engine, http.MethodPatch, "/v2/users/me", `{"email":"attacker@example.com"}`)
 	canonical := performJSON(engine, http.MethodPatch, "/v2/users/me/group", `{"groupId":"7"}`)
 	alias := performJSON(engine, http.MethodPost, "/v2/users/me/group", `{"groupId":null}`)
@@ -67,6 +69,7 @@ func TestIteration3Handlers_ProfileAndCompatibilityAlias(t *testing.T) {
 	assert.Equal(t, http.StatusOK, current.Code)
 	assert.NotContains(t, current.Body.String(), "documentHash")
 	assert.Equal(t, http.StatusOK, updated.Code)
+	assert.Equal(t, http.StatusOK, avatarUpdated.Code)
 	assert.Equal(t, http.StatusBadRequest, unknownField.Code)
 	assert.Contains(t, unknownField.Body.String(), "INVALID_REQUEST")
 	assert.Equal(t, http.StatusOK, canonical.Code)

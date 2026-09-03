@@ -36,6 +36,7 @@ type Moment struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	AuthorName          string
+	AuthorAvatarURL     *string
 	GroupID             *uint64
 	ActivityName        *string
 	PlaceName           *string

@@ -12,7 +12,7 @@ func TestValidatedPayload_EnforcesGoogleIssuerAndVerifiedEmail(t *testing.T) {
 	t.Run("accepts required Google claims", func(t *testing.T) {
 		// given
 		payload := &idtoken.Payload{Issuer: "https://accounts.google.com", Audience: "client", Subject: "sub", Expires: 123, Claims: map[string]any{
-			"email": "USER@example.com", "email_verified": true, "name": "User",
+			"email": "USER@example.com", "email_verified": true, "name": "User", "picture": "https://lh3.googleusercontent.com/avatar",
 		}}
 
 		// when
@@ -22,6 +22,7 @@ func TestValidatedPayload_EnforcesGoogleIssuerAndVerifiedEmail(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "user@example.com", result.Email)
 		assert.Equal(t, "sub", result.Subject)
+		assert.Equal(t, "https://lh3.googleusercontent.com/avatar", result.Picture)
 	})
 
 	for name, payload := range map[string]*idtoken.Payload{
