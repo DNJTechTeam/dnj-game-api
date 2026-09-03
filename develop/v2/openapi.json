@@ -1706,7 +1706,7 @@
             "type": "string"
           },
           "qrToken": {
-            "description": "Segredo opaco exibido somente nesta resposta; não registrar em logs.",
+            "description": "Segredo opaco recuperável pelo Admin para checkpoints; não registrar em logs.",
             "minLength": 43,
             "type": "string"
           },
@@ -3752,6 +3752,62 @@
         ]
       }
     },
+    "/admin/activities/{activityId}/qr": {
+      "get": {
+        "description": "Exclusivo para ADMIN. Retorna o mesmo token em novas sessões, inclusive com a atividade pausada. Sem QR existente, retorna 204.",
+        "operationId": "getAdminCheckpointQR",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerQR"
+                }
+              }
+            },
+            "description": "QR persistido do checkpoint"
+          },
+          "204": {
+            "description": "Checkpoint ainda sem QR"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "identityCookie": []
+          }
+        ],
+        "summary": "Recupera o QR persistido de um checkpoint sem criar ou rotacionar",
+        "tags": [
+          "Installation administration"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityID"
+        }
+      ]
+    },
     "/admin/groups/{groupId}/invites": {
       "get": {
         "operationId": "listGroupInvites",
@@ -5345,6 +5401,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerRun"
+                }
+              }
+            },
+            "description": "Run aberta existente reutilizada para checkpoint"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -5563,9 +5629,19 @@
         }
       ],
       "post": {
-        "description": "Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido.",
+        "description": "Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido. Para checkpoints, reutiliza o QR persistido sem rotação; sua validade é endsAt da atividade, ou sem expiração prática quando não há endsAt.",
         "operationId": "rotateManagerRunQR",
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagerQR"
+                }
+              }
+            },
+            "description": "QR persistido reutilizado para checkpoint"
+          },
           "201": {
             "content": {
               "application/json": {
