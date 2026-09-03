@@ -349,9 +349,11 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			return appErrors.InternalError
 		}
 		scoreOnly := qrScoresCheckIn(activity.Kind)
+		alreadyParticipated := false
 		participation, existingErr := s.games.FindParticipationByRunAndUser(txCtx, qr.ActivityRunID, user.ID)
 		if existingErr == nil {
 			status = http.StatusOK
+			alreadyParticipated = true
 		} else if errors.Is(existingErr, appErrors.ErrNotFound) {
 			participationID := uuid.NewString()
 			points := 0
@@ -380,7 +382,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		resultRef := participation.ID
 		total := user.Points
 		action := "joined"
-		if scoreOnly {
+		if scoreOnly && !alreadyParticipated {
 			total += activity.CheckInPoints
 			action = "scored"
 		}
@@ -391,7 +393,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			return appErrors.InternalError
 		}
 		pointsAwarded := 0
-		if scoreOnly {
+		if scoreOnly && !alreadyParticipated {
 			pointsAwarded = activity.CheckInPoints
 		}
 		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}
