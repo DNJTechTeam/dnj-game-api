@@ -128,21 +128,81 @@ func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
 	key := uuid.NewString()
 	validated, status, err := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
 	retry, retryStatus, retryErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: key})
+	repeated, repeatedStatus, repeatedErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: qr.QRToken, IdempotencyKey: uuid.NewString()})
 	currentRun, currentRunErr := service.CurrentRun(participantCtx, "")
 	var refreshed models.User
 	require.NoError(t, TestSuite.DbConn.Where("id = ?", participant.ID).Take(&refreshed).Error)
 
 	require.NoError(t, err)
 	require.NoError(t, retryErr)
+	require.NoError(t, repeatedErr)
 	require.NoError(t, currentRunErr)
 	assert.Equal(t, http.StatusCreated, status)
 	assert.Equal(t, http.StatusCreated, retryStatus)
+	assert.Equal(t, http.StatusOK, repeatedStatus)
 	assert.Equal(t, "scored", validated.Action)
 	assert.Equal(t, "scored", retry.Action)
+	assert.Equal(t, "joined", repeated.Action)
+	assert.Equal(t, string(activityEntities.KindLive), validated.ActivityKind)
+	assert.Equal(t, string(activityEntities.KindLive), retry.ActivityKind)
 	assert.Equal(t, 25, validated.PointsAwarded)
+	assert.Zero(t, repeated.PointsAwarded)
 	assert.Equal(t, 25, *validated.Participation.NewTotalPoints)
+	assert.Equal(t, 25, *repeated.Participation.NewTotalPoints)
 	assert.Nil(t, currentRun)
 	assert.Equal(t, 25, refreshed.Points)
+}
+
+func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Activity manager", userEntities.RoleEventManager, true, 0)
+	participant, participantCtx := seedIteration6User(t, "Activity participant", userEntities.RoleDefault, true, 0)
+
+	checkpointID := uuid.NewString()
+	challengeID := uuid.NewString()
+	scheduleID := uuid.NewString()
+	for _, activity := range []struct {
+		id            string
+		kind          activityEntities.Kind
+		checkInPoints int
+	}{
+		{id: checkpointID, kind: activityEntities.KindCheckpoint, checkInPoints: 15},
+		{id: challengeID, kind: activityEntities.KindChallenge, checkInPoints: 0},
+		{id: scheduleID, kind: activityEntities.KindSchedule, checkInPoints: 0},
+	} {
+		require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: activity.id, Slug: activity.id, Name: string(activity.kind), Kind: string(activity.kind), Status: string(activityEntities.StatusActive), CheckInPoints: activity.checkInPoints, MomentPoints: 20, AllowsMoment: activity.kind == activityEntities.KindChallenge, CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+		assignIteration6Manager(t, activity.id, manager.ID)
+	}
+
+	checkpointRun := createIteration6Run(t, service, managerCtx, checkpointID)
+	checkpointQR := rotateIteration6QR(t, service, managerCtx, checkpointRun.ID)
+	checkpointResult := validateIteration6QR(t, service, participantCtx, checkpointQR.QRToken)
+	checkpointRepeat, checkpointRepeatStatus, checkpointRepeatErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: checkpointQR.QRToken, IdempotencyKey: uuid.NewString()})
+	assert.Equal(t, "scored", checkpointResult.Action)
+	assert.Equal(t, string(activityEntities.KindCheckpoint), checkpointResult.ActivityKind)
+	assert.Equal(t, 15, checkpointResult.PointsAwarded)
+	require.NoError(t, checkpointRepeatErr)
+	assert.Equal(t, http.StatusOK, checkpointRepeatStatus)
+	assert.Equal(t, "joined", checkpointRepeat.Action)
+	assert.Zero(t, checkpointRepeat.PointsAwarded)
+	assert.Equal(t, 15, *checkpointRepeat.Participation.NewTotalPoints)
+
+	challengeRun := createIteration6Run(t, service, managerCtx, challengeID)
+	challengeQR := rotateIteration6QR(t, service, managerCtx, challengeRun.ID)
+	challengeResult := validateIteration6QR(t, service, participantCtx, challengeQR.QRToken)
+	assert.Equal(t, "joined", challengeResult.Action)
+	assert.Equal(t, string(activityEntities.KindChallenge), challengeResult.ActivityKind)
+	assert.Zero(t, challengeResult.PointsAwarded)
+	currentRun, currentRunErr := service.CurrentRun(participantCtx, "")
+	require.NoError(t, currentRunErr)
+	assert.Nil(t, currentRun)
+
+	_, _, scheduleErr := service.CreateRun(managerCtx, uuid.NewString(), &messages.CreateRunRequestDTO{GameID: scheduleID})
+	apiServiceError(t, scheduleErr, http.StatusNotFound, "NOT_FOUND")
+
+	var refreshed models.User
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", participant.ID).Take(&refreshed).Error)
+	assert.Equal(t, 15, refreshed.Points)
 }
 
 func TestIteration6_RankingsAndOverviewUseEligibleCurrentBalances(t *testing.T) {
