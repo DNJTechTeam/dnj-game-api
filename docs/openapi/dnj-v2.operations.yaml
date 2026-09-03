@@ -252,6 +252,13 @@ operations:
     path: /admin/activities
     statuses: ['200', '400', '401', '403', '500']
     automatedTests: *adminInstallationTests
+  - operationId: getAdminCheckpointQR
+    method: GET
+    path: /admin/activities/{activityId}/qr
+    statuses: ['200', '204', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/admin_checkpoint_qr_test.go
+      - internal/presentation/api/routers/iteration6_router_test.go
   - operationId: createAdminActivity
     method: POST
     path: /admin/activities
@@ -343,12 +350,12 @@ operations:
   - operationId: createManagerRun
     method: POST
     path: /manager/runs
-    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    statuses: ['200', '201', '400', '401', '403', '404', '409', '500']
     automatedTests: *iteration6Tests
   - operationId: rotateManagerRunQR
     method: POST
     path: /manager/runs/{runId}/qr
-    statuses: ['201', '400', '401', '403', '404', '409', '500']
+    statuses: ['200', '201', '400', '401', '403', '404', '409', '500']
     automatedTests: *iteration6Tests
   - operationId: startManagerRun
     method: POST

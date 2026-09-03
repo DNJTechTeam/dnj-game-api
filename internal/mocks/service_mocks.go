@@ -1836,6 +1836,74 @@ func (_m *MockGameServiceInterface) EXPECT() *MockGameServiceInterface_Expecter 
 	return &MockGameServiceInterface_Expecter{mock: &_m.Mock}
 }
 
+// AdminCheckpointQR provides a mock function for the type MockGameServiceInterface
+func (_mock *MockGameServiceInterface) AdminCheckpointQR(ctx context.Context, activityID string) (*messages.QRResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminCheckpointQR")
+	}
+
+	var r0 *messages.QRResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.QRResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.QRResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.QRResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, activityID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameServiceInterface_AdminCheckpointQR_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminCheckpointQR'
+type MockGameServiceInterface_AdminCheckpointQR_Call struct {
+	*mock.Call
+}
+
+// AdminCheckpointQR is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+func (_e *MockGameServiceInterface_Expecter) AdminCheckpointQR(ctx interface{}, activityID interface{}) *MockGameServiceInterface_AdminCheckpointQR_Call {
+	return &MockGameServiceInterface_AdminCheckpointQR_Call{Call: _e.mock.On("AdminCheckpointQR", ctx, activityID)}
+}
+
+func (_c *MockGameServiceInterface_AdminCheckpointQR_Call) Run(run func(ctx context.Context, activityID string)) *MockGameServiceInterface_AdminCheckpointQR_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameServiceInterface_AdminCheckpointQR_Call) Return(qRResponseDTO *messages.QRResponseDTO, err error) *MockGameServiceInterface_AdminCheckpointQR_Call {
+	_c.Call.Return(qRResponseDTO, err)
+	return _c
+}
+
+func (_c *MockGameServiceInterface_AdminCheckpointQR_Call) RunAndReturn(run func(ctx context.Context, activityID string) (*messages.QRResponseDTO, error)) *MockGameServiceInterface_AdminCheckpointQR_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CancelRun provides a mock function for the type MockGameServiceInterface
 func (_mock *MockGameServiceInterface) CancelRun(ctx context.Context, runID string, key string) (*messages.ManagerRunResponseDTO, error) {
 	ret := _mock.Called(ctx, runID, key)

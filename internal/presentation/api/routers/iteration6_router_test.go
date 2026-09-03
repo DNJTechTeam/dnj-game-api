@@ -41,6 +41,7 @@ func TestIteration6Routes_PublicCatalogAndRankingProtectedWrites(t *testing.T) {
 	protected := []struct{ method, path string }{
 		{http.MethodGet, "/v2/game/overview"},
 		{http.MethodGet, "/v2/activity-runs/current"},
+		{http.MethodGet, "/v2/admin/activities/11111111-1111-4111-8111-111111111111/qr"},
 		{http.MethodGet, "/v2/participations/current"},
 		{http.MethodPost, "/v2/qr/validate"},
 		{http.MethodGet, "/v2/manager/game-overview"},

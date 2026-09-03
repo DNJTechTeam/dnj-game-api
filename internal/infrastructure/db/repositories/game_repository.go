@@ -452,6 +452,15 @@ func (r *GameRepository) CreateQR(ctx context.Context, qr *gameEntities.QRCode) 
 	return qr, nil
 }
 
+func (r *GameRepository) FindActiveQRByRun(ctx context.Context, runID string) (*gameEntities.QRCode, error) {
+	var row models.ActivityRunQRCode
+	if err := r.getDB(ctx).Where("activity_run_id = ? AND status = ?", runID, string(gameEntities.QRCodeStatusActive)).
+		Order("created_at DESC").Order("id DESC").First(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return &gameEntities.QRCode{ID: row.ID, ActivityID: row.ActivityID, ActivityRunID: row.ActivityRunID, TokenHash: row.TokenHash, ExpiresAt: row.ExpiresAt, Status: gameEntities.QRCodeStatus(row.Status), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}, nil
+}
+
 func (r *GameRepository) FindQRByTokenHashForUpdate(
 	ctx context.Context,
 	tokenHash string,
