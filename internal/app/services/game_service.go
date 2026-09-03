@@ -243,7 +243,7 @@ func (s *GameService) CurrentRun(ctx context.Context, rawRunID string) (*message
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	if run.Activity != nil && run.Activity.Kind == activityEntities.KindLive {
+	if run.Activity != nil && run.Activity.Kind != activityEntities.KindCompetitive {
 		return nil, nil
 	}
 	response := messages.ParticipantRunResponseDTO{ID: run.ID, Status: string(run.Status), GameName: run.Activity.Name, StartedAt: utcPointer(run.StartedAt), EndedAt: utcPointer(run.EndedAt)}
@@ -313,7 +313,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			if qrScoresCheckIn(activity.Kind) {
 				action, pointsAwarded = "scored", activity.CheckInPoints
 			}
-			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), Action: action, PointsAwarded: pointsAwarded}
+			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}
 			status = prior.HTTPStatus
 			return nil
 		}
@@ -394,7 +394,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		if scoreOnly {
 			pointsAwarded = activity.CheckInPoints
 		}
-		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), Action: action, PointsAwarded: pointsAwarded}
+		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}
 		return nil
 	})
 	if err != nil {

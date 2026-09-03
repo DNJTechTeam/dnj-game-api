@@ -178,6 +178,7 @@ type ParticipationResponseDTO struct {
 
 type ParticipationEnvelopeDTO struct {
 	Participation ParticipationResponseDTO `json:"participation"`
+	ActivityKind  string                   `json:"activityKind,omitempty"`
 	Action        string                   `json:"action,omitempty"`
 	PointsAwarded int                      `json:"pointsAwarded,omitempty"`
 }
