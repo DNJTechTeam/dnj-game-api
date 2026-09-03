@@ -841,6 +841,12 @@
       },
       "CurrentProfile": {
         "properties": {
+          "avatarUrl": {
+            "description": "Foto de perfil pública do usuário.",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
@@ -1420,6 +1426,12 @@
       },
       "IdentityUser": {
         "properties": {
+          "avatarUrl": {
+            "description": "Foto de perfil pública do usuário.",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
           "documentMasked": {
             "description": "CPF integral nunca é retornado pela V2",
             "type": "string"
@@ -2041,6 +2053,13 @@
       "Moment": {
         "additionalProperties": false,
         "properties": {
+          "authorAvatarUrl": {
+            "description": "Foto de perfil pública do autor",
+            "format": "uri",
+            "nullable": true,
+            "quando disponível.": null,
+            "type": "string"
+          },
           "authorName": {
             "type": "string"
           },
@@ -3102,6 +3121,12 @@
         "additionalProperties": false,
         "minProperties": 1,
         "properties": {
+          "avatarUrl": {
+            "PNG ou WebP (até 3 MB).": null,
+            "description": "URL HTTPS ou data URL de imagem JPEG",
+            "maxLength": 4500000,
+            "type": "string"
+          },
           "mobilePhone": {
             "maxLength": 13,
             "minLength": 11,

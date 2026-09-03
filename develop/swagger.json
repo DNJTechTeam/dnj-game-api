@@ -666,6 +666,9 @@
     "github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO": {
       "type": "object",
       "properties": {
+        "avatarUrl": {
+          "type": "string"
+        },
         "createdAt": {
           "type": "string"
         },
@@ -715,6 +718,9 @@
     "github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO": {
       "type": "object",
       "properties": {
+        "avatarUrl": {
+          "type": "string"
+        },
         "createdAt": {
           "type": "string"
         },
