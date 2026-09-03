@@ -148,7 +148,10 @@ func (s *S3MediaStorage) presign(
 		return "", entities.ErrProviderUnavailable
 	}
 	signed, _, err := v4.NewSigner().
-		PresignHTTP(ctx, creds, req, "UNSIGNED-PAYLOAD", "s3", s.region, at.UTC(), func(o *v4.SignerOptions) { o.DisableURIPathEscaping = true })
+		PresignHTTP(ctx, creds, req, "UNSIGNED-PAYLOAD", "s3", s.region, at.UTC(), func(o *v4.SignerOptions) {
+			o.DisableURIPathEscaping = true
+			o.DisableHeaderHoisting = true
+		})
 	if err != nil {
 		return "", entities.ErrProviderUnavailable
 	}
