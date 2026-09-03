@@ -556,6 +556,74 @@ func (_c *MockGameRepositoryInterface_DisableActiveQR_Call) RunAndReturn(run fun
 	return _c
 }
 
+// FindActiveQRByRun provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindActiveQRByRun(ctx context.Context, runID string) (*entities.QRCode, error) {
+	ret := _mock.Called(ctx, runID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindActiveQRByRun")
+	}
+
+	var r0 *entities.QRCode
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.QRCode, error)); ok {
+		return returnFunc(ctx, runID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.QRCode); ok {
+		r0 = returnFunc(ctx, runID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.QRCode)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, runID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindActiveQRByRun_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindActiveQRByRun'
+type MockGameRepositoryInterface_FindActiveQRByRun_Call struct {
+	*mock.Call
+}
+
+// FindActiveQRByRun is a helper method to define mock.On call
+//   - ctx context.Context
+//   - runID string
+func (_e *MockGameRepositoryInterface_Expecter) FindActiveQRByRun(ctx interface{}, runID interface{}) *MockGameRepositoryInterface_FindActiveQRByRun_Call {
+	return &MockGameRepositoryInterface_FindActiveQRByRun_Call{Call: _e.mock.On("FindActiveQRByRun", ctx, runID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindActiveQRByRun_Call) Run(run func(ctx context.Context, runID string)) *MockGameRepositoryInterface_FindActiveQRByRun_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindActiveQRByRun_Call) Return(qRCode *entities.QRCode, err error) *MockGameRepositoryInterface_FindActiveQRByRun_Call {
+	_c.Call.Return(qRCode, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindActiveQRByRun_Call) RunAndReturn(run func(ctx context.Context, runID string) (*entities.QRCode, error)) *MockGameRepositoryInterface_FindActiveQRByRun_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindCurrentParticipation provides a mock function for the type MockGameRepositoryInterface
 func (_mock *MockGameRepositoryInterface) FindCurrentParticipation(ctx context.Context, userID uint64) (*entities.Participation, error) {
 	ret := _mock.Called(ctx, userID)

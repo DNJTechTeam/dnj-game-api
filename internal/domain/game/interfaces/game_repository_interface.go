@@ -27,6 +27,7 @@ type GameRepositoryInterface interface {
 
 	DisableActiveQR(ctx context.Context, runID string, updatedAt time.Time) error
 	CreateQR(ctx context.Context, qr *gameEntities.QRCode) (*gameEntities.QRCode, error)
+	FindActiveQRByRun(ctx context.Context, runID string) (*gameEntities.QRCode, error)
 	FindQRByTokenHashForUpdate(ctx context.Context, tokenHash string, generatedAt time.Time) (*gameEntities.QRCode, error)
 
 	FindParticipantOperation(ctx context.Context, actorUserID uint64, key string) (*favoriteEntities.ParticipantOperation, error)

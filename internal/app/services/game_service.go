@@ -797,7 +797,13 @@ func (s *GameService) CreateRun(ctx context.Context, rawKey string, request *mes
 		if findErr != nil {
 			return appErrors.InternalError
 		}
-		if _, openErr := s.games.FindOpenRunByActivityForUpdate(txCtx, activity.ID); openErr == nil {
+		if openRun, openErr := s.games.FindOpenRunByActivityForUpdate(txCtx, activity.ID); openErr == nil {
+			if activity.Kind == activityEntities.KindCheckpoint {
+				openRun.Activity = activity
+				response = managerRunDTO(openRun, []gameEntities.RunParticipant{})
+				status = http.StatusOK
+				return nil
+			}
 			return gameError(http.StatusConflict, "RUN_STATE_CONFLICT", "Já existe uma partida aberta para este jogo.")
 		} else if !errors.Is(openErr, appErrors.ErrNotFound) {
 			return appErrors.InternalError
@@ -833,6 +839,55 @@ func valueOr(value *string, fallback string) string {
 		return fallback
 	}
 	return *value
+}
+
+// AdminCheckpointQR recovers the persisted code without creating a run or rotating a QR.
+func (s *GameService) AdminCheckpointQR(ctx context.Context, rawActivityID string) (*messages.QRResponseDTO, error) {
+	activityID, err := uuid.Parse(rawActivityID)
+	if err != nil {
+		return nil, gameError(http.StatusNotFound, "NOT_FOUND", "Checkpoint não encontrado.")
+	}
+	_, global, err := s.manager(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	if !global {
+		return nil, gameError(http.StatusForbidden, "FORBIDDEN", "Operação permitida somente para ADMIN.")
+	}
+	if err := s.requireQRSecret(); err != nil {
+		return nil, err
+	}
+	var response *messages.QRResponseDTO
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		activity, findErr := s.activities.FindByIDForUpdate(txCtx, activityID.String())
+		if errors.Is(findErr, appErrors.ErrNotFound) || (findErr == nil && activity.Kind != activityEntities.KindCheckpoint) {
+			return gameError(http.StatusNotFound, "NOT_FOUND", "Checkpoint não encontrado.")
+		}
+		if findErr != nil {
+			return appErrors.InternalError
+		}
+		run, findErr := s.games.FindOpenRunByActivityForUpdate(txCtx, activity.ID)
+		if errors.Is(findErr, appErrors.ErrNotFound) {
+			return nil
+		}
+		if findErr != nil {
+			return appErrors.InternalError
+		}
+		response, findErr = s.existingRunQR(txCtx, run.ID)
+		return findErr
+	})
+	return response, err
+}
+
+func (s *GameService) existingRunQR(ctx context.Context, runID string) (*messages.QRResponseDTO, error) {
+	qr, err := s.games.FindActiveQRByRun(ctx, runID)
+	if errors.Is(err, appErrors.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	return &messages.QRResponseDTO{RunID: runID, QRID: qr.ID, QRToken: s.qrToken(qr.ID), ExpiresAt: qr.ExpiresAt.UTC()}, nil
 }
 
 func (s *GameService) RotateQR(ctx context.Context, rawRunID, rawKey string) (*messages.QRResponseDTO, int, error) {
@@ -874,6 +929,17 @@ func (s *GameService) RotateQR(ctx context.Context, rawRunID, rawKey string) (*m
 			response = &messages.QRResponseDTO{RunID: run.ID, QRID: *prior.ResultRef, QRToken: token, ExpiresAt: prior.ResultExpiresAt.UTC()}
 			status = prior.HTTPStatus
 			return nil
+		}
+		if run.Activity != nil && run.Activity.Kind == activityEntities.KindCheckpoint {
+			qr, qrErr := s.existingRunQR(txCtx, run.ID)
+			if qrErr != nil {
+				return qrErr
+			}
+			if qr != nil {
+				response = qr
+				status = http.StatusOK
+				return nil
+			}
 		}
 		if run.Status != gameEntities.RunStatusDraft {
 			return gameError(http.StatusConflict, "RUN_STATE_CONFLICT", "QR só pode ser gerado enquanto a partida está em draft.")

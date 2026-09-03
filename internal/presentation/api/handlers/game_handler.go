@@ -170,6 +170,23 @@ func (h *GameHandler) ManagerRun(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+func (h *GameHandler) AdminCheckpointQR(c *gin.Context) {
+	c.Header("Cache-Control", "private, no-store")
+	if !requirePublishedQuery(c) {
+		return
+	}
+	response, err := h.GameService.AdminCheckpointQR(c.Request.Context(), c.Param("activityId"))
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	if response == nil {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
 func (h *GameHandler) CreateManagerGame(c *gin.Context) {
 	if !requirePublishedQuery(c) {
 		return

@@ -586,6 +586,23 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /admin/activities/{activityId}/qr:
+    parameters: [{$ref: '#/components/parameters/ActivityID'}]
+    get:
+      tags: [Installation administration]
+      operationId: getAdminCheckpointQR
+      summary: Recupera o QR persistido de um checkpoint sem criar ou rotacionar
+      description: Exclusivo para ADMIN. Retorna o mesmo token em novas sessões, inclusive com a atividade pausada. Sem QR existente, retorna 204.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: QR persistido do checkpoint, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerQR'}}}}
+        '204': {description: Checkpoint ainda sem QR}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /admin/activities/{activityId}:
     parameters: [{$ref: '#/components/parameters/ActivityID'}]
     patch:
@@ -927,6 +944,7 @@ paths:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/CreateManagerRunRequest'}}}
       responses:
+        '200': {description: Run aberta existente reutilizada para checkpoint, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerRun'}}}}
         '201': {description: Run draft criada ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerRun'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
@@ -945,8 +963,11 @@ paths:
       description: >-
         Não aceita corpo. Rotação invalida imediatamente o QR anterior. Token
         expira em 45 minutos ou ao sair de draft; só hash/HMAC é persistido.
+        Para checkpoints, reutiliza o QR persistido sem rotação; sua validade é
+        endsAt da atividade, ou sem expiração prática quando não há endsAt.
       security: [{bearerAuth: []}, {identityCookie: []}]
       responses:
+        '200': {description: QR persistido reutilizado para checkpoint, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerQR'}}}}
         '201': {description: Token novo ou token original reconstituído no retry, content: {application/json: {schema: {$ref: '#/components/schemas/ManagerQR'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
@@ -2100,7 +2121,7 @@ components:
       properties:
         runId: {type: string, format: uuid}
         qrId: {type: string, format: uuid}
-        qrToken: {type: string, minLength: 43, description: Segredo opaco exibido somente nesta resposta; não registrar em logs.}
+        qrToken: {type: string, minLength: 43, description: Segredo opaco recuperável pelo Admin para checkpoints; não registrar em logs.}
         expiresAt: {type: string, format: date-time, description: UTC RFC 3339 com Z., example: '2026-10-18T15:45:00Z'}
     ValidateGameQRRequest:
       type: object
