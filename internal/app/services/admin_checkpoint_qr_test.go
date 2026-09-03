@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGameService_AdminCheckpointQR(t *testing.T) {
+func TestIteration6_AdminCheckpointQR(t *testing.T) {
 	// given — a checkpoint created before any QR exists, and two independent admins.
 	service := setupIteration6Test(t)
 	admin, adminCtx := seedIteration6User(t, "Admin", userEntities.RoleAdmin, true, 0)
@@ -96,7 +96,7 @@ func TestGameService_AdminCheckpointQR(t *testing.T) {
 	apiServiceError(t, err, http.StatusNotFound, "NOT_FOUND")
 }
 
-func TestGameService_ConcurrentCheckpointQR(t *testing.T) {
+func TestIteration6_ConcurrentCheckpointQR(t *testing.T) {
 	// given — two admins generating the first QR at the same time.
 	service := setupIteration6Test(t)
 	_, firstCtx := seedIteration6User(t, "First", userEntities.RoleAdmin, true, 0)
