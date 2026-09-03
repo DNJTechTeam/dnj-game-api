@@ -66,9 +66,9 @@ func initConnection(disableAutomaticPing bool) *gorm.DB {
 		log.Fatalln("Failed to get underlying sql.DB:", err)
 	}
 
-	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxIdleConns(1)
 
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(2)
 
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
