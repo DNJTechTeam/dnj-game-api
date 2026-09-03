@@ -70,9 +70,10 @@ func (r *SpecialEventRepository) FindForManager(ctx context.Context, id string, 
 }
 func (r *SpecialEventRepository) FindVisible(ctx context.Context, target string, now time.Time) (*specialEntities.Event, error) {
 	var row models.SpecialEvent
-	// Use jsonb_exists instead of the `?` JSONB operator: GORM treats every
-	// question mark in a SQL string as a bind placeholder for PostgreSQL.
-	err := r.getDB(ctx).Where("status IN ('teaser','active') AND ends_at > ? AND jsonb_exists(targets, ?)", now.UTC(), target).Order("updated_at DESC").Take(&row).Error
+	// JSONB containment works on PostgreSQL and CockroachDB without conflicting
+	// with GORM's `?` bind placeholders. Encode the target as a JSON string array.
+	targets, _ := json.Marshal([]string{target})
+	err := r.getDB(ctx).Where("status IN ('teaser','active') AND ends_at > ? AND targets @> ?::jsonb", now.UTC(), string(targets)).Order("updated_at DESC").Take(&row).Error
 	if err != nil {
 		return nil, handleRepositoryError(err)
 	}
