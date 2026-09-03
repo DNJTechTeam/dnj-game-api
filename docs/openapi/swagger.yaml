@@ -93,6 +93,8 @@ definitions:
     type: object
   github_com_dnjtechteam_dnj-game-api_internal_app_messages.UserResponseDTO:
     properties:
+      avatarUrl:
+        type: string
       createdAt:
         type: string
       document:
@@ -125,6 +127,8 @@ definitions:
     type: object
   github_com_dnjtechteam_dnj-game-api_internal_app_messages.VerificationCodeResponseDTO:
     properties:
+      avatarUrl:
+        type: string
       createdAt:
         type: string
       document:
