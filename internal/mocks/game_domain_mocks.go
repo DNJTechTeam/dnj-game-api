@@ -1565,6 +1565,74 @@ func (_c *MockGameRepositoryInterface_FindQRByTokenHashForUpdate_Call) RunAndRet
 	return _c
 }
 
+// FindQRScanBlock provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindQRScanBlock(ctx context.Context, userID uint64) (*time.Time, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindQRScanBlock")
+	}
+
+	var r0 *time.Time
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*time.Time, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *time.Time); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*time.Time)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindQRScanBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindQRScanBlock'
+type MockGameRepositoryInterface_FindQRScanBlock_Call struct {
+	*mock.Call
+}
+
+// FindQRScanBlock is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+func (_e *MockGameRepositoryInterface_Expecter) FindQRScanBlock(ctx interface{}, userID interface{}) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	return &MockGameRepositoryInterface_FindQRScanBlock_Call{Call: _e.mock.On("FindQRScanBlock", ctx, userID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) Run(run func(ctx context.Context, userID uint64)) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) Return(time1 *time.Time, err error) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Return(time1, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) RunAndReturn(run func(ctx context.Context, userID uint64) (*time.Time, error)) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindRunForManager provides a mock function for the type MockGameRepositoryInterface
 func (_mock *MockGameRepositoryInterface) FindRunForManager(ctx context.Context, runID string, actorUserID uint64, global bool, lock bool) (*entities.ActivityRun, error) {
 	ret := _mock.Called(ctx, runID, actorUserID, global, lock)
@@ -2422,6 +2490,69 @@ func (_c *MockGameRepositoryInterface_LockUsers_Call) Return(err error) *MockGam
 }
 
 func (_c *MockGameRepositoryInterface_LockUsers_Call) RunAndReturn(run func(ctx context.Context, userIDs []uint64) error) *MockGameRepositoryInterface_LockUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SaveQRScanBlock provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) SaveQRScanBlock(ctx context.Context, userID uint64, blockedUntil time.Time) error {
+	ret := _mock.Called(ctx, userID, blockedUntil)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveQRScanBlock")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, time.Time) error); ok {
+		r0 = returnFunc(ctx, userID, blockedUntil)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockGameRepositoryInterface_SaveQRScanBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveQRScanBlock'
+type MockGameRepositoryInterface_SaveQRScanBlock_Call struct {
+	*mock.Call
+}
+
+// SaveQRScanBlock is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+//   - blockedUntil time.Time
+func (_e *MockGameRepositoryInterface_Expecter) SaveQRScanBlock(ctx interface{}, userID interface{}, blockedUntil interface{}) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	return &MockGameRepositoryInterface_SaveQRScanBlock_Call{Call: _e.mock.On("SaveQRScanBlock", ctx, userID, blockedUntil)}
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) Run(run func(ctx context.Context, userID uint64, blockedUntil time.Time)) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) Return(err error) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) RunAndReturn(run func(ctx context.Context, userID uint64, blockedUntil time.Time) error) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
 	_c.Call.Return(run)
 	return _c
 }

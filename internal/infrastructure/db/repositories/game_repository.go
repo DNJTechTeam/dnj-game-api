@@ -807,6 +807,19 @@ func (r *GameRepository) CreateScheduleQRCheckInAndAward(ctx context.Context, ch
 	return nil
 }
 
+func (r *GameRepository) FindQRScanBlock(ctx context.Context, userID uint64) (*time.Time, error) {
+	var row models.QRScanBlock
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).Take(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return &row.BlockedUntil, nil
+}
+
+func (r *GameRepository) SaveQRScanBlock(ctx context.Context, userID uint64, blockedUntil time.Time) error {
+	row := &models.QRScanBlock{UserID: userID, BlockedUntil: blockedUntil}
+	return handleRepositoryError(r.getDB(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "user_id"}}, DoUpdates: clause.AssignmentColumns([]string{"blocked_until", "updated_at"})}).Create(row).Error)
+}
+
 type individualRankingRow struct {
 	UserID    uint64 `gorm:"column:user_id"`
 	Name      string

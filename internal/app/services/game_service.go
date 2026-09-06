@@ -114,6 +114,20 @@ func (s *GameService) requireQRSecret() error {
 	return nil
 }
 
+func (s *GameService) claimQRScanWindow(ctx context.Context, userID uint64, now time.Time) error {
+	blockedUntil, err := s.games.FindQRScanBlock(ctx, userID)
+	if err == nil && now.Before(*blockedUntil) {
+		return gameError(http.StatusConflict, "QR_SCAN_BLOCKED", "Aguarde 10 minutos para escanear outro QR Code.")
+	}
+	if err != nil && !errors.Is(err, appErrors.ErrNotFound) {
+		return appErrors.InternalError
+	}
+	if err := s.games.SaveQRScanBlock(ctx, userID, now.Add(10*time.Minute)); err != nil {
+		return appErrors.InternalError
+	}
+	return nil
+}
+
 func (s *GameService) ListGames(ctx context.Context, filter *messages.ListGamesFilterDTO) (*messages.PaginatedResponse[messages.GameResponseDTO], error) {
 	if filter == nil {
 		return nil, gameError(http.StatusBadRequest, "INVALID_REQUEST", "Filtros inválidos.")
@@ -376,6 +390,9 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		if activityErr != nil {
 			return appErrors.InternalError
 		}
+		if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
+			return err
+		}
 		scoreOnly := qrScoresCheckIn(activity.Kind)
 		alreadyParticipated := false
 		participation, existingErr := s.games.FindParticipationByRunAndUser(txCtx, qr.ActivityRunID, user.ID)
@@ -482,6 +499,9 @@ func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.
 		if activityErr != nil {
 			return appErrors.InternalError
 		}
+		if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
+			return err
+		}
 		if existing, existingErr := s.games.FindScheduleQRCheckIn(txCtx, user.ID, activity.ID); existingErr == nil {
 			total := user.Points
 			response = &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(existing, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "joined"}
@@ -490,12 +510,7 @@ func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.
 		} else if !errors.Is(existingErr, appErrors.ErrNotFound) {
 			return appErrors.InternalError
 		}
-		if latest, latestErr := s.games.FindLatestScheduleQRCheckIn(txCtx, user.ID); latestErr == nil && now.Before(latest.BlockedUntil) {
-			return gameError(http.StatusConflict, "SCHEDULE_SCAN_BLOCKED", "Aguarde 15 minutos para pontuar outra programação.")
-		} else if latestErr != nil && !errors.Is(latestErr, appErrors.ErrNotFound) {
-			return appErrors.InternalError
-		}
-		checkIn := &gameEntities.ScheduleQRCheckIn{ID: uuid.NewString(), UserID: user.ID, ActivityID: activity.ID, SpaceID: spaceID, PointEntryID: uuid.NewString(), CheckedInAt: now, BlockedUntil: now.Add(15 * time.Minute)}
+		checkIn := &gameEntities.ScheduleQRCheckIn{ID: uuid.NewString(), UserID: user.ID, ActivityID: activity.ID, SpaceID: spaceID, PointEntryID: uuid.NewString(), CheckedInAt: now, BlockedUntil: now.Add(10 * time.Minute)}
 		entry := &gameEntities.PointEntry{ID: checkIn.PointEntryID, UserID: user.ID, ActivityID: activity.ID, Origin: "schedule_qr_checkin", Reason: "schedule_qr_checkin", Delta: activity.CheckInPoints, CreatedAt: now}
 		if awardErr := s.games.CreateScheduleQRCheckInAndAward(txCtx, checkIn, entry); awardErr != nil {
 			return appErrors.InternalError

@@ -88,6 +88,14 @@ type ScheduleQRCheckIn struct {
 
 func (*ScheduleQRCheckIn) TableName() string { return "schedule_qr_check_ins" }
 
+type QRScanBlock struct {
+	UserID       uint64    `gorm:"primaryKey"`
+	BlockedUntil time.Time `gorm:"not null"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime:nano"`
+}
+
+func (*QRScanBlock) TableName() string { return "qr_scan_blocks" }
+
 type ManagerOperation struct {
 	ID              string     `gorm:"type:uuid;primaryKey"`
 	ActorUserID     uint64     `gorm:"not null;index"`

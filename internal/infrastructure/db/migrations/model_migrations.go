@@ -1448,4 +1448,20 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(createModelMigration(
+		"create_qr_scan_blocks_table",
+		"2.23.0",
+		&models.QRScanBlock{},
+	))
+	registry.Register(Migration{
+		Name:        "contract_qr_scan_blocks",
+		Description: "Enforce the global QR scan block for every participant",
+		Version:     "2.23.0",
+		Definition:  "qr-scan-blocks-contract-v1",
+		Up: func(db *gorm.DB) error {
+			return addConstraintIfMissing(db, "qr_scan_blocks", "qr_scan_blocks_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`)
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }
