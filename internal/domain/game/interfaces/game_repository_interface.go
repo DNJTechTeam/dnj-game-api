@@ -48,6 +48,7 @@ type GameRepositoryInterface interface {
 	CreateScheduleQRCheckInAndAward(ctx context.Context, checkIn *gameEntities.ScheduleQRCheckIn, entry *gameEntities.PointEntry) error
 	FindQRScanBlock(ctx context.Context, userID uint64) (*time.Time, error)
 	SaveQRScanBlock(ctx context.Context, userID uint64, blockedUntil time.Time) error
+	IsActiveSpecialEventRun(ctx context.Context, runID string, now time.Time) (bool, error)
 
 	ListIndividualRankings(ctx context.Context, page uint64) (*messages.PaginatedResponse[gameEntities.IndividualRanking], error)
 	ListGroupRankings(ctx context.Context, page uint64) (*messages.PaginatedResponse[gameEntities.GroupRanking], error)

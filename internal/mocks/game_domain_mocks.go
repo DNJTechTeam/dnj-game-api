@@ -1943,6 +1943,78 @@ func (_c *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call) RunAndRetu
 	return _c
 }
 
+// IsActiveSpecialEventRun provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) IsActiveSpecialEventRun(ctx context.Context, runID string, now time.Time) (bool, error) {
+	ret := _mock.Called(ctx, runID, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsActiveSpecialEventRun")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) (bool, error)); ok {
+		return returnFunc(ctx, runID, now)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) bool); ok {
+		r0 = returnFunc(ctx, runID, now)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Time) error); ok {
+		r1 = returnFunc(ctx, runID, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_IsActiveSpecialEventRun_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsActiveSpecialEventRun'
+type MockGameRepositoryInterface_IsActiveSpecialEventRun_Call struct {
+	*mock.Call
+}
+
+// IsActiveSpecialEventRun is a helper method to define mock.On call
+//   - ctx context.Context
+//   - runID string
+//   - now time.Time
+func (_e *MockGameRepositoryInterface_Expecter) IsActiveSpecialEventRun(ctx interface{}, runID interface{}, now interface{}) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	return &MockGameRepositoryInterface_IsActiveSpecialEventRun_Call{Call: _e.mock.On("IsActiveSpecialEventRun", ctx, runID, now)}
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) Run(run func(ctx context.Context, runID string, now time.Time)) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) Return(b bool, err error) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) RunAndReturn(run func(ctx context.Context, runID string, now time.Time) (bool, error)) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListGroupRankings provides a mock function for the type MockGameRepositoryInterface
 func (_mock *MockGameRepositoryInterface) ListGroupRankings(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.GroupRanking], error) {
 	ret := _mock.Called(ctx, page)

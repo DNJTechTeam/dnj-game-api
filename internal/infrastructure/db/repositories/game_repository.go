@@ -820,6 +820,17 @@ func (r *GameRepository) SaveQRScanBlock(ctx context.Context, userID uint64, blo
 	return handleRepositoryError(r.getDB(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "user_id"}}, DoUpdates: clause.AssignmentColumns([]string{"blocked_until", "updated_at"})}).Create(row).Error)
 }
 
+func (r *GameRepository) IsActiveSpecialEventRun(ctx context.Context, runID string, now time.Time) (bool, error) {
+	var count int64
+	err := r.getDB(ctx).Model(&models.SpecialEvent{}).
+		Where("activity_run_id = ? AND status = ? AND ends_at > ?", runID, "active", now.UTC()).
+		Count(&count).Error
+	if err != nil {
+		return false, handleRepositoryError(err)
+	}
+	return count > 0, nil
+}
+
 type individualRankingRow struct {
 	UserID    uint64 `gorm:"column:user_id"`
 	Name      string

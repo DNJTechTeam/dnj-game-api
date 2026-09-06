@@ -390,8 +390,14 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		if activityErr != nil {
 			return appErrors.InternalError
 		}
-		if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
-			return err
+		specialEventRun, specialEventErr := s.games.IsActiveSpecialEventRun(txCtx, qr.ActivityRunID, now)
+		if specialEventErr != nil {
+			return appErrors.InternalError
+		}
+		if !specialEventRun {
+			if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
+				return err
+			}
 		}
 		scoreOnly := qrScoresCheckIn(activity.Kind)
 		alreadyParticipated := false
