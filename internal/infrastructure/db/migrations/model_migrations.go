@@ -1414,4 +1414,38 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			return nil
 		},
 	})
+
+	registry.Register(createModelMigration(
+		"create_schedule_qr_check_ins_table",
+		"2.22.0",
+		&models.ScheduleQRCheckIn{},
+	))
+
+	registry.Register(Migration{
+		Name:        "contract_schedule_qr_check_ins",
+		Description: "Link scheduled QR check-ins to the immutable points ledger",
+		Version:     "2.22.0",
+		Definition:  "schedule-qr-check-ins-contract-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasConstraint("point_entries", "point_entries_origin_check") {
+				if err := db.Migrator().DropConstraint("point_entries", "point_entries_origin_check"); err != nil {
+					return err
+				}
+			}
+			constraints := []struct{ table, name, definition string }{
+				{"schedule_qr_check_ins", "schedule_qr_check_ins_user_fk", `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT`},
+				{"schedule_qr_check_ins", "schedule_qr_check_ins_activity_fk", `FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE RESTRICT`},
+				{"schedule_qr_check_ins", "schedule_qr_check_ins_space_fk", `FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE RESTRICT`},
+				{"schedule_qr_check_ins", "schedule_qr_check_ins_point_entry_fk", `FOREIGN KEY (point_entry_id) REFERENCES point_entries(id) ON DELETE RESTRICT`},
+				{"point_entries", "point_entries_origin_check", `CHECK ((origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL AND moment_id IS NULL) OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL) OR (origin = 'moment' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND moment_id IS NOT NULL) OR (origin = 'schedule_qr_checkin' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL))`},
+			}
+			for _, constraint := range constraints {
+				if err := addConstraintIfMissing(db, constraint.table, constraint.name, constraint.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

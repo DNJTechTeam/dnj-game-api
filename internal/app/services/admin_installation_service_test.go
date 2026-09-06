@@ -359,6 +359,9 @@ func TestAdminInstallationService_CreateActivityInitialStatusDependsOnKind(t *te
 		request.Kind = pointer(testCase.kind)
 		if testCase.kind == "schedule" {
 			request.AllowsMoment = pointer(false)
+			space, spaceErr := service.CreateSpace(adminCtx, uuid.NewString(), validCreateSpace("kind-status-schedule"))
+			require.NoError(t, spaceErr)
+			request.SpaceID = optional(space.ID)
 		}
 
 		// when

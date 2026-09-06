@@ -9,6 +9,7 @@ func (r *Router) RegisterGameRoutes() {
 	r.v2Group.GET("/participations/current", append(r.authProtected(), r.handlers.GameHandler.CurrentParticipation)...)
 	r.v2Group.POST("/qr/validate", append(r.authProtected(), r.handlers.GameHandler.ValidateQR)...)
 	r.v2Group.GET("/admin/activities/:activityId/qr", append(r.authProtected(), r.handlers.GameHandler.AdminCheckpointQR)...)
+	r.v2Group.GET("/admin/spaces/:spaceId/schedule-qr", append(r.authProtected(), r.handlers.GameHandler.AdminScheduleSpaceQR)...)
 
 	manager := r.v2Group.Group("/manager")
 	manager.GET("/game-overview", append(r.authProtected(), r.handlers.GameHandler.ManagerOverview)...)

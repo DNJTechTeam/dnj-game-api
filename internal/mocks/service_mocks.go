@@ -40,6 +40,80 @@ func (_m *MockActivityServiceInterface) EXPECT() *MockActivityServiceInterface_E
 	return &MockActivityServiceInterface_Expecter{mock: &_m.Mock}
 }
 
+// AdvanceScheduled provides a mock function for the type MockActivityServiceInterface
+func (_mock *MockActivityServiceInterface) AdvanceScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdvanceScheduled")
+	}
+
+	var r0 *messages.ActivityStateResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*messages.ActivityStateResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID, idempotencyKey)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *messages.ActivityStateResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityServiceInterface_AdvanceScheduled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdvanceScheduled'
+type MockActivityServiceInterface_AdvanceScheduled_Call struct {
+	*mock.Call
+}
+
+// AdvanceScheduled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - idempotencyKey string
+func (_e *MockActivityServiceInterface_Expecter) AdvanceScheduled(ctx interface{}, activityID interface{}, idempotencyKey interface{}) *MockActivityServiceInterface_AdvanceScheduled_Call {
+	return &MockActivityServiceInterface_AdvanceScheduled_Call{Call: _e.mock.On("AdvanceScheduled", ctx, activityID, idempotencyKey)}
+}
+
+func (_c *MockActivityServiceInterface_AdvanceScheduled_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string)) *MockActivityServiceInterface_AdvanceScheduled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_AdvanceScheduled_Call) Return(activityStateResponseDTO *messages.ActivityStateResponseDTO, err error) *MockActivityServiceInterface_AdvanceScheduled_Call {
+	_c.Call.Return(activityStateResponseDTO, err)
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_AdvanceScheduled_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_AdvanceScheduled_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Conclude provides a mock function for the type MockActivityServiceInterface
 func (_mock *MockActivityServiceInterface) Conclude(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
 	ret := _mock.Called(ctx, activityID, idempotencyKey)
@@ -110,6 +184,80 @@ func (_c *MockActivityServiceInterface_Conclude_Call) Return(activityStateRespon
 }
 
 func (_c *MockActivityServiceInterface_Conclude_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_Conclude_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FlexScheduled provides a mock function for the type MockActivityServiceInterface
+func (_mock *MockActivityServiceInterface) FlexScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FlexScheduled")
+	}
+
+	var r0 *messages.ActivityStateResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*messages.ActivityStateResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID, idempotencyKey)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *messages.ActivityStateResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityServiceInterface_FlexScheduled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlexScheduled'
+type MockActivityServiceInterface_FlexScheduled_Call struct {
+	*mock.Call
+}
+
+// FlexScheduled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - idempotencyKey string
+func (_e *MockActivityServiceInterface_Expecter) FlexScheduled(ctx interface{}, activityID interface{}, idempotencyKey interface{}) *MockActivityServiceInterface_FlexScheduled_Call {
+	return &MockActivityServiceInterface_FlexScheduled_Call{Call: _e.mock.On("FlexScheduled", ctx, activityID, idempotencyKey)}
+}
+
+func (_c *MockActivityServiceInterface_FlexScheduled_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string)) *MockActivityServiceInterface_FlexScheduled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_FlexScheduled_Call) Return(activityStateResponseDTO *messages.ActivityStateResponseDTO, err error) *MockActivityServiceInterface_FlexScheduled_Call {
+	_c.Call.Return(activityStateResponseDTO, err)
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_FlexScheduled_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_FlexScheduled_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -258,6 +406,80 @@ func (_c *MockActivityServiceInterface_Start_Call) Return(activityStateResponseD
 }
 
 func (_c *MockActivityServiceInterface_Start_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_Start_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StartScheduled provides a mock function for the type MockActivityServiceInterface
+func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StartScheduled")
+	}
+
+	var r0 *messages.ActivityStateResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*messages.ActivityStateResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID, idempotencyKey)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *messages.ActivityStateResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, activityID, idempotencyKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockActivityServiceInterface_StartScheduled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StartScheduled'
+type MockActivityServiceInterface_StartScheduled_Call struct {
+	*mock.Call
+}
+
+// StartScheduled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - activityID string
+//   - idempotencyKey string
+func (_e *MockActivityServiceInterface_Expecter) StartScheduled(ctx interface{}, activityID interface{}, idempotencyKey interface{}) *MockActivityServiceInterface_StartScheduled_Call {
+	return &MockActivityServiceInterface_StartScheduled_Call{Call: _e.mock.On("StartScheduled", ctx, activityID, idempotencyKey)}
+}
+
+func (_c *MockActivityServiceInterface_StartScheduled_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string)) *MockActivityServiceInterface_StartScheduled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_StartScheduled_Call) Return(activityStateResponseDTO *messages.ActivityStateResponseDTO, err error) *MockActivityServiceInterface_StartScheduled_Call {
+	_c.Call.Return(activityStateResponseDTO, err)
+	return _c
+}
+
+func (_c *MockActivityServiceInterface_StartScheduled_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_StartScheduled_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1904,6 +2126,74 @@ func (_c *MockGameServiceInterface_AdminCheckpointQR_Call) RunAndReturn(run func
 	return _c
 }
 
+// AdminScheduleSpaceQR provides a mock function for the type MockGameServiceInterface
+func (_mock *MockGameServiceInterface) AdminScheduleSpaceQR(ctx context.Context, spaceID string) (*messages.QRResponseDTO, error) {
+	ret := _mock.Called(ctx, spaceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AdminScheduleSpaceQR")
+	}
+
+	var r0 *messages.QRResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.QRResponseDTO, error)); ok {
+		return returnFunc(ctx, spaceID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.QRResponseDTO); ok {
+		r0 = returnFunc(ctx, spaceID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.QRResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, spaceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameServiceInterface_AdminScheduleSpaceQR_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AdminScheduleSpaceQR'
+type MockGameServiceInterface_AdminScheduleSpaceQR_Call struct {
+	*mock.Call
+}
+
+// AdminScheduleSpaceQR is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spaceID string
+func (_e *MockGameServiceInterface_Expecter) AdminScheduleSpaceQR(ctx interface{}, spaceID interface{}) *MockGameServiceInterface_AdminScheduleSpaceQR_Call {
+	return &MockGameServiceInterface_AdminScheduleSpaceQR_Call{Call: _e.mock.On("AdminScheduleSpaceQR", ctx, spaceID)}
+}
+
+func (_c *MockGameServiceInterface_AdminScheduleSpaceQR_Call) Run(run func(ctx context.Context, spaceID string)) *MockGameServiceInterface_AdminScheduleSpaceQR_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameServiceInterface_AdminScheduleSpaceQR_Call) Return(qRResponseDTO *messages.QRResponseDTO, err error) *MockGameServiceInterface_AdminScheduleSpaceQR_Call {
+	_c.Call.Return(qRResponseDTO, err)
+	return _c
+}
+
+func (_c *MockGameServiceInterface_AdminScheduleSpaceQR_Call) RunAndReturn(run func(ctx context.Context, spaceID string) (*messages.QRResponseDTO, error)) *MockGameServiceInterface_AdminScheduleSpaceQR_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CancelRun provides a mock function for the type MockGameServiceInterface
 func (_mock *MockGameServiceInterface) CancelRun(ctx context.Context, runID string, key string) (*messages.ManagerRunResponseDTO, error) {
 	ret := _mock.Called(ctx, runID, key)
@@ -1974,6 +2264,86 @@ func (_c *MockGameServiceInterface_CancelRun_Call) Return(managerRunResponseDTO 
 }
 
 func (_c *MockGameServiceInterface_CancelRun_Call) RunAndReturn(run func(ctx context.Context, runID string, key string) (*messages.ManagerRunResponseDTO, error)) *MockGameServiceInterface_CancelRun_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateManagerGame provides a mock function for the type MockGameServiceInterface
+func (_mock *MockGameServiceInterface) CreateManagerGame(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error) {
+	ret := _mock.Called(ctx, key, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateManagerGame")
+	}
+
+	var r0 *messages.ManagerGameResponseDTO
+	var r1 int
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error)); ok {
+		return returnFunc(ctx, key, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *messages.CreateManagerGameRequestDTO) *messages.ManagerGameResponseDTO); ok {
+		r0 = returnFunc(ctx, key, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *messages.CreateManagerGameRequestDTO) int); ok {
+		r1 = returnFunc(ctx, key, request)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, *messages.CreateManagerGameRequestDTO) error); ok {
+		r2 = returnFunc(ctx, key, request)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGameServiceInterface_CreateManagerGame_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateManagerGame'
+type MockGameServiceInterface_CreateManagerGame_Call struct {
+	*mock.Call
+}
+
+// CreateManagerGame is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+//   - request *messages.CreateManagerGameRequestDTO
+func (_e *MockGameServiceInterface_Expecter) CreateManagerGame(ctx interface{}, key interface{}, request interface{}) *MockGameServiceInterface_CreateManagerGame_Call {
+	return &MockGameServiceInterface_CreateManagerGame_Call{Call: _e.mock.On("CreateManagerGame", ctx, key, request)}
+}
+
+func (_c *MockGameServiceInterface_CreateManagerGame_Call) Run(run func(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO)) *MockGameServiceInterface_CreateManagerGame_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *messages.CreateManagerGameRequestDTO
+		if args[2] != nil {
+			arg2 = args[2].(*messages.CreateManagerGameRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameServiceInterface_CreateManagerGame_Call) Return(managerGameResponseDTO *messages.ManagerGameResponseDTO, n int, err error) *MockGameServiceInterface_CreateManagerGame_Call {
+	_c.Call.Return(managerGameResponseDTO, n, err)
+	return _c
+}
+
+func (_c *MockGameServiceInterface_CreateManagerGame_Call) RunAndReturn(run func(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error)) *MockGameServiceInterface_CreateManagerGame_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2968,6 +3338,86 @@ func (_c *MockGameServiceInterface_StartRun_Call) Return(managerRunResponseDTO *
 }
 
 func (_c *MockGameServiceInterface_StartRun_Call) RunAndReturn(run func(ctx context.Context, runID string, key string) (*messages.ManagerRunResponseDTO, error)) *MockGameServiceInterface_StartRun_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateManagerGame provides a mock function for the type MockGameServiceInterface
+func (_mock *MockGameServiceInterface) UpdateManagerGame(ctx context.Context, gameID string, key string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error) {
+	ret := _mock.Called(ctx, gameID, key, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateManagerGame")
+	}
+
+	var r0 *messages.ManagerGameResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error)); ok {
+		return returnFunc(ctx, gameID, key, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *messages.UpdateManagerGameRequestDTO) *messages.ManagerGameResponseDTO); ok {
+		r0 = returnFunc(ctx, gameID, key, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *messages.UpdateManagerGameRequestDTO) error); ok {
+		r1 = returnFunc(ctx, gameID, key, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameServiceInterface_UpdateManagerGame_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateManagerGame'
+type MockGameServiceInterface_UpdateManagerGame_Call struct {
+	*mock.Call
+}
+
+// UpdateManagerGame is a helper method to define mock.On call
+//   - ctx context.Context
+//   - gameID string
+//   - key string
+//   - request *messages.UpdateManagerGameRequestDTO
+func (_e *MockGameServiceInterface_Expecter) UpdateManagerGame(ctx interface{}, gameID interface{}, key interface{}, request interface{}) *MockGameServiceInterface_UpdateManagerGame_Call {
+	return &MockGameServiceInterface_UpdateManagerGame_Call{Call: _e.mock.On("UpdateManagerGame", ctx, gameID, key, request)}
+}
+
+func (_c *MockGameServiceInterface_UpdateManagerGame_Call) Run(run func(ctx context.Context, gameID string, key string, request *messages.UpdateManagerGameRequestDTO)) *MockGameServiceInterface_UpdateManagerGame_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 *messages.UpdateManagerGameRequestDTO
+		if args[3] != nil {
+			arg3 = args[3].(*messages.UpdateManagerGameRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameServiceInterface_UpdateManagerGame_Call) Return(managerGameResponseDTO *messages.ManagerGameResponseDTO, err error) *MockGameServiceInterface_UpdateManagerGame_Call {
+	_c.Call.Return(managerGameResponseDTO, err)
+	return _c
+}
+
+func (_c *MockGameServiceInterface_UpdateManagerGame_Call) RunAndReturn(run func(ctx context.Context, gameID string, key string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error)) *MockGameServiceInterface_UpdateManagerGame_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5086,62 +5536,6 @@ type MockNotificationServiceInterface_Expecter struct {
 	mock *mock.Mock
 }
 
-func (_mock *MockNotificationServiceInterface) DeactivatePushSubscription(ctx context.Context, key string, request *messages.DeactivatePushSubscriptionRequestDTO) error {
-	ret := _mock.Called(ctx, key, request)
-	if len(ret) == 0 {
-		panic("no return value specified for DeactivatePushSubscription")
-	}
-	return ret.Error(0)
-}
-
-func (_mock *MockNotificationServiceInterface) CreateQueueCalled(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error) {
-	ret := _mock.Called(ctx, request)
-	if len(ret) == 0 {
-		panic("no return value specified for CreateQueueCalled")
-	}
-	var r0 *messages.QueueCalledNotificationResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.QueueCalledNotificationResponseDTO)
-	}
-	return r0, ret.Error(1)
-}
-
-// GetPushConfig provides a mock function for the type MockNotificationServiceInterface.
-func (_mock *MockNotificationServiceInterface) GetPushConfig(ctx context.Context) (*messages.PushConfigResponseDTO, error) {
-	ret := _mock.Called(ctx)
-	if len(ret) == 0 {
-		panic("no return value specified for GetPushConfig")
-	}
-	var r0 *messages.PushConfigResponseDTO
-	if fn, ok := ret.Get(0).(func(context.Context) *messages.PushConfigResponseDTO); ok {
-		r0 = fn(ctx)
-	} else if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.PushConfigResponseDTO)
-	}
-	if fn, ok := ret.Get(1).(func(context.Context) error); ok {
-		return r0, fn(ctx)
-	}
-	return r0, ret.Error(1)
-}
-
-// UpsertPushSubscription provides a mock function for the type MockNotificationServiceInterface.
-func (_mock *MockNotificationServiceInterface) UpsertPushSubscription(ctx context.Context, key string, request *messages.UpsertPushSubscriptionRequestDTO) (*messages.PushSubscriptionResponseDTO, error) {
-	ret := _mock.Called(ctx, key, request)
-	if len(ret) == 0 {
-		panic("no return value specified for UpsertPushSubscription")
-	}
-	var r0 *messages.PushSubscriptionResponseDTO
-	if fn, ok := ret.Get(0).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) *messages.PushSubscriptionResponseDTO); ok {
-		r0 = fn(ctx, key, request)
-	} else if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.PushSubscriptionResponseDTO)
-	}
-	if fn, ok := ret.Get(1).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) error); ok {
-		return r0, fn(ctx, key, request)
-	}
-	return r0, ret.Error(1)
-}
-
 func (_m *MockNotificationServiceInterface) EXPECT() *MockNotificationServiceInterface_Expecter {
 	return &MockNotificationServiceInterface_Expecter{mock: &_m.Mock}
 }
@@ -5220,6 +5614,137 @@ func (_c *MockNotificationServiceInterface_AdminSend_Call) RunAndReturn(run func
 	return _c
 }
 
+// CreateQueueCalled provides a mock function for the type MockNotificationServiceInterface
+func (_mock *MockNotificationServiceInterface) CreateQueueCalled(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateQueueCalled")
+	}
+
+	var r0 *messages.QueueCalledNotificationResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.QueueCalledNotificationRequestDTO) *messages.QueueCalledNotificationResponseDTO); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.QueueCalledNotificationResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.QueueCalledNotificationRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockNotificationServiceInterface_CreateQueueCalled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateQueueCalled'
+type MockNotificationServiceInterface_CreateQueueCalled_Call struct {
+	*mock.Call
+}
+
+// CreateQueueCalled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request *messages.QueueCalledNotificationRequestDTO
+func (_e *MockNotificationServiceInterface_Expecter) CreateQueueCalled(ctx interface{}, request interface{}) *MockNotificationServiceInterface_CreateQueueCalled_Call {
+	return &MockNotificationServiceInterface_CreateQueueCalled_Call{Call: _e.mock.On("CreateQueueCalled", ctx, request)}
+}
+
+func (_c *MockNotificationServiceInterface_CreateQueueCalled_Call) Run(run func(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO)) *MockNotificationServiceInterface_CreateQueueCalled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *messages.QueueCalledNotificationRequestDTO
+		if args[1] != nil {
+			arg1 = args[1].(*messages.QueueCalledNotificationRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_CreateQueueCalled_Call) Return(queueCalledNotificationResponseDTO *messages.QueueCalledNotificationResponseDTO, err error) *MockNotificationServiceInterface_CreateQueueCalled_Call {
+	_c.Call.Return(queueCalledNotificationResponseDTO, err)
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_CreateQueueCalled_Call) RunAndReturn(run func(ctx context.Context, request *messages.QueueCalledNotificationRequestDTO) (*messages.QueueCalledNotificationResponseDTO, error)) *MockNotificationServiceInterface_CreateQueueCalled_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeactivatePushSubscription provides a mock function for the type MockNotificationServiceInterface
+func (_mock *MockNotificationServiceInterface) DeactivatePushSubscription(ctx context.Context, rawKey string, request *messages.DeactivatePushSubscriptionRequestDTO) error {
+	ret := _mock.Called(ctx, rawKey, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeactivatePushSubscription")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *messages.DeactivatePushSubscriptionRequestDTO) error); ok {
+		r0 = returnFunc(ctx, rawKey, request)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockNotificationServiceInterface_DeactivatePushSubscription_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeactivatePushSubscription'
+type MockNotificationServiceInterface_DeactivatePushSubscription_Call struct {
+	*mock.Call
+}
+
+// DeactivatePushSubscription is a helper method to define mock.On call
+//   - ctx context.Context
+//   - rawKey string
+//   - request *messages.DeactivatePushSubscriptionRequestDTO
+func (_e *MockNotificationServiceInterface_Expecter) DeactivatePushSubscription(ctx interface{}, rawKey interface{}, request interface{}) *MockNotificationServiceInterface_DeactivatePushSubscription_Call {
+	return &MockNotificationServiceInterface_DeactivatePushSubscription_Call{Call: _e.mock.On("DeactivatePushSubscription", ctx, rawKey, request)}
+}
+
+func (_c *MockNotificationServiceInterface_DeactivatePushSubscription_Call) Run(run func(ctx context.Context, rawKey string, request *messages.DeactivatePushSubscriptionRequestDTO)) *MockNotificationServiceInterface_DeactivatePushSubscription_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *messages.DeactivatePushSubscriptionRequestDTO
+		if args[2] != nil {
+			arg2 = args[2].(*messages.DeactivatePushSubscriptionRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_DeactivatePushSubscription_Call) Return(err error) *MockNotificationServiceInterface_DeactivatePushSubscription_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_DeactivatePushSubscription_Call) RunAndReturn(run func(ctx context.Context, rawKey string, request *messages.DeactivatePushSubscriptionRequestDTO) error) *MockNotificationServiceInterface_DeactivatePushSubscription_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPreferences provides a mock function for the type MockNotificationServiceInterface
 func (_mock *MockNotificationServiceInterface) GetPreferences(ctx context.Context) (*messages.NotificationPreferencesResponseDTO, error) {
 	ret := _mock.Called(ctx)
@@ -5278,6 +5803,68 @@ func (_c *MockNotificationServiceInterface_GetPreferences_Call) Return(notificat
 }
 
 func (_c *MockNotificationServiceInterface_GetPreferences_Call) RunAndReturn(run func(ctx context.Context) (*messages.NotificationPreferencesResponseDTO, error)) *MockNotificationServiceInterface_GetPreferences_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPushConfig provides a mock function for the type MockNotificationServiceInterface
+func (_mock *MockNotificationServiceInterface) GetPushConfig(ctx context.Context) (*messages.PushConfigResponseDTO, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPushConfig")
+	}
+
+	var r0 *messages.PushConfigResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (*messages.PushConfigResponseDTO, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *messages.PushConfigResponseDTO); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PushConfigResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockNotificationServiceInterface_GetPushConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPushConfig'
+type MockNotificationServiceInterface_GetPushConfig_Call struct {
+	*mock.Call
+}
+
+// GetPushConfig is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockNotificationServiceInterface_Expecter) GetPushConfig(ctx interface{}) *MockNotificationServiceInterface_GetPushConfig_Call {
+	return &MockNotificationServiceInterface_GetPushConfig_Call{Call: _e.mock.On("GetPushConfig", ctx)}
+}
+
+func (_c *MockNotificationServiceInterface_GetPushConfig_Call) Run(run func(ctx context.Context)) *MockNotificationServiceInterface_GetPushConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_GetPushConfig_Call) Return(pushConfigResponseDTO *messages.PushConfigResponseDTO, err error) *MockNotificationServiceInterface_GetPushConfig_Call {
+	_c.Call.Return(pushConfigResponseDTO, err)
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_GetPushConfig_Call) RunAndReturn(run func(ctx context.Context) (*messages.PushConfigResponseDTO, error)) *MockNotificationServiceInterface_GetPushConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5494,6 +6081,80 @@ func (_c *MockNotificationServiceInterface_UpdatePreferences_Call) Return(notifi
 }
 
 func (_c *MockNotificationServiceInterface_UpdatePreferences_Call) RunAndReturn(run func(ctx context.Context, rawKey string, request *messages.UpdateNotificationPreferencesRequestDTO) (*messages.NotificationPreferencesResponseDTO, error)) *MockNotificationServiceInterface_UpdatePreferences_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpsertPushSubscription provides a mock function for the type MockNotificationServiceInterface
+func (_mock *MockNotificationServiceInterface) UpsertPushSubscription(ctx context.Context, rawKey string, request *messages.UpsertPushSubscriptionRequestDTO) (*messages.PushSubscriptionResponseDTO, error) {
+	ret := _mock.Called(ctx, rawKey, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpsertPushSubscription")
+	}
+
+	var r0 *messages.PushSubscriptionResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) (*messages.PushSubscriptionResponseDTO, error)); ok {
+		return returnFunc(ctx, rawKey, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) *messages.PushSubscriptionResponseDTO); ok {
+		r0 = returnFunc(ctx, rawKey, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.PushSubscriptionResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *messages.UpsertPushSubscriptionRequestDTO) error); ok {
+		r1 = returnFunc(ctx, rawKey, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockNotificationServiceInterface_UpsertPushSubscription_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpsertPushSubscription'
+type MockNotificationServiceInterface_UpsertPushSubscription_Call struct {
+	*mock.Call
+}
+
+// UpsertPushSubscription is a helper method to define mock.On call
+//   - ctx context.Context
+//   - rawKey string
+//   - request *messages.UpsertPushSubscriptionRequestDTO
+func (_e *MockNotificationServiceInterface_Expecter) UpsertPushSubscription(ctx interface{}, rawKey interface{}, request interface{}) *MockNotificationServiceInterface_UpsertPushSubscription_Call {
+	return &MockNotificationServiceInterface_UpsertPushSubscription_Call{Call: _e.mock.On("UpsertPushSubscription", ctx, rawKey, request)}
+}
+
+func (_c *MockNotificationServiceInterface_UpsertPushSubscription_Call) Run(run func(ctx context.Context, rawKey string, request *messages.UpsertPushSubscriptionRequestDTO)) *MockNotificationServiceInterface_UpsertPushSubscription_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *messages.UpsertPushSubscriptionRequestDTO
+		if args[2] != nil {
+			arg2 = args[2].(*messages.UpsertPushSubscriptionRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_UpsertPushSubscription_Call) Return(pushSubscriptionResponseDTO *messages.PushSubscriptionResponseDTO, err error) *MockNotificationServiceInterface_UpsertPushSubscription_Call {
+	_c.Call.Return(pushSubscriptionResponseDTO, err)
+	return _c
+}
+
+func (_c *MockNotificationServiceInterface_UpsertPushSubscription_Call) RunAndReturn(run func(ctx context.Context, rawKey string, request *messages.UpsertPushSubscriptionRequestDTO) (*messages.PushSubscriptionResponseDTO, error)) *MockNotificationServiceInterface_UpsertPushSubscription_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5746,6 +6407,492 @@ func (_c *MockSpaceServiceInterface_List_Call) Return(paginatedResponse *message
 }
 
 func (_c *MockSpaceServiceInterface_List_Call) RunAndReturn(run func(ctx context.Context, filter *messages.ListSpacesFilterDTO) (*messages.PaginatedResponse[messages.SpaceResponseDTO], error)) *MockSpaceServiceInterface_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// NewMockSpecialEventServiceInterface creates a new instance of MockSpecialEventServiceInterface. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockSpecialEventServiceInterface(t interface {
+	mock.TestingT
+	Cleanup(func())
+}) *MockSpecialEventServiceInterface {
+	mock := &MockSpecialEventServiceInterface{}
+	mock.Mock.Test(t)
+
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+
+	return mock
+}
+
+// MockSpecialEventServiceInterface is an autogenerated mock type for the SpecialEventServiceInterface type
+type MockSpecialEventServiceInterface struct {
+	mock.Mock
+}
+
+type MockSpecialEventServiceInterface_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockSpecialEventServiceInterface) EXPECT() *MockSpecialEventServiceInterface_Expecter {
+	return &MockSpecialEventServiceInterface_Expecter{mock: &_m.Mock}
+}
+
+// Active provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) Active(ctx context.Context, target string) (*messages.ActiveSpecialEventResponseDTO, error) {
+	ret := _mock.Called(ctx, target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Active")
+	}
+
+	var r0 *messages.ActiveSpecialEventResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.ActiveSpecialEventResponseDTO, error)); ok {
+		return returnFunc(ctx, target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.ActiveSpecialEventResponseDTO); ok {
+		r0 = returnFunc(ctx, target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ActiveSpecialEventResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_Active_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Active'
+type MockSpecialEventServiceInterface_Active_Call struct {
+	*mock.Call
+}
+
+// Active is a helper method to define mock.On call
+//   - ctx context.Context
+//   - target string
+func (_e *MockSpecialEventServiceInterface_Expecter) Active(ctx interface{}, target interface{}) *MockSpecialEventServiceInterface_Active_Call {
+	return &MockSpecialEventServiceInterface_Active_Call{Call: _e.mock.On("Active", ctx, target)}
+}
+
+func (_c *MockSpecialEventServiceInterface_Active_Call) Run(run func(ctx context.Context, target string)) *MockSpecialEventServiceInterface_Active_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Active_Call) Return(activeSpecialEventResponseDTO *messages.ActiveSpecialEventResponseDTO, err error) *MockSpecialEventServiceInterface_Active_Call {
+	_c.Call.Return(activeSpecialEventResponseDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Active_Call) RunAndReturn(run func(ctx context.Context, target string) (*messages.ActiveSpecialEventResponseDTO, error)) *MockSpecialEventServiceInterface_Active_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Close provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) Close(ctx context.Context, eventID string) error {
+	ret := _mock.Called(ctx, eventID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Close")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, eventID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockSpecialEventServiceInterface_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type MockSpecialEventServiceInterface_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+//   - ctx context.Context
+//   - eventID string
+func (_e *MockSpecialEventServiceInterface_Expecter) Close(ctx interface{}, eventID interface{}) *MockSpecialEventServiceInterface_Close_Call {
+	return &MockSpecialEventServiceInterface_Close_Call{Call: _e.mock.On("Close", ctx, eventID)}
+}
+
+func (_c *MockSpecialEventServiceInterface_Close_Call) Run(run func(ctx context.Context, eventID string)) *MockSpecialEventServiceInterface_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Close_Call) Return(err error) *MockSpecialEventServiceInterface_Close_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Close_Call) RunAndReturn(run func(ctx context.Context, eventID string) error) *MockSpecialEventServiceInterface_Close_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Create provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) Create(ctx context.Context, request *messages.CreateSpecialEventRequestDTO) (*messages.ManagerSpecialEventDTO, error) {
+	ret := _mock.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
+	var r0 *messages.ManagerSpecialEventDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.CreateSpecialEventRequestDTO) (*messages.ManagerSpecialEventDTO, error)); ok {
+		return returnFunc(ctx, request)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *messages.CreateSpecialEventRequestDTO) *messages.ManagerSpecialEventDTO); ok {
+		r0 = returnFunc(ctx, request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ManagerSpecialEventDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *messages.CreateSpecialEventRequestDTO) error); ok {
+		r1 = returnFunc(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockSpecialEventServiceInterface_Create_Call struct {
+	*mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request *messages.CreateSpecialEventRequestDTO
+func (_e *MockSpecialEventServiceInterface_Expecter) Create(ctx interface{}, request interface{}) *MockSpecialEventServiceInterface_Create_Call {
+	return &MockSpecialEventServiceInterface_Create_Call{Call: _e.mock.On("Create", ctx, request)}
+}
+
+func (_c *MockSpecialEventServiceInterface_Create_Call) Run(run func(ctx context.Context, request *messages.CreateSpecialEventRequestDTO)) *MockSpecialEventServiceInterface_Create_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *messages.CreateSpecialEventRequestDTO
+		if args[1] != nil {
+			arg1 = args[1].(*messages.CreateSpecialEventRequestDTO)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Create_Call) Return(managerSpecialEventDTO *messages.ManagerSpecialEventDTO, err error) *MockSpecialEventServiceInterface_Create_Call {
+	_c.Call.Return(managerSpecialEventDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Create_Call) RunAndReturn(run func(ctx context.Context, request *messages.CreateSpecialEventRequestDTO) (*messages.ManagerSpecialEventDTO, error)) *MockSpecialEventServiceInterface_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Display provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) Display(ctx context.Context, target string) (*messages.LiveDisplaySpecialEventDTO, error) {
+	ret := _mock.Called(ctx, target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Display")
+	}
+
+	var r0 *messages.LiveDisplaySpecialEventDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.LiveDisplaySpecialEventDTO, error)); ok {
+		return returnFunc(ctx, target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.LiveDisplaySpecialEventDTO); ok {
+		r0 = returnFunc(ctx, target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.LiveDisplaySpecialEventDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_Display_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Display'
+type MockSpecialEventServiceInterface_Display_Call struct {
+	*mock.Call
+}
+
+// Display is a helper method to define mock.On call
+//   - ctx context.Context
+//   - target string
+func (_e *MockSpecialEventServiceInterface_Expecter) Display(ctx interface{}, target interface{}) *MockSpecialEventServiceInterface_Display_Call {
+	return &MockSpecialEventServiceInterface_Display_Call{Call: _e.mock.On("Display", ctx, target)}
+}
+
+func (_c *MockSpecialEventServiceInterface_Display_Call) Run(run func(ctx context.Context, target string)) *MockSpecialEventServiceInterface_Display_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Display_Call) Return(liveDisplaySpecialEventDTO *messages.LiveDisplaySpecialEventDTO, err error) *MockSpecialEventServiceInterface_Display_Call {
+	_c.Call.Return(liveDisplaySpecialEventDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Display_Call) RunAndReturn(run func(ctx context.Context, target string) (*messages.LiveDisplaySpecialEventDTO, error)) *MockSpecialEventServiceInterface_Display_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListManager provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) ListManager(ctx context.Context) (*messages.ManagerSpecialEventsResponseDTO, error) {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListManager")
+	}
+
+	var r0 *messages.ManagerSpecialEventsResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (*messages.ManagerSpecialEventsResponseDTO, error)); ok {
+		return returnFunc(ctx)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *messages.ManagerSpecialEventsResponseDTO); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ManagerSpecialEventsResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_ListManager_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListManager'
+type MockSpecialEventServiceInterface_ListManager_Call struct {
+	*mock.Call
+}
+
+// ListManager is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockSpecialEventServiceInterface_Expecter) ListManager(ctx interface{}) *MockSpecialEventServiceInterface_ListManager_Call {
+	return &MockSpecialEventServiceInterface_ListManager_Call{Call: _e.mock.On("ListManager", ctx)}
+}
+
+func (_c *MockSpecialEventServiceInterface_ListManager_Call) Run(run func(ctx context.Context)) *MockSpecialEventServiceInterface_ListManager_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_ListManager_Call) Return(managerSpecialEventsResponseDTO *messages.ManagerSpecialEventsResponseDTO, err error) *MockSpecialEventServiceInterface_ListManager_Call {
+	_c.Call.Return(managerSpecialEventsResponseDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_ListManager_Call) RunAndReturn(run func(ctx context.Context) (*messages.ManagerSpecialEventsResponseDTO, error)) *MockSpecialEventServiceInterface_ListManager_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ReleaseQR provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) ReleaseQR(ctx context.Context, eventID string) (*messages.SpecialEventQRResponseDTO, error) {
+	ret := _mock.Called(ctx, eventID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReleaseQR")
+	}
+
+	var r0 *messages.SpecialEventQRResponseDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.SpecialEventQRResponseDTO, error)); ok {
+		return returnFunc(ctx, eventID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.SpecialEventQRResponseDTO); ok {
+		r0 = returnFunc(ctx, eventID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.SpecialEventQRResponseDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, eventID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_ReleaseQR_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReleaseQR'
+type MockSpecialEventServiceInterface_ReleaseQR_Call struct {
+	*mock.Call
+}
+
+// ReleaseQR is a helper method to define mock.On call
+//   - ctx context.Context
+//   - eventID string
+func (_e *MockSpecialEventServiceInterface_Expecter) ReleaseQR(ctx interface{}, eventID interface{}) *MockSpecialEventServiceInterface_ReleaseQR_Call {
+	return &MockSpecialEventServiceInterface_ReleaseQR_Call{Call: _e.mock.On("ReleaseQR", ctx, eventID)}
+}
+
+func (_c *MockSpecialEventServiceInterface_ReleaseQR_Call) Run(run func(ctx context.Context, eventID string)) *MockSpecialEventServiceInterface_ReleaseQR_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_ReleaseQR_Call) Return(specialEventQRResponseDTO *messages.SpecialEventQRResponseDTO, err error) *MockSpecialEventServiceInterface_ReleaseQR_Call {
+	_c.Call.Return(specialEventQRResponseDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_ReleaseQR_Call) RunAndReturn(run func(ctx context.Context, eventID string) (*messages.SpecialEventQRResponseDTO, error)) *MockSpecialEventServiceInterface_ReleaseQR_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Teaser provides a mock function for the type MockSpecialEventServiceInterface
+func (_mock *MockSpecialEventServiceInterface) Teaser(ctx context.Context, eventID string) (*messages.ManagerSpecialEventDTO, error) {
+	ret := _mock.Called(ctx, eventID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Teaser")
+	}
+
+	var r0 *messages.ManagerSpecialEventDTO
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*messages.ManagerSpecialEventDTO, error)); ok {
+		return returnFunc(ctx, eventID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *messages.ManagerSpecialEventDTO); ok {
+		r0 = returnFunc(ctx, eventID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*messages.ManagerSpecialEventDTO)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, eventID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockSpecialEventServiceInterface_Teaser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Teaser'
+type MockSpecialEventServiceInterface_Teaser_Call struct {
+	*mock.Call
+}
+
+// Teaser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - eventID string
+func (_e *MockSpecialEventServiceInterface_Expecter) Teaser(ctx interface{}, eventID interface{}) *MockSpecialEventServiceInterface_Teaser_Call {
+	return &MockSpecialEventServiceInterface_Teaser_Call{Call: _e.mock.On("Teaser", ctx, eventID)}
+}
+
+func (_c *MockSpecialEventServiceInterface_Teaser_Call) Run(run func(ctx context.Context, eventID string)) *MockSpecialEventServiceInterface_Teaser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Teaser_Call) Return(managerSpecialEventDTO *messages.ManagerSpecialEventDTO, err error) *MockSpecialEventServiceInterface_Teaser_Call {
+	_c.Call.Return(managerSpecialEventDTO, err)
+	return _c
+}
+
+func (_c *MockSpecialEventServiceInterface_Teaser_Call) RunAndReturn(run func(ctx context.Context, eventID string) (*messages.ManagerSpecialEventDTO, error)) *MockSpecialEventServiceInterface_Teaser_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -6452,49 +7599,4 @@ func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) Return(translate
 func (_c *MockWebhookPayloadTranslatorInterface_Translate_Call) RunAndReturn(run func(payload map[string]any) ([]*interfaces.TranslatedSubscription, error)) *MockWebhookPayloadTranslatorInterface_Translate_Call {
 	_c.Call.Return(run)
 	return _c
-}
-
-func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	ret := _mock.Called(ctx, activityID, idempotencyKey)
-	var r0 *messages.ActivityStateResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
-	}
-	return r0, ret.Error(1)
-}
-
-func (_mock *MockActivityServiceInterface) FlexScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	ret := _mock.Called(ctx, activityID, idempotencyKey)
-	var r0 *messages.ActivityStateResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
-	}
-	return r0, ret.Error(1)
-}
-
-func (_mock *MockActivityServiceInterface) AdvanceScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	ret := _mock.Called(ctx, activityID, idempotencyKey)
-	var r0 *messages.ActivityStateResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
-	}
-	return r0, ret.Error(1)
-}
-
-func (_mock *MockGameServiceInterface) CreateManagerGame(ctx context.Context, key string, request *messages.CreateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, int, error) {
-	ret := _mock.Called(ctx, key, request)
-	var r0 *messages.ManagerGameResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
-	}
-	return r0, ret.Get(1).(int), ret.Error(2)
-}
-
-func (_mock *MockGameServiceInterface) UpdateManagerGame(ctx context.Context, gameID string, key string, request *messages.UpdateManagerGameRequestDTO) (*messages.ManagerGameResponseDTO, error) {
-	ret := _mock.Called(ctx, gameID, key, request)
-	var r0 *messages.ManagerGameResponseDTO
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(*messages.ManagerGameResponseDTO)
-	}
-	return r0, ret.Error(1)
 }

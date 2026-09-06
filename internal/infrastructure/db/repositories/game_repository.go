@@ -760,6 +760,53 @@ func (r *GameRepository) ApplyAward(
 	return nil
 }
 
+func mapScheduleQRCheckIn(row *models.ScheduleQRCheckIn) *gameEntities.ScheduleQRCheckIn {
+	return &gameEntities.ScheduleQRCheckIn{ID: row.ID, UserID: row.UserID, ActivityID: row.ActivityID, SpaceID: row.SpaceID, PointEntryID: row.PointEntryID, CheckedInAt: row.CheckedInAt, BlockedUntil: row.BlockedUntil}
+}
+
+func (r *GameRepository) FindScheduleQRCheckIn(ctx context.Context, userID uint64, activityID string) (*gameEntities.ScheduleQRCheckIn, error) {
+	var row models.ScheduleQRCheckIn
+	if err := r.getDB(ctx).Where("user_id = ? AND activity_id = ?", userID, activityID).Take(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return mapScheduleQRCheckIn(&row), nil
+}
+
+func (r *GameRepository) FindLatestScheduleQRCheckIn(ctx context.Context, userID uint64) (*gameEntities.ScheduleQRCheckIn, error) {
+	var row models.ScheduleQRCheckIn
+	if err := r.getDB(ctx).Where("user_id = ?", userID).Order("checked_in_at DESC").Order("id DESC").Take(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return mapScheduleQRCheckIn(&row), nil
+}
+
+func (r *GameRepository) FindScheduleQRCheckInByID(ctx context.Context, checkInID string) (*gameEntities.ScheduleQRCheckIn, error) {
+	var row models.ScheduleQRCheckIn
+	if err := r.getDB(ctx).Where("id = ?", checkInID).Take(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return mapScheduleQRCheckIn(&row), nil
+}
+
+func (r *GameRepository) CreateScheduleQRCheckInAndAward(ctx context.Context, checkIn *gameEntities.ScheduleQRCheckIn, entry *gameEntities.PointEntry) error {
+	entryRow := &models.PointEntry{ID: entry.ID, UserID: entry.UserID, ActivityID: &entry.ActivityID, Origin: entry.Origin, Reason: entry.Reason, Delta: entry.Delta, CreatedAt: entry.CreatedAt}
+	if err := r.getDB(ctx).Create(entryRow).Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	row := &models.ScheduleQRCheckIn{ID: checkIn.ID, UserID: checkIn.UserID, ActivityID: checkIn.ActivityID, SpaceID: checkIn.SpaceID, PointEntryID: checkIn.PointEntryID, CheckedInAt: checkIn.CheckedInAt, BlockedUntil: checkIn.BlockedUntil, CreatedAt: checkIn.CheckedInAt}
+	if err := r.getDB(ctx).Create(row).Error; err != nil {
+		return handleRepositoryError(err)
+	}
+	result := r.getDB(ctx).Model(&models.User{}).Where("id = ?", entry.UserID).UpdateColumn("points", gorm.Expr("points + ?", entry.Delta))
+	if result.Error != nil {
+		return handleRepositoryError(result.Error)
+	}
+	if result.RowsAffected != 1 {
+		return appErrors.ErrConflict
+	}
+	return nil
+}
+
 type individualRankingRow struct {
 	UserID    uint64 `gorm:"column:user_id"`
 	Name      string

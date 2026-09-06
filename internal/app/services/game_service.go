@@ -71,6 +71,28 @@ func (s *GameService) qrHash(token string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
+func (s *GameService) scheduleQRToken(spaceID string) string {
+	mac := hmac.New(sha256.New, []byte(s.secret()))
+	_, _ = mac.Write([]byte("dnj-v2-schedule-space-qr\x00" + spaceID))
+	return "schedule." + spaceID + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func (s *GameService) parseScheduleQR(token string) (string, bool) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 || parts[0] != "schedule" {
+		return "", false
+	}
+	id, err := uuid.Parse(parts[1])
+	if err != nil {
+		return "", false
+	}
+	expected := s.scheduleQRToken(id.String())
+	if !hmac.Equal([]byte(token), []byte(expected)) {
+		return id.String(), false
+	}
+	return id.String(), true
+}
+
 func qrScoresCheckIn(kind activityEntities.Kind) bool {
 	return kind == activityEntities.KindCheckpoint || kind == activityEntities.KindLive
 }
@@ -283,6 +305,12 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		return nil, 0, err
 	}
 	token := strings.TrimSpace(request.QRToken)
+	if spaceID, isScheduleQR := s.parseScheduleQR(token); strings.HasPrefix(token, "schedule.") {
+		if !isScheduleQR {
+			return nil, 0, gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
+		}
+		return s.validateScheduleQR(ctx, request, spaceID)
+	}
 	tokenHash := s.qrHash(token)
 	operation := "participant.activity-run.join"
 	requestHash := intentHash(operation, struct {
@@ -397,6 +425,87 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 			pointsAwarded = activity.CheckInPoints
 		}
 		response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}
+		return nil
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	return response, status, nil
+}
+
+func scheduleParticipation(checkIn *gameEntities.ScheduleQRCheckIn, activity *activityEntities.Activity, total *int) messages.ParticipationResponseDTO {
+	return messages.ParticipationResponseDTO{ID: checkIn.ID, Activity: messages.NamedGameReferenceDTO{ID: activity.ID, Name: activity.Name}, CheckedInAt: checkIn.CheckedInAt.UTC(), Status: "active", CanShareMoment: false, CheckInPoints: 0, NewTotalPoints: total}
+}
+
+func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.QRValidateRequestDTO, spaceID string) (*messages.ParticipationEnvelopeDTO, int, error) {
+	key, err := uuid.Parse(request.IdempotencyKey)
+	if err != nil {
+		return nil, 0, gameError(http.StatusBadRequest, "INVALID_REQUEST", "idempotencyKey deve ser um UUID válido.")
+	}
+	operation := "participant.schedule-qr.checkin"
+	requestHash := intentHash(operation, struct {
+		SpaceID string `json:"spaceId"`
+	}{SpaceID: spaceID})
+	status := http.StatusCreated
+	var response *messages.ParticipationEnvelopeDTO
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
+		user, authErr := s.participant(txCtx, true)
+		if authErr != nil {
+			return authErr
+		}
+		prior, findErr := s.games.FindParticipantOperation(txCtx, user.ID, key.String())
+		if findErr == nil {
+			if prior.Operation != operation || prior.IntentHash != requestHash || prior.ResultRef == nil || prior.ResultPoints == nil {
+				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
+			}
+			checkIn, checkInErr := s.games.FindScheduleQRCheckInByID(txCtx, *prior.ResultRef)
+			if checkInErr != nil {
+				return appErrors.InternalError
+			}
+			activity, activityErr := s.activities.FindByID(txCtx, checkIn.ActivityID)
+			if activityErr != nil {
+				return appErrors.InternalError
+			}
+			total := *prior.ResultPoints
+			response = &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(checkIn, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "scored", PointsAwarded: activity.CheckInPoints}
+			status = prior.HTTPStatus
+			return nil
+		}
+		if !errors.Is(findErr, appErrors.ErrNotFound) {
+			return appErrors.InternalError
+		}
+		now := s.now().UTC()
+		activity, activityErr := s.activities.FindScheduleForSpaceAt(txCtx, spaceID, now)
+		if errors.Is(activityErr, appErrors.ErrNotFound) {
+			return gameError(http.StatusConflict, "QR_UNAVAILABLE", "Não há programação disponível neste Space agora.")
+		}
+		if activityErr != nil {
+			return appErrors.InternalError
+		}
+		if existing, existingErr := s.games.FindScheduleQRCheckIn(txCtx, user.ID, activity.ID); existingErr == nil {
+			total := user.Points
+			response = &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(existing, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "joined"}
+			status = http.StatusOK
+			return nil
+		} else if !errors.Is(existingErr, appErrors.ErrNotFound) {
+			return appErrors.InternalError
+		}
+		if latest, latestErr := s.games.FindLatestScheduleQRCheckIn(txCtx, user.ID); latestErr == nil && now.Before(latest.BlockedUntil) {
+			return gameError(http.StatusConflict, "SCHEDULE_SCAN_BLOCKED", "Aguarde 15 minutos para pontuar outra programação.")
+		} else if latestErr != nil && !errors.Is(latestErr, appErrors.ErrNotFound) {
+			return appErrors.InternalError
+		}
+		checkIn := &gameEntities.ScheduleQRCheckIn{ID: uuid.NewString(), UserID: user.ID, ActivityID: activity.ID, SpaceID: spaceID, PointEntryID: uuid.NewString(), CheckedInAt: now, BlockedUntil: now.Add(15 * time.Minute)}
+		entry := &gameEntities.PointEntry{ID: checkIn.PointEntryID, UserID: user.ID, ActivityID: activity.ID, Origin: "schedule_qr_checkin", Reason: "schedule_qr_checkin", Delta: activity.CheckInPoints, CreatedAt: now}
+		if awardErr := s.games.CreateScheduleQRCheckInAndAward(txCtx, checkIn, entry); awardErr != nil {
+			return appErrors.InternalError
+		}
+		total := user.Points + activity.CheckInPoints
+		resultRef := checkIn.ID
+		if createErr := s.games.CreateParticipantOperation(txCtx, &favoriteEntities.ParticipantOperation{ID: uuid.NewString(), ActorUserID: user.ID, IdempotencyKey: key.String(), Operation: operation, ActivityID: activity.ID, IntentHash: requestHash, HTTPStatus: status, ResultRef: &resultRef, ResultPoints: &total, CreatedAt: now}); createErr != nil {
+			return appErrors.InternalError
+		}
+		response = &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(checkIn, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "scored", PointsAwarded: activity.CheckInPoints}
 		return nil
 	})
 	if err != nil {
@@ -877,6 +986,24 @@ func (s *GameService) AdminCheckpointQR(ctx context.Context, rawActivityID strin
 		return findErr
 	})
 	return response, err
+}
+
+func (s *GameService) AdminScheduleSpaceQR(ctx context.Context, rawSpaceID string) (*messages.QRResponseDTO, error) {
+	spaceID, err := uuid.Parse(rawSpaceID)
+	if err != nil {
+		return nil, gameError(http.StatusNotFound, "NOT_FOUND", "Space não encontrado.")
+	}
+	_, global, err := s.manager(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	if !global {
+		return nil, gameError(http.StatusForbidden, "FORBIDDEN", "Operação permitida somente para ADMIN.")
+	}
+	if err := s.requireQRSecret(); err != nil {
+		return nil, err
+	}
+	return &messages.QRResponseDTO{RunID: spaceID.String(), QRID: spaceID.String(), QRToken: s.scheduleQRToken(spaceID.String()), ExpiresAt: staticQRExpiry}, nil
 }
 
 func (s *GameService) existingRunQR(ctx context.Context, runID string) (*messages.QRResponseDTO, error) {

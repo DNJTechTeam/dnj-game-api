@@ -88,6 +88,29 @@ func (r *ActivityRepository) FindByIDForUpdate(ctx context.Context, activityID s
 	return mappers.MapActivityToEntity(&row), nil
 }
 
+func (r *ActivityRepository) HasScheduleOverlap(ctx context.Context, spaceID string, startsAt, endsAt time.Time, excludeActivityID *string) (bool, error) {
+	query := r.getDB(ctx).Model(&models.Activity{}).
+		Where("kind = ? AND status <> ? AND space_id = ? AND starts_at < ? AND ends_at > ?", string(entities.KindSchedule), string(entities.StatusArchived), spaceID, endsAt.UTC(), startsAt.UTC())
+	if excludeActivityID != nil {
+		query = query.Where("id <> ?", *excludeActivityID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return false, handleRepositoryError(err)
+	}
+	return count > 0, nil
+}
+
+func (r *ActivityRepository) FindScheduleForSpaceAt(ctx context.Context, spaceID string, now time.Time) (*entities.Activity, error) {
+	var row models.Activity
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("kind = ? AND status <> ? AND space_id = ? AND starts_at <= ? AND ends_at > ?", string(entities.KindSchedule), string(entities.StatusArchived), spaceID, now.UTC(), now.UTC()).
+		Order("starts_at ASC").Take(&row).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	return mappers.MapActivityToEntity(&row), nil
+}
+
 func (r *ActivityRepository) Update(ctx context.Context, activity *entities.Activity) (*entities.Activity, error) {
 	row := mappers.MapActivityEntityToModel(activity)
 	if err := r.BaseRepository.Update(ctx, row); err != nil {
