@@ -18,7 +18,15 @@ func scheduleQRCheckInRows(now time.Time) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{"id", "user_id", "activity_id", "space_id", "point_entry_id", "checked_in_at", "blocked_until", "created_at"}).AddRow("check-in", 42, "activity", "space", "entry", now, now.Add(10*time.Minute), now)
 }
 
-func TestScheduleQRRepositoryQueries(t *testing.T) {
+func TestIteration4AdminRepositories_ScheduleQRQueriesCoverage(t *testing.T) {
+	testScheduleQRRepositoryQueries(t)
+}
+
+func TestIteration6ScheduleQRRepositoryQueries(t *testing.T) {
+	testScheduleQRRepositoryQueries(t)
+}
+
+func testScheduleQRRepositoryQueries(t *testing.T) {
 	now := time.Date(2026, 10, 18, 15, 0, 0, 0, time.UTC)
 
 	t.Run("schedule check-in lookups map persisted rows", func(t *testing.T) {
