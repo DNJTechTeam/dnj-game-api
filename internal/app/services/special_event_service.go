@@ -161,6 +161,9 @@ func (s *SpecialEventService) Create(ctx context.Context, request *messages.Crea
 	return result, nil
 }
 func (s *SpecialEventService) Teaser(ctx context.Context, eventID string) (*messages.ManagerSpecialEventDTO, error) {
+	if strings.TrimSpace(s.secret()) == "" {
+		return nil, appErrors.InternalError
+	}
 	var result *messages.ManagerSpecialEventDTO
 	err := s.WithTransaction(ctx, func(tx context.Context) error {
 		actor, global, err := s.manager(tx)
@@ -178,8 +181,21 @@ func (s *SpecialEventService) Teaser(ctx context.Context, eventID string) (*mess
 			return specialError(http.StatusConflict, "EVENT_STATE_CONFLICT", "Este evento não está pronto para o teaser.")
 		}
 		now := s.now().UTC()
+		run := &gameEntities.ActivityRun{ID: uuid.NewString(), ActivityID: event.ActivityID, StartedBy: actor.ID, Status: gameEntities.RunStatusDraft, PointRules: gameEntities.DefaultPointRules(), CreatedAt: now, UpdatedAt: now}
+		if _, err = s.games.CreateRun(tx, run); err != nil {
+			return appErrors.InternalError
+		}
+		qrID := uuid.NewString()
+		token := s.qrToken(qrID)
+		expires := event.EndsAt
+		if _, err = s.games.CreateQR(tx, &gameEntities.QRCode{ID: qrID, ActivityID: event.ActivityID, ActivityRunID: run.ID, TokenHash: s.qrHash(token), ExpiresAt: expires, Status: gameEntities.QRCodeStatusActive, CreatedAt: now, UpdatedAt: now}); err != nil {
+			return appErrors.InternalError
+		}
 		event.Status = specialEntities.StatusTeaser
 		event.TeaserAt = &now
+		event.ActivityRunID = &run.ID
+		event.QRToken = &token
+		event.QRExpiresAt = &expires
 		event.UpdatedAt = now
 		if err = s.events.Save(tx, event); err != nil {
 			return appErrors.InternalError
@@ -222,6 +238,18 @@ func (s *SpecialEventService) ReleaseQR(ctx context.Context, eventID string) (*m
 		}
 		if event.Status != specialEntities.StatusTeaser && event.Status != specialEntities.StatusActive {
 			return specialError(http.StatusConflict, "EVENT_STATE_CONFLICT", "Este evento não pode liberar QR.")
+		}
+		if event.Status == specialEntities.StatusTeaser && event.QRToken != nil && event.QRExpiresAt != nil {
+			event.Status = specialEntities.StatusActive
+			event.UpdatedAt = now
+			if err = s.events.Save(tx, event); err != nil {
+				return appErrors.InternalError
+			}
+			if err = s.announceActivation(tx, event, now); err != nil {
+				return err
+			}
+			result = &messages.SpecialEventQRResponseDTO{QRToken: *event.QRToken, ExpiresAt: *event.QRExpiresAt}
+			return nil
 		}
 		activating := event.Status != specialEntities.StatusActive
 		var runID string
@@ -310,7 +338,11 @@ func (s *SpecialEventService) Active(ctx context.Context, target string) (*messa
 		at := event.TeaserAt.Add(specialEventTeaser)
 		ready = &at
 	}
-	return &messages.ActiveSpecialEventResponseDTO{Event: &messages.ActiveSpecialEventDTO{ID: event.ID, Title: event.Title, Status: string(event.Status), StartsAt: start, EndsAt: event.EndsAt, TeaserSeconds: 15, Points: event.Points, QRAvailableAt: ready, QRToken: event.QRToken}, MomentChallenge: nil}, nil
+	qrToken := event.QRToken
+	if event.Status == specialEntities.StatusTeaser {
+		qrToken = nil
+	}
+	return &messages.ActiveSpecialEventResponseDTO{Event: &messages.ActiveSpecialEventDTO{ID: event.ID, Title: event.Title, Status: string(event.Status), StartsAt: start, EndsAt: event.EndsAt, TeaserSeconds: 15, Points: event.Points, QRAvailableAt: ready, QRToken: qrToken}, MomentChallenge: nil}, nil
 }
 func (s *SpecialEventService) Display(ctx context.Context, target string) (*messages.LiveDisplaySpecialEventDTO, error) {
 	if target != "tv" && target != "screen" {
@@ -328,5 +360,9 @@ func (s *SpecialEventService) Display(ctx context.Context, target string) (*mess
 		at := event.TeaserAt.Add(specialEventTeaser)
 		ready = &at
 	}
-	return &messages.LiveDisplaySpecialEventDTO{ID: event.ID, Title: event.Title, Status: string(event.Status), Points: event.Points, EndsAt: event.EndsAt, ReadyAt: ready, QRToken: event.QRToken}, nil
+	qrToken := event.QRToken
+	if event.Status == specialEntities.StatusTeaser {
+		qrToken = nil
+	}
+	return &messages.LiveDisplaySpecialEventDTO{ID: event.ID, Title: event.Title, Status: string(event.Status), Points: event.Points, EndsAt: event.EndsAt, ReadyAt: ready, QRToken: qrToken}, nil
 }
