@@ -45,6 +45,34 @@ func TestScheduleQRRepositoryQueries(t *testing.T) {
 		}
 	})
 
+	t.Run("lookup failures are redacted", func(t *testing.T) {
+		for _, find := range []func(*GameRepository) error{
+			func(repo *GameRepository) error {
+				_, err := repo.FindScheduleQRCheckIn(context.Background(), 42, "activity")
+				return err
+			},
+			func(repo *GameRepository) error {
+				_, err := repo.FindLatestScheduleQRCheckIn(context.Background(), 42)
+				return err
+			},
+			func(repo *GameRepository) error {
+				_, err := repo.FindScheduleQRCheckInByID(context.Background(), "check-in")
+				return err
+			},
+			func(repo *GameRepository) error { _, err := repo.FindQRScanBlock(context.Background(), 42); return err },
+			func(repo *GameRepository) error {
+				_, err := repo.IsActiveSpecialEventRun(context.Background(), "run", now)
+				return err
+			},
+		} {
+			db, mock := newMockDB(t)
+			mock.ExpectQuery("SELECT").WillReturnError(errors.New("database unavailable"))
+
+			assert.Error(t, find(&GameRepository{BaseRepository: NewBaseRepository[models.ActivityRun](db)}))
+			require.NoError(t, mock.ExpectationsWereMet())
+		}
+	})
+
 	t.Run("scan block and active special event queries", func(t *testing.T) {
 		db, mock := newMockDB(t)
 		mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"user_id", "blocked_until", "updated_at"}).AddRow(42, now.Add(10*time.Minute), now))
@@ -83,7 +111,8 @@ func TestScheduleQRRepositoryQueries(t *testing.T) {
 		mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"id", "space_id", "slug", "name", "kind", "status", "starts_at", "ends_at", "created_at", "updated_at"}).AddRow("activity", "space", "activity", "Activity", string(activityEntities.KindSchedule), string(activityEntities.StatusActive), now.Add(-time.Hour), now.Add(time.Hour), now, now))
 		repo := &ActivityRepository{BaseRepository: NewBaseRepository[models.Activity](db)}
 
-		overlaps, overlapErr := repo.HasScheduleOverlap(context.Background(), "space", now, now.Add(time.Hour), nil)
+		excluded := "other-activity"
+		overlaps, overlapErr := repo.HasScheduleOverlap(context.Background(), "space", now, now.Add(time.Hour), &excluded)
 		activity, scheduleErr := repo.FindScheduleForSpaceAt(context.Background(), "space", now)
 
 		require.NoError(t, overlapErr)
@@ -91,5 +120,24 @@ func TestScheduleQRRepositoryQueries(t *testing.T) {
 		assert.True(t, overlaps)
 		assert.Equal(t, "activity", activity.ID)
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("schedule queries redact database failures", func(t *testing.T) {
+		for _, call := range []func(*ActivityRepository) error{
+			func(repo *ActivityRepository) error {
+				_, err := repo.HasScheduleOverlap(context.Background(), "space", now, now.Add(time.Hour), nil)
+				return err
+			},
+			func(repo *ActivityRepository) error {
+				_, err := repo.FindScheduleForSpaceAt(context.Background(), "space", now)
+				return err
+			},
+		} {
+			db, mock := newMockDB(t)
+			mock.ExpectQuery("SELECT").WillReturnError(errors.New("database unavailable"))
+
+			assert.Error(t, call(&ActivityRepository{BaseRepository: NewBaseRepository[models.Activity](db)}))
+			require.NoError(t, mock.ExpectationsWereMet())
+		}
 	})
 }
