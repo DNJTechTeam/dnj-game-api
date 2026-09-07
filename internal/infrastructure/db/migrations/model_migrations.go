@@ -1464,4 +1464,10 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		},
 		Down: func(db *gorm.DB) error { return nil },
 	})
+
+	registry.Register(createModelMigration(
+		"create_event_settings_table",
+		"2.24.0",
+		&models.EventSettings{},
+	))
 }

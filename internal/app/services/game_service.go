@@ -21,6 +21,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	eventInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/eventsettings/interfaces"
 	favoriteEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/entities"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	gameInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/game/interfaces"
@@ -37,16 +38,17 @@ var staticQRExpiry = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 
 type GameService struct {
 	*BaseService
-	games      gameInterfaces.GameRepositoryInterface
-	activities activityInterfaces.ActivityRepositoryInterface
-	users      userInterfaces.UserRepositoryInterface
-	audits     auditInterfaces.OperationAuditRepositoryInterface
-	now        func() time.Time
-	secret     func() string
+	games        gameInterfaces.GameRepositoryInterface
+	activities   activityInterfaces.ActivityRepositoryInterface
+	users        userInterfaces.UserRepositoryInterface
+	audits       auditInterfaces.OperationAuditRepositoryInterface
+	eventSettings eventInterfaces.EventSettingsRepositoryInterface
+	now          func() time.Time
+	secret       func() string
 }
 
-func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface) appInterfaces.GameServiceInterface {
-	return &GameService{BaseService: base, games: games, activities: activities, users: users, audits: audits, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
+func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, eventSettings eventInterfaces.EventSettingsRepositoryInterface) appInterfaces.GameServiceInterface {
+	return &GameService{BaseService: base, games: games, activities: activities, users: users, audits: audits, eventSettings: eventSettings, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
 }
 
 func gameError(status int, code, message string) error {
@@ -318,6 +320,9 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 	if err := s.requireQRSecret(); err != nil {
 		return nil, 0, err
 	}
+	if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+		return nil, 0, gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
+	}
 	token := strings.TrimSpace(request.QRToken)
 	if spaceID, isScheduleQR := s.parseScheduleQR(token); strings.HasPrefix(token, "schedule.") {
 		if !isScheduleQR {
@@ -464,6 +469,9 @@ func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.
 	key, err := uuid.Parse(request.IdempotencyKey)
 	if err != nil {
 		return nil, 0, gameError(http.StatusBadRequest, "INVALID_REQUEST", "idempotencyKey deve ser um UUID válido.")
+	}
+	if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+		return nil, 0, gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
 	}
 	operation := "participant.schedule-qr.checkin"
 	requestHash := intentHash(operation, struct {

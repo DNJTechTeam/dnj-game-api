@@ -99,7 +99,8 @@ func InitializeServer() *api.API {
 		FavoriteService: favoriteServiceInterface,
 	}
 	gameRepositoryInterface := repositories.ProvideGameRepository(gormDB)
-	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, activityRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface)
+	eventSettingsRepositoryInterface := repositories.ProvideEventSettingsRepository(gormDB)
+	gameServiceInterface := services.ProvideGameService(baseService, gameRepositoryInterface, activityRepositoryInterface, userRepositoryInterface, operationAuditRepositoryInterface, eventSettingsRepositoryInterface)
 	gameHandler := &handlers.GameHandler{
 		GameService: gameServiceInterface,
 	}
@@ -109,7 +110,7 @@ func InitializeServer() *api.API {
 		MediaService: mediaServiceInterface,
 	}
 	repository2 := repositories.ProvideMomentRepository(gormDB)
-	momentServiceInterface := services.ProvideMomentService(baseService, repository2, interfacesRepository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface)
+	momentServiceInterface := services.ProvideMomentService(baseService, repository2, interfacesRepository, interfacesStorage, userRepositoryInterface, operationAuditRepositoryInterface, eventSettingsRepositoryInterface)
 	momentHandler := &handlers.MomentHandler{
 		MomentService: momentServiceInterface,
 	}
@@ -121,6 +122,10 @@ func InitializeServer() *api.API {
 	specialEventServiceInterface := services.ProvideSpecialEventService(baseService, repository3, activityRepositoryInterface, gameRepositoryInterface, userRepositoryInterface, repository)
 	specialEventHandler := &handlers.SpecialEventHandler{
 		Service: specialEventServiceInterface,
+	}
+	eventSettingsServiceInterface := services.ProvideEventSettingsService(baseService, eventSettingsRepositoryInterface, userRepositoryInterface)
+	eventSettingsHandler := &handlers.EventSettingsHandler{
+		EventSettingsService: eventSettingsServiceInterface,
 	}
 	handlersHandlers := &handlers.Handlers{
 		HealthcheckHandler:         healthcheckHandler,
@@ -141,6 +146,7 @@ func InitializeServer() *api.API {
 		MomentHandler:              momentHandler,
 		NotificationHandler:        notificationHandler,
 		SpecialEventHandler:        specialEventHandler,
+		EventSettingsHandler:       eventSettingsHandler,
 	}
 	router := api2.ProvideRouter(engine, handlersHandlers)
 	apiAPI := &api.API{

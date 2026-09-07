@@ -164,7 +164,7 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 	})
 
 	t.Run("write request validation branches", func(t *testing.T) {
-		service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
+		service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository, newFakeEventSettingsRepository()).(*GameService)
 		service.now = func() time.Time { return iteration6Now }
 		service.secret = func() string { return "secret" }
 		managerCtx := TestSuite.ContextWithUser(84)
@@ -215,7 +215,7 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 			games.On("IsActiveSpecialEventRun", mock.Anything, mock.Anything, iteration6Now).Return(false, nil).Maybe()
 			games.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Maybe()
 			games.On("SaveQRScanBlock", mock.Anything, uint64(42), mock.Anything).Return(nil).Maybe()
-			return &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}, games, activities
+			return &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, eventSettings: newFakeEventSettingsRepository(), now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}, games, activities
 		}
 		key := "22222222-2222-4222-8222-222222222222"
 
@@ -225,7 +225,7 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 			audits := mocks.NewMockOperationAuditRepositoryInterface(t)
 			users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(iteration6DefaultUser(), nil).Once()
 			games.On("FindParticipantOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, dbFailure).Once()
-			service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
+			service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, eventSettings: newFakeEventSettingsRepository(), now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
 			_, _, err := service.ValidateQR(TestSuite.ContextWithUser(42), &messages.QRValidateRequestDTO{QRToken: "token", IdempotencyKey: key})
 			assert.ErrorIs(t, err, appErrors.InternalError)
 		})
@@ -300,7 +300,7 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 			games.On("IsActiveSpecialEventRun", mock.Anything, "run", iteration6Now).Return(true, nil).Once()
 			games.On("FindParticipationByRunAndUser", mock.Anything, "run", uint64(42)).Return(&gameEntities.Participation{ID: "participation", UserID: 42, ActivityID: "activity", ActivityRunID: "run"}, nil).Once()
 			games.On("CreateParticipantOperation", mock.Anything, mock.Anything).Return(nil).Once()
-			service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
+			service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, eventSettings: newFakeEventSettingsRepository(), now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
 
 			response, status, err := service.ValidateQR(TestSuite.ContextWithUser(42), &messages.QRValidateRequestDTO{QRToken: "token", IdempotencyKey: key})
 

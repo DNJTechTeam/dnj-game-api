@@ -216,6 +216,7 @@ func setupMediaMomentServices(
 		storage,
 		TestSuite.UserRepository,
 		TestSuite.OperationAuditRepository,
+		newFakeEventSettingsRepository(),
 	).(*MomentService)
 	mediaService.now = func() time.Time { return mediaMomentNow }
 	momentService.now = func() time.Time { return mediaMomentNow }

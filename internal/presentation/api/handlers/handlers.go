@@ -21,4 +21,5 @@ type Handlers struct {
 	MomentHandler              *MomentHandler
 	NotificationHandler        *NotificationHandler
 	SpecialEventHandler        *SpecialEventHandler
+	EventSettingsHandler       *EventSettingsHandler
 }

@@ -47,6 +47,7 @@ func setupE2ERig(t *testing.T) *e2eRig {
 		&models.Activity{}, &models.Space{},
 		&models.RefreshSession{}, &models.GoogleIdentity{}, &models.EmailSignupCode{},
 		&models.Group{}, &models.User{},
+		&models.EventSettings{},
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
@@ -55,6 +56,7 @@ func setupE2ERig(t *testing.T) *e2eRig {
 	mediaRepo := repositories.NewMediaRepository(TestSuite.DbConn)
 	momentRepo := repositories.NewMomentRepository(TestSuite.DbConn)
 	notificationRepo := repositories.NewNotificationRepository(TestSuite.DbConn)
+	eventSettingsRepo := repositories.NewEventSettingsRepository(TestSuite.DbConn)
 
 	jwt := NewJwtService(TestSuite.BaseService)
 	identityService := NewIdentityService(
@@ -69,13 +71,14 @@ func setupE2ERig(t *testing.T) *e2eRig {
 	userService := NewUserService(TestSuite.BaseService, TestSuite.UserRepository, TestSuite.GroupRepository, TestSuite.GroupMembershipRepository)
 	contentService := NewContentService(TestSuite.ActivityRepository, TestSuite.SpaceRepository)
 	favoriteService := NewFavoriteService(TestSuite.BaseService, TestSuite.FavoriteRepository, TestSuite.ActivityRepository, TestSuite.UserRepository)
-	gameService := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository)
+	gameService := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository, eventSettingsRepo)
 	installationActivityService := NewActivityService(TestSuite.BaseService, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.UserRepository)
 	spaceService := NewSpaceService(TestSuite.SpaceRepository)
 	adminService := NewAdminInstallationService(TestSuite.BaseService, TestSuite.SpaceRepository, TestSuite.ActivityRepository, TestSuite.OperationAuditRepository, TestSuite.AdminOperationRepository, TestSuite.UserRepository, notificationRepo)
 	mediaService := NewMediaService(TestSuite.BaseService, mediaRepo, storage, TestSuite.UserRepository)
-	momentService := NewMomentService(TestSuite.BaseService, momentRepo, mediaRepo, storage, TestSuite.UserRepository, TestSuite.OperationAuditRepository)
+	momentService := NewMomentService(TestSuite.BaseService, momentRepo, mediaRepo, storage, TestSuite.UserRepository, TestSuite.OperationAuditRepository, eventSettingsRepo)
 	notificationService := NewNotificationService(TestSuite.BaseService, notificationRepo, TestSuite.UserRepository)
+	eventSettingsService := NewEventSettingsService(TestSuite.BaseService, eventSettingsRepo, TestSuite.UserRepository)
 
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
@@ -94,6 +97,7 @@ func setupE2ERig(t *testing.T) *e2eRig {
 		MediaHandler:             &handlers.MediaHandler{MediaService: mediaService},
 		MomentHandler:            &handlers.MomentHandler{MomentService: momentService},
 		NotificationHandler:      &handlers.NotificationHandler{NotificationService: notificationService},
+		EventSettingsHandler:     &handlers.EventSettingsHandler{EventSettingsService: eventSettingsService},
 	})
 	router.RegisterRoutes()
 
