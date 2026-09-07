@@ -157,12 +157,23 @@ func (r *MigrationRegistry) GetAppliedMigrations() ([]string, error) {
 // PostgreSQL advisory locks, and keeps the coordination state in the same
 // database whose schema is being changed.
 func (r *MigrationRegistry) ensureMigrationLock() error {
-	if err := r.db.Exec(`
-		CREATE TABLE IF NOT EXISTS schema_migration_lock (
-			id BIGINT PRIMARY KEY
-		)
-	`).Error; err != nil {
-		return fmt.Errorf("failed to create migration lock table: %w", err)
+	const maxRetries = 5
+	var lastErr error
+	for attempt := range maxRetries {
+		lastErr = r.db.Exec(`
+			CREATE TABLE IF NOT EXISTS schema_migration_lock (
+				id BIGINT PRIMARY KEY
+			)
+		`).Error
+		if lastErr == nil {
+			break
+		}
+		if attempt < maxRetries-1 {
+			time.Sleep(time.Duration(50*(attempt+1)) * time.Millisecond)
+		}
+	}
+	if lastErr != nil {
+		return fmt.Errorf("failed to create migration lock table: %w", lastErr)
 	}
 
 	if err := r.db.Exec(`
