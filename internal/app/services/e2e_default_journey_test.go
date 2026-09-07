@@ -185,7 +185,8 @@ func TestE2E_DefaultJourney(t *testing.T) {
 	require.Equal(t, http.StatusOK, currentParticipationResp.Code, currentParticipationResp.Body.String())
 
 	// --- Share a moment: it publishes immediately (pending, but already in the feed). ---
-	momentID := createE2EMoment(t, rig, rec, "player", playerToken, joined.Participation.ID)
+	seedE2EMomentChallenge(t)
+	momentID := createE2EMoment(t, rig, rec, "player", playerToken, true)
 
 	feedResp := rec.call(
 		"jogador vê o próprio moment no feed", "DEFAULT", "player", http.MethodGet,

@@ -40,7 +40,7 @@ func (h *MomentHandler) Create(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			"INVALID_REQUEST",
-			"Envie somente mediaAssetId, publishConsent e participationId opcional.",
+			"Envie somente mediaAssetId e publishConsent.",
 			nil,
 		)
 		return

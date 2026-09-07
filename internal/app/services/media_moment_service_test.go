@@ -381,27 +381,26 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	require.NoError(t, err)
 
 	asset := createAvailableAsset(t, mediaService, storage, participantCtx, "image/jpeg")
-	participationID := seedChallengeParticipation(t, participant.ID, true, "active")
 	createKey := uuid.NewString()
 	moment, status, err := momentService.Create(participantCtx, createKey, &messages.CreateMomentRequestDTO{
-		MediaAssetID:    asset.ID,
-		PublishConsent:  true,
-		ParticipationID: &participationID,
+		MediaAssetID:   asset.ID,
+		PublishConsent: true,
+		ChallengeMode:  true,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 201, status)
 	require.NotNil(t, moment.AuthorAvatarURL)
 	assert.Equal(t, avatarURL, *moment.AuthorAvatarURL)
 	assert.Equal(t, "challenge", moment.Origin)
-	assert.Equal(t, 25, moment.PointsAwarded)
+	assert.Equal(t, 50, moment.PointsAwarded)
 	assert.Equal(t, "public", moment.PublicationStatus)
 	assert.Equal(t, "pending", moment.ModerationStatus)
 	assert.NotEmpty(t, moment.ImageURL)
 
 	replayed, replayStatus, err := momentService.Create(participantCtx, createKey, &messages.CreateMomentRequestDTO{
-		MediaAssetID:    asset.ID,
-		PublishConsent:  true,
-		ParticipationID: &participationID,
+		MediaAssetID:   asset.ID,
+		PublishConsent: true,
+		ChallengeMode:  true,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 201, replayStatus)
@@ -464,7 +463,7 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	var entries []models.PointEntry
 	require.NoError(t, TestSuite.DbConn.Where("moment_id = ?", moment.ID).Order("created_at").Find(&entries).Error)
 	require.Len(t, entries, 2)
-	assert.ElementsMatch(t, []int{25, -25}, []int{entries[0].Delta, entries[1].Delta})
+	assert.ElementsMatch(t, []int{50, -50}, []int{entries[0].Delta, entries[1].Delta})
 	var audits int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).Where("action = ?", "moment.moderated").Count(&audits).Error)
 	assert.EqualValues(t, 2, audits) // approve + deny_points
@@ -549,11 +548,6 @@ func TestMediaMoments_ValidationVisibilityAndProviderFailures(t *testing.T) {
 	assertAPIErrorCode(t, err, "INVALID_REQUEST")
 	_, _, err = momentService.Create(ctx, uuid.NewString(), &messages.CreateMomentRequestDTO{
 		MediaAssetID: "invalid", PublishConsent: true,
-	})
-	assertAPIErrorCode(t, err, "NOT_FOUND")
-	invalidParticipation := "invalid"
-	_, _, err = momentService.Create(ctx, uuid.NewString(), &messages.CreateMomentRequestDTO{
-		MediaAssetID: intent.ID, ParticipationID: &invalidParticipation,
 	})
 	assertAPIErrorCode(t, err, "NOT_FOUND")
 	_, _, err = momentService.Create(ctx, uuid.NewString(), &messages.CreateMomentRequestDTO{
@@ -911,23 +905,25 @@ func TestMediaMoments_ConcurrentSameKeyConfirmationWaitsAndReplays(t *testing.T)
 
 func TestMediaMoments_EligibilityIdempotencyAndCorrectiveModeration(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
-	owner, ownerCtx := seedMediaMomentUser(t, "moment-eligibility@example.com", userEntities.RoleDefault, true)
+	_, ownerCtx := seedMediaMomentUser(t, "moment-eligibility@example.com", userEntities.RoleDefault, true)
 	_, adminCtx := seedMediaMomentUser(t, "moment-eligibility-admin@example.com", userEntities.RoleAdmin, true)
+	seedActiveMomentChallenge(t)
 
 	privateAsset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
-	privateParticipation := seedChallengeParticipation(t, owner.ID, true, "active")
 	privateMoment, _, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
-		MediaAssetID:    privateAsset.ID,
-		PublishConsent:  false,
-		ParticipationID: &privateParticipation,
+		MediaAssetID:   privateAsset.ID,
+		PublishConsent: false,
+		ChallengeMode:  true,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "private", privateMoment.PublicationStatus)
-	assert.Zero(t, privateMoment.PointsAwarded)
-	_, err = momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
+	assert.Equal(t, 50, privateMoment.PointsAwarded)
+	// deny_points succeeds because ChallengeMode awards points immediately.
+	denied, err := momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
 		Action: "deny_points",
 	})
-	assertAPIErrorCode(t, err, "MODERATION_ACTION_INVALID")
+	require.NoError(t, err)
+	assert.Equal(t, "reversed", denied.RewardStatus)
 	deleted, err := momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
 		Action: "delete_photo",
 	})
@@ -938,28 +934,6 @@ func TestMediaMoments_EligibilityIdempotencyAndCorrectiveModeration(t *testing.T
 	})
 	require.NoError(t, err)
 	assert.Equal(t, deleted.PhotoStatus, replayedTerminal.PhotoStatus)
-
-	for name, configure := range map[string]func(uint64) string{
-		"sharing disabled":  func(userID uint64) string { return seedChallengeParticipation(t, userID, false, "active") },
-		"activity archived": func(userID uint64) string { return seedChallengeParticipation(t, userID, true, "archived") },
-		"participation cancelled": func(userID uint64) string {
-			id := seedChallengeParticipation(t, userID, true, "active")
-			require.NoError(t, TestSuite.DbConn.Model(&models.Participation{}).Where("id = ?", id).
-				Update("status", string(gameEntities.ParticipationStatusCancelled)).Error)
-			return id
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/png")
-			participationID := configure(owner.ID)
-			_, _, createErr := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
-				MediaAssetID:    asset.ID,
-				PublishConsent:  true,
-				ParticipationID: &participationID,
-			})
-			assertAPIErrorCode(t, createErr, "MOMENT_NOT_ELIGIBLE")
-		})
-	}
 
 	firstAsset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
 	secondAsset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
