@@ -155,7 +155,7 @@ func TestMediaMoments_HandlerErrorBranches(t *testing.T) {
 	// Create/Moderate reject unknown fields (mass assignment).
 	r = mediaMomentRequest(engine, http.MethodPost, "/v2/moments", `{"mediaAssetId":"a","publishConsent":true,"userId":"1"}`, nil)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
-	r = mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points","reason":"x"}`, nil)
+	r = mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points","unknownField":"x"}`, nil)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
 	// Service-layer API errors are propagated with their declared status/code.

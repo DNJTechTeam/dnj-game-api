@@ -42,8 +42,8 @@ func (_m *MockMomentRepository) EXPECT() *MockMomentRepository_Expecter {
 }
 
 // ApplyModeration provides a mock function for the type MockMomentRepository
-func (_mock *MockMomentRepository) ApplyModeration(context1 context.Context, s string, s1 string, v uint64, s2 string, time1 time.Time) (*entities.Moment, *entities0.Asset, bool, error) {
-	ret := _mock.Called(context1, s, s1, v, s2, time1)
+func (_mock *MockMomentRepository) ApplyModeration(context1 context.Context, s string, s1 string, v uint64, s2 string, s3 string, time1 time.Time) (*entities.Moment, *entities0.Asset, bool, error) {
+	ret := _mock.Called(context1, s, s1, v, s2, s3, time1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ApplyModeration")
@@ -53,30 +53,30 @@ func (_mock *MockMomentRepository) ApplyModeration(context1 context.Context, s s
 	var r1 *entities0.Asset
 	var r2 bool
 	var r3 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, uint64, string, time.Time) (*entities.Moment, *entities0.Asset, bool, error)); ok {
-		return returnFunc(context1, s, s1, v, s2, time1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, uint64, string, string, time.Time) (*entities.Moment, *entities0.Asset, bool, error)); ok {
+		return returnFunc(context1, s, s1, v, s2, s3, time1)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, uint64, string, time.Time) *entities.Moment); ok {
-		r0 = returnFunc(context1, s, s1, v, s2, time1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, uint64, string, string, time.Time) *entities.Moment); ok {
+		r0 = returnFunc(context1, s, s1, v, s2, s3, time1)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*entities.Moment)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, uint64, string, time.Time) *entities0.Asset); ok {
-		r1 = returnFunc(context1, s, s1, v, s2, time1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, uint64, string, string, time.Time) *entities0.Asset); ok {
+		r1 = returnFunc(context1, s, s1, v, s2, s3, time1)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*entities0.Asset)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, uint64, string, time.Time) bool); ok {
-		r2 = returnFunc(context1, s, s1, v, s2, time1)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, uint64, string, string, time.Time) bool); ok {
+		r2 = returnFunc(context1, s, s1, v, s2, s3, time1)
 	} else {
 		r2 = ret.Get(2).(bool)
 	}
-	if returnFunc, ok := ret.Get(3).(func(context.Context, string, string, uint64, string, time.Time) error); ok {
-		r3 = returnFunc(context1, s, s1, v, s2, time1)
+	if returnFunc, ok := ret.Get(3).(func(context.Context, string, string, uint64, string, string, time.Time) error); ok {
+		r3 = returnFunc(context1, s, s1, v, s2, s3, time1)
 	} else {
 		r3 = ret.Error(3)
 	}
@@ -94,12 +94,13 @@ type MockMomentRepository_ApplyModeration_Call struct {
 //   - s1 string
 //   - v uint64
 //   - s2 string
+//   - s3 string
 //   - time1 time.Time
-func (_e *MockMomentRepository_Expecter) ApplyModeration(context1 interface{}, s interface{}, s1 interface{}, v interface{}, s2 interface{}, time1 interface{}) *MockMomentRepository_ApplyModeration_Call {
-	return &MockMomentRepository_ApplyModeration_Call{Call: _e.mock.On("ApplyModeration", context1, s, s1, v, s2, time1)}
+func (_e *MockMomentRepository_Expecter) ApplyModeration(context1 interface{}, s interface{}, s1 interface{}, v interface{}, s2 interface{}, s3 interface{}, time1 interface{}) *MockMomentRepository_ApplyModeration_Call {
+	return &MockMomentRepository_ApplyModeration_Call{Call: _e.mock.On("ApplyModeration", context1, s, s1, v, s2, s3, time1)}
 }
 
-func (_c *MockMomentRepository_ApplyModeration_Call) Run(run func(context1 context.Context, s string, s1 string, v uint64, s2 string, time1 time.Time)) *MockMomentRepository_ApplyModeration_Call {
+func (_c *MockMomentRepository_ApplyModeration_Call) Run(run func(context1 context.Context, s string, s1 string, v uint64, s2 string, s3 string, time1 time.Time)) *MockMomentRepository_ApplyModeration_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -121,9 +122,13 @@ func (_c *MockMomentRepository_ApplyModeration_Call) Run(run func(context1 conte
 		if args[4] != nil {
 			arg4 = args[4].(string)
 		}
-		var arg5 time.Time
+		var arg5 string
 		if args[5] != nil {
-			arg5 = args[5].(time.Time)
+			arg5 = args[5].(string)
+		}
+		var arg6 time.Time
+		if args[6] != nil {
+			arg6 = args[6].(time.Time)
 		}
 		run(
 			arg0,
@@ -132,6 +137,7 @@ func (_c *MockMomentRepository_ApplyModeration_Call) Run(run func(context1 conte
 			arg3,
 			arg4,
 			arg5,
+			arg6,
 		)
 	})
 	return _c
@@ -142,7 +148,7 @@ func (_c *MockMomentRepository_ApplyModeration_Call) Return(moment *entities.Mom
 	return _c
 }
 
-func (_c *MockMomentRepository_ApplyModeration_Call) RunAndReturn(run func(context1 context.Context, s string, s1 string, v uint64, s2 string, time1 time.Time) (*entities.Moment, *entities0.Asset, bool, error)) *MockMomentRepository_ApplyModeration_Call {
+func (_c *MockMomentRepository_ApplyModeration_Call) RunAndReturn(run func(context1 context.Context, s string, s1 string, v uint64, s2 string, s3 string, time1 time.Time) (*entities.Moment, *entities0.Asset, bool, error)) *MockMomentRepository_ApplyModeration_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -780,8 +786,8 @@ func (_c *MockMomentRepository_ListMoments_Call) RunAndReturn(run func(context1 
 }
 
 // ReverseMomentAward provides a mock function for the type MockMomentRepository
-func (_mock *MockMomentRepository) ReverseMomentAward(context1 context.Context, s string, v uint64, time1 time.Time) (bool, error) {
-	ret := _mock.Called(context1, s, v, time1)
+func (_mock *MockMomentRepository) ReverseMomentAward(context1 context.Context, s string, v uint64, s1 string, time1 time.Time) (bool, error) {
+	ret := _mock.Called(context1, s, v, s1, time1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReverseMomentAward")
@@ -789,16 +795,16 @@ func (_mock *MockMomentRepository) ReverseMomentAward(context1 context.Context, 
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64, time.Time) (bool, error)); ok {
-		return returnFunc(context1, s, v, time1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64, string, time.Time) (bool, error)); ok {
+		return returnFunc(context1, s, v, s1, time1)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64, time.Time) bool); ok {
-		r0 = returnFunc(context1, s, v, time1)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, uint64, string, time.Time) bool); ok {
+		r0 = returnFunc(context1, s, v, s1, time1)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, uint64, time.Time) error); ok {
-		r1 = returnFunc(context1, s, v, time1)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, uint64, string, time.Time) error); ok {
+		r1 = returnFunc(context1, s, v, s1, time1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -814,12 +820,13 @@ type MockMomentRepository_ReverseMomentAward_Call struct {
 //   - context1 context.Context
 //   - s string
 //   - v uint64
+//   - s1 string
 //   - time1 time.Time
-func (_e *MockMomentRepository_Expecter) ReverseMomentAward(context1 interface{}, s interface{}, v interface{}, time1 interface{}) *MockMomentRepository_ReverseMomentAward_Call {
-	return &MockMomentRepository_ReverseMomentAward_Call{Call: _e.mock.On("ReverseMomentAward", context1, s, v, time1)}
+func (_e *MockMomentRepository_Expecter) ReverseMomentAward(context1 interface{}, s interface{}, v interface{}, s1 interface{}, time1 interface{}) *MockMomentRepository_ReverseMomentAward_Call {
+	return &MockMomentRepository_ReverseMomentAward_Call{Call: _e.mock.On("ReverseMomentAward", context1, s, v, s1, time1)}
 }
 
-func (_c *MockMomentRepository_ReverseMomentAward_Call) Run(run func(context1 context.Context, s string, v uint64, time1 time.Time)) *MockMomentRepository_ReverseMomentAward_Call {
+func (_c *MockMomentRepository_ReverseMomentAward_Call) Run(run func(context1 context.Context, s string, v uint64, s1 string, time1 time.Time)) *MockMomentRepository_ReverseMomentAward_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -833,15 +840,20 @@ func (_c *MockMomentRepository_ReverseMomentAward_Call) Run(run func(context1 co
 		if args[2] != nil {
 			arg2 = args[2].(uint64)
 		}
-		var arg3 time.Time
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].(time.Time)
+			arg3 = args[3].(string)
+		}
+		var arg4 time.Time
+		if args[4] != nil {
+			arg4 = args[4].(time.Time)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -852,7 +864,7 @@ func (_c *MockMomentRepository_ReverseMomentAward_Call) Return(b bool, err error
 	return _c
 }
 
-func (_c *MockMomentRepository_ReverseMomentAward_Call) RunAndReturn(run func(context1 context.Context, s string, v uint64, time1 time.Time) (bool, error)) *MockMomentRepository_ReverseMomentAward_Call {
+func (_c *MockMomentRepository_ReverseMomentAward_Call) RunAndReturn(run func(context1 context.Context, s string, v uint64, s1 string, time1 time.Time) (bool, error)) *MockMomentRepository_ReverseMomentAward_Call {
 	_c.Call.Return(run)
 	return _c
 }

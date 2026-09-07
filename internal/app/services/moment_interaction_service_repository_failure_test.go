@@ -138,7 +138,8 @@ func TestMediaMoments_ModerateRepositoryFailures(t *testing.T) {
 			Return(&mediaEntities.Operation{Operation: "admin.moment.moderate", IntentHash: fingerprint, State: "completed"}, nil).Once()
 		moments.On("FindMoment", mock.Anything, "11111111-1111-4111-8111-111111111111", uint64(42), false).
 			Return(nil, errors.New("connection reset")).Once()
-		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points"})
+		reason := "test reason"
+		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -150,11 +151,12 @@ func TestMediaMoments_ModerateRepositoryFailures(t *testing.T) {
 		media.On("FindLegacyOperation", mock.Anything, uint64(42), key).Return(false, nil).Once()
 		moment := &momentEntities.Moment{ID: "moment-1", RewardStatus: momentEntities.RewardAwarded, PointsAwarded: 10}
 		asset := &mediaEntities.Asset{ID: "asset-1", State: mediaEntities.AssetAvailable}
-		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything).
+		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything, mock.Anything).
 			Return(moment, asset, true, nil).Once()
 		moments.On("CreateModerationDecision", mock.Anything, mock.AnythingOfType("*entities.ModerationDecision")).
 			Return(false, errors.New("connection reset")).Once()
-		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points"})
+		reason := "test reason"
+		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -166,10 +168,11 @@ func TestMediaMoments_ModerateRepositoryFailures(t *testing.T) {
 		media.On("FindLegacyOperation", mock.Anything, uint64(42), key).Return(false, nil).Once()
 		moment := &momentEntities.Moment{ID: "moment-1", RewardStatus: momentEntities.RewardReversed, PublicationStatus: momentEntities.PublicationPrivate, ModerationStatus: momentEntities.ModerationRejected}
 		asset := &mediaEntities.Asset{ID: "asset-1", State: mediaEntities.AssetAvailable}
-		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything).
+		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything, mock.Anything).
 			Return(moment, asset, false, nil).Once()
 		media.On("CreateOperation", mock.Anything, mock.AnythingOfType("*entities.Operation")).Return(nil).Once()
-		response, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points"})
+		reason := "test reason"
+		response, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 		require.NoError(t, err)
 		assert.Equal(t, "moment-1", response.MomentID)
 	})
@@ -182,11 +185,12 @@ func TestMediaMoments_ModerateRepositoryFailures(t *testing.T) {
 		media.On("FindLegacyOperation", mock.Anything, uint64(42), key).Return(false, nil).Once()
 		moment := &momentEntities.Moment{ID: "moment-1", RewardStatus: momentEntities.RewardAwarded, PointsAwarded: 10}
 		asset := &mediaEntities.Asset{ID: "asset-1", State: mediaEntities.AssetAvailable}
-		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything).
+		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "deny_points", uint64(42), key, mock.Anything, mock.Anything).
 			Return(moment, asset, true, nil).Once()
 		moments.On("CreateModerationDecision", mock.Anything, mock.AnythingOfType("*entities.ModerationDecision")).Return(true, nil).Once()
 		audits.On("Create", mock.Anything, mock.Anything).Return(nil, errors.New("connection reset")).Once()
-		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points"})
+		reason := "test reason"
+		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -198,13 +202,14 @@ func TestMediaMoments_ModerateRepositoryFailures(t *testing.T) {
 		media.On("FindLegacyOperation", mock.Anything, uint64(42), key).Return(false, nil).Once()
 		moment := &momentEntities.Moment{ID: "moment-1", RewardStatus: momentEntities.RewardNotApplicable}
 		asset := &mediaEntities.Asset{ID: "asset-1", State: mediaEntities.AssetDeleted}
-		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "delete_photo", uint64(42), key, mock.Anything).
+		moments.On("ApplyModeration", mock.Anything, "11111111-1111-4111-8111-111111111111", "delete_photo", uint64(42), key, mock.Anything, mock.Anything).
 			Return(moment, asset, true, nil).Once()
 		moments.On("CreateModerationDecision", mock.Anything, mock.AnythingOfType("*entities.ModerationDecision")).Return(true, nil).Once()
 		audits.On("Create", mock.Anything, mock.Anything).Return(nil, nil).Once()
 		media.On("CreateCleanupJob", mock.Anything, mock.AnythingOfType("*entities.CleanupJob")).
 			Return(false, errors.New("connection reset")).Once()
-		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "delete_photo"})
+		reason := "test reason"
+		_, err := service.Moderate(ctx, "11111111-1111-4111-8111-111111111111", key, &messages.ModerationRequestDTO{Action: "delete_photo", Reason: &reason})
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 }

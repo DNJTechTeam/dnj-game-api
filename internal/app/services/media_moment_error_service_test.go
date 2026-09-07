@@ -153,13 +153,14 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 				users.On("FindByID", mock.Anything, uint64(42)).Return(adminMediaUser(), nil).Twice()
 				media.On("FindOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound)
 				media.On("FindLegacyOperation", mock.Anything, uint64(42), mock.Anything).Return(false, nil)
-				moments.On("ApplyModeration", mock.Anything, mock.Anything, "delete_photo", uint64(42), mock.Anything, mediaMomentNow).
+				moments.On("ApplyModeration", mock.Anything, mock.Anything, "delete_photo", uint64(42), mock.Anything, mock.Anything, mediaMomentNow).
 					Return(nil, nil, false, result.err)
+				reason := "test reason"
 				_, err := mockMomentService(t, moments, media, storage, users).Moderate(
 					ctx,
 					uuid.NewString(),
 					uuid.NewString(),
-					&messages.ModerationRequestDTO{Action: "delete_photo"},
+					&messages.ModerationRequestDTO{Action: "delete_photo", Reason: &reason},
 				)
 				if result.code == "" {
 					assert.ErrorIs(t, err, appErrors.InternalError)

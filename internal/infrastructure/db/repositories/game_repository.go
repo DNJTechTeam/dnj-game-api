@@ -1024,6 +1024,10 @@ func (r *GameRepository) ListPointEntries(
 		if rows[i].ActivityID != nil {
 			activityID = *rows[i].ActivityID
 		}
+		removalReason := ""
+		if rows[i].RemovalReason != nil {
+			removalReason = *rows[i].RemovalReason
+		}
 		data[i] = gameEntities.PointEntry{
 			ID:              rows[i].ID,
 			UserID:          rows[i].UserID,
@@ -1035,6 +1039,7 @@ func (r *GameRepository) ListPointEntries(
 			Origin:          rows[i].Origin,
 			Reason:          rows[i].Reason,
 			Delta:           rows[i].Delta,
+			RemovalReason:   removalReason,
 			CreatedAt:       rows[i].CreatedAt,
 		}
 	}

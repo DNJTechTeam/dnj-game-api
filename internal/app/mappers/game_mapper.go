@@ -56,7 +56,11 @@ func pointPresentation(reason, activityName string) (string, string) {
 
 func MapPointEntryToResponseDTO(item gameEntities.PointEntry) messages.PointEntryResponseDTO {
 	label, icon := pointPresentation(item.Reason, item.ActivityName)
-	return messages.PointEntryResponseDTO{ID: item.ID, Label: label, Points: item.Delta, Icon: icon, CreatedAt: item.CreatedAt.UTC()}
+	var removalReason *string
+	if item.RemovalReason != "" {
+		removalReason = &item.RemovalReason
+	}
+	return messages.PointEntryResponseDTO{ID: item.ID, Label: label, Points: item.Delta, Icon: icon, RemovalReason: removalReason, CreatedAt: item.CreatedAt.UTC()}
 }
 
 func MapRunParticipantToResponseDTO(item gameEntities.RunParticipant) messages.RunParticipantResponseDTO {

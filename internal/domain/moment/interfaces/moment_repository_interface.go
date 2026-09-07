@@ -22,9 +22,10 @@ type Repository interface {
 		string,
 		uint64,
 		string,
+		string,
 		time.Time,
 	) (*entities.Moment, *mediaEntities.Asset, bool, error)
 	CreateModerationDecision(context.Context, *entities.ModerationDecision) (bool, error)
 	AwardMoment(context.Context, string, uint64, string, int, time.Time) error
-	ReverseMomentAward(context.Context, string, uint64, time.Time) (bool, error)
+	ReverseMomentAward(context.Context, string, uint64, string, time.Time) (bool, error)
 }

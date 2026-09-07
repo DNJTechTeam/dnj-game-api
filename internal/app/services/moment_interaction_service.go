@@ -219,6 +219,17 @@ func (s *MomentService) Moderate(
 			"action deve ser approve, deny_points ou delete_photo.",
 		)
 	}
+	if (request.Action == "deny_points" || request.Action == "delete_photo") && (request.Reason == nil || *request.Reason == "") {
+		return nil, mediaMomentError(
+			http.StatusBadRequest,
+			"INVALID_REQUEST",
+			"reason é obrigatório para deny_points e delete_photo.",
+		)
+	}
+	removalReason := ""
+	if request.Reason != nil {
+		removalReason = *request.Reason
+	}
 	key, err := parseIdempotencyKey(rawKey)
 	if err != nil {
 		return nil, err
@@ -260,6 +271,7 @@ func (s *MomentService) Moderate(
 			request.Action,
 			actor.ID,
 			key,
+			removalReason,
 			now,
 		)
 		if errors.Is(applyErr, appErrors.ErrNotFound) {

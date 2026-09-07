@@ -134,6 +134,7 @@ type PointEntry struct {
 	Origin          string
 	Reason          string
 	Delta           int
+	RemovalReason   string
 	CreatedAt       time.Time
 }
 
