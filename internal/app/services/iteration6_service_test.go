@@ -135,26 +135,26 @@ func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NoError(t, retryErr)
-	require.NoError(t, repeatedErr)
 	require.NoError(t, currentRunErr)
 	assert.Equal(t, http.StatusCreated, status)
 	assert.Equal(t, http.StatusCreated, retryStatus)
-	assert.Equal(t, http.StatusOK, repeatedStatus)
 	assert.Equal(t, "scored", validated.Action)
 	assert.Equal(t, "scored", retry.Action)
-	assert.Equal(t, "joined", repeated.Action)
 	assert.Equal(t, string(activityEntities.KindLive), validated.ActivityKind)
 	assert.Equal(t, string(activityEntities.KindLive), retry.ActivityKind)
 	assert.Equal(t, 25, validated.PointsAwarded)
-	assert.Zero(t, repeated.PointsAwarded)
 	assert.Equal(t, 25, *validated.Participation.NewTotalPoints)
-	assert.Equal(t, 25, *repeated.Participation.NewTotalPoints)
+	assert.Nil(t, repeated)
+	assert.Zero(t, repeatedStatus)
+	apiServiceError(t, repeatedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 	assert.Nil(t, currentRun)
 	assert.Equal(t, 25, refreshed.Points)
 }
 
 func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
 	service := setupIteration6Test(t)
+	now := iteration6Now
+	service.now = func() time.Time { return now }
 	manager, managerCtx := seedIteration6User(t, "Activity manager", userEntities.RoleEventManager, true, 0)
 	participant, participantCtx := seedIteration6User(t, "Activity participant", userEntities.RoleDefault, true, 0)
 
@@ -181,14 +181,13 @@ func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testin
 	assert.Equal(t, "scored", checkpointResult.Action)
 	assert.Equal(t, string(activityEntities.KindCheckpoint), checkpointResult.ActivityKind)
 	assert.Equal(t, 15, checkpointResult.PointsAwarded)
-	require.NoError(t, checkpointRepeatErr)
-	assert.Equal(t, http.StatusOK, checkpointRepeatStatus)
-	assert.Equal(t, "joined", checkpointRepeat.Action)
-	assert.Zero(t, checkpointRepeat.PointsAwarded)
-	assert.Equal(t, 15, *checkpointRepeat.Participation.NewTotalPoints)
+	assert.Nil(t, checkpointRepeat)
+	assert.Zero(t, checkpointRepeatStatus)
+	apiServiceError(t, checkpointRepeatErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 
 	challengeRun := createIteration6Run(t, service, managerCtx, challengeID)
 	challengeQR := rotateIteration6QR(t, service, managerCtx, challengeRun.ID)
+	now = now.Add(10 * time.Minute)
 	challengeResult := validateIteration6QR(t, service, participantCtx, challengeQR.QRToken)
 	assert.Equal(t, "joined", challengeResult.Action)
 	assert.Equal(t, string(activityEntities.KindChallenge), challengeResult.ActivityKind)
@@ -404,17 +403,16 @@ func TestIteration6_QRRotationValidationRetryAndExpiry(t *testing.T) {
 	apiServiceError(t, rotatedErr, http.StatusConflict, "QR_UNAVAILABLE")
 	require.NoError(t, createErr)
 	require.NoError(t, retryErr)
-	require.NoError(t, repeatedErr)
 	assert.Equal(t, http.StatusCreated, createdStatus)
 	assert.Equal(t, http.StatusCreated, retryStatus)
-	assert.Equal(t, http.StatusOK, repeatedStatus)
 	assert.Equal(t, created.Participation.ID, retry.Participation.ID)
-	assert.Equal(t, created.Participation.ID, repeated.Participation.ID)
 	assert.Zero(t, created.Participation.CheckInPoints)
 	assert.True(t, created.Participation.CanShareMoment)
 	assert.Equal(t, 0, *created.Participation.NewTotalPoints)
 	assert.Equal(t, 0, *retry.Participation.NewTotalPoints)
-	assert.Equal(t, 99, *repeated.Participation.NewTotalPoints)
+	assert.Nil(t, repeated)
+	assert.Zero(t, repeatedStatus)
+	apiServiceError(t, repeatedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 	apiServiceError(t, reusedErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
 	apiServiceError(t, crossStoreErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
 	apiServiceError(t, expiredErr, http.StatusGone, "QR_EXPIRED")
@@ -599,14 +597,19 @@ func TestIteration6_ConcurrentCreationAndScansRemainSingleEffect(t *testing.T) {
 	for id := range participationIDs {
 		scanned = append(scanned, id)
 	}
+	var blocked int
 	for err := range scanErrors {
-		require.NoError(t, err)
+		if err == nil {
+			continue
+		}
+		apiServiceError(t, err, http.StatusConflict, "QR_SCAN_BLOCKED")
+		blocked++
 	}
 
 	// then
 	assert.Equal(t, ids[0], ids[1])
-	require.Len(t, scanned, 2)
-	assert.Equal(t, scanned[0], scanned[1])
+	require.Len(t, scanned, 1)
+	assert.Equal(t, 1, blocked)
 	var participations int64
 	var points int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.Participation{}).Where("user_id = ?", participant.ID).Count(&participations).Error)

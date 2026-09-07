@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/dnjtechteam/dnj-game-api/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
@@ -210,6 +212,9 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 			games.On("FindParticipantOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
 			games.On("FindManagerOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
 			audits.On("FindByActorAndIdempotencyKey", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
+			games.On("IsActiveSpecialEventRun", mock.Anything, mock.Anything, iteration6Now).Return(false, nil).Maybe()
+			games.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Maybe()
+			games.On("SaveQRScanBlock", mock.Anything, uint64(42), mock.Anything).Return(nil).Maybe()
 			return &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}, games, activities
 		}
 		key := "22222222-2222-4222-8222-222222222222"
@@ -279,6 +284,29 @@ func TestIteration6_ServiceBoundaryCoverage(t *testing.T) {
 			games.On("ApplyAward", mock.Anything, mock.Anything, gameEntities.ResultParticipation, 5, mock.Anything).Return(dbFailure).Once()
 			_, _, err := service.ValidateQR(TestSuite.ContextWithUser(42), &messages.QRValidateRequestDTO{QRToken: "token", IdempotencyKey: key})
 			assert.ErrorIs(t, err, appErrors.InternalError)
+		})
+
+		t.Run("active special event bypasses scan block", func(t *testing.T) {
+			games := mocks.NewMockGameRepositoryInterface(t)
+			users := mocks.NewMockUserRepositoryInterface(t)
+			activities := mocks.NewMockActivityRepositoryInterface(t)
+			audits := mocks.NewMockOperationAuditRepositoryInterface(t)
+			users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(iteration6DefaultUser(), nil).Once()
+			games.On("FindParticipantOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
+			games.On("FindManagerOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
+			audits.On("FindByActorAndIdempotencyKey", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
+			games.On("FindQRByTokenHashForUpdate", mock.Anything, mock.Anything, iteration6Now).Return(&gameEntities.QRCode{ActivityID: "activity", ActivityRunID: "run", ExpiresAt: iteration6Now.Add(time.Hour), Status: gameEntities.QRCodeStatusActive}, nil).Once()
+			activities.On("FindByID", mock.Anything, "activity").Return(&activityEntities.Activity{ID: "activity", Kind: activityEntities.KindCompetitive}, nil).Once()
+			games.On("IsActiveSpecialEventRun", mock.Anything, "run", iteration6Now).Return(true, nil).Once()
+			games.On("FindParticipationByRunAndUser", mock.Anything, "run", uint64(42)).Return(&gameEntities.Participation{ID: "participation", UserID: 42, ActivityID: "activity", ActivityRunID: "run"}, nil).Once()
+			games.On("CreateParticipantOperation", mock.Anything, mock.Anything).Return(nil).Once()
+			service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, activities: activities, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
+
+			response, status, err := service.ValidateQR(TestSuite.ContextWithUser(42), &messages.QRValidateRequestDTO{QRToken: "token", IdempotencyKey: key})
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusOK, status)
+			assert.Equal(t, "joined", response.Action)
 		})
 
 		for _, createErr := range []error{appErrors.ErrConflict, dbFailure} {
