@@ -143,6 +143,16 @@ type PointBalanceMismatch struct {
 	MaterializedPoints int64
 }
 
+type ScheduleQRCheckIn struct {
+	ID           string
+	UserID       uint64
+	ActivityID   string
+	SpaceID      string
+	PointEntryID string
+	CheckedInAt  time.Time
+	BlockedUntil time.Time
+}
+
 type ManagerOperation struct {
 	ID              string
 	ActorUserID     uint64

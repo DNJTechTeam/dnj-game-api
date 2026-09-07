@@ -187,6 +187,19 @@ func (h *GameHandler) AdminCheckpointQR(c *gin.Context) {
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
+func (h *GameHandler) AdminScheduleSpaceQR(c *gin.Context) {
+	c.Header("Cache-Control", "private, no-store")
+	if !requirePublishedQuery(c) {
+		return
+	}
+	response, err := h.GameService.AdminScheduleSpaceQR(c.Request.Context(), c.Param("spaceId"))
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
 func (h *GameHandler) CreateManagerGame(c *gin.Context) {
 	if !requirePublishedQuery(c) {
 		return

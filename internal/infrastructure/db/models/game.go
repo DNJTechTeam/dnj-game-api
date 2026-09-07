@@ -75,6 +75,27 @@ type PointEntry struct {
 
 func (*PointEntry) TableName() string { return "point_entries" }
 
+type ScheduleQRCheckIn struct {
+	ID           string    `gorm:"type:uuid;primaryKey"`
+	UserID       uint64    `gorm:"not null;uniqueIndex:idx_schedule_qr_check_in_user_activity;index"`
+	ActivityID   string    `gorm:"type:uuid;not null;uniqueIndex:idx_schedule_qr_check_in_user_activity;index"`
+	SpaceID      string    `gorm:"type:uuid;not null;index"`
+	PointEntryID string    `gorm:"type:uuid;not null;uniqueIndex"`
+	CheckedInAt  time.Time `gorm:"not null;index"`
+	BlockedUntil time.Time `gorm:"not null;index"`
+	CreatedAt    time.Time `gorm:"autoCreateTime:nano"`
+}
+
+func (*ScheduleQRCheckIn) TableName() string { return "schedule_qr_check_ins" }
+
+type QRScanBlock struct {
+	UserID       uint64    `gorm:"primaryKey"`
+	BlockedUntil time.Time `gorm:"not null"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime:nano"`
+}
+
+func (*QRScanBlock) TableName() string { return "qr_scan_blocks" }
+
 type ManagerOperation struct {
 	ID              string     `gorm:"type:uuid;primaryKey"`
 	ActorUserID     uint64     `gorm:"not null;index"`

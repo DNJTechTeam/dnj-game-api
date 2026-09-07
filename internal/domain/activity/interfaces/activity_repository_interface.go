@@ -16,6 +16,8 @@ type ActivityRepositoryInterface interface {
 	Create(ctx context.Context, activity *entities.Activity) (*entities.Activity, error)
 	FindByID(ctx context.Context, activityID string) (*entities.Activity, error)
 	FindByIDForUpdate(ctx context.Context, activityID string) (*entities.Activity, error)
+	HasScheduleOverlap(ctx context.Context, spaceID string, startsAt, endsAt time.Time, excludeActivityID *string) (bool, error)
+	FindScheduleForSpaceAt(ctx context.Context, spaceID string, now time.Time) (*entities.Activity, error)
 	Update(ctx context.Context, activity *entities.Activity) (*entities.Activity, error)
 	ListManagers(ctx context.Context, activityID string, page uint64) (*messages.PaginatedResponse[userEntities.User], error)
 	CreateManagerAssignment(ctx context.Context, assignment *entities.ManagerAssignment) (bool, error)

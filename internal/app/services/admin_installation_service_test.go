@@ -359,6 +359,9 @@ func TestAdminInstallationService_CreateActivityInitialStatusDependsOnKind(t *te
 		request.Kind = pointer(testCase.kind)
 		if testCase.kind == "schedule" {
 			request.AllowsMoment = pointer(false)
+			space, spaceErr := service.CreateSpace(adminCtx, uuid.NewString(), validCreateSpace("kind-status-schedule"))
+			require.NoError(t, spaceErr)
+			request.SpaceID = optional(space.ID)
 		}
 
 		// when
@@ -371,6 +374,34 @@ func TestAdminInstallationService_CreateActivityInitialStatusDependsOnKind(t *te
 		require.NoError(t, TestSuite.DbConn.First(&stored, "id = ?", created.ID).Error)
 		assert.Equal(t, testCase.expectedStatus, stored.Status, "kind %s", testCase.kind)
 	}
+}
+
+func TestAdminInstallationService_ScheduleRequiresValidWindowAndDoesNotOverlap(t *testing.T) {
+	service := setupAdminInstallationTest(t)
+	_, adminCtx := seedAdminInstallationUser(t, "admin-schedule-window@example.com", userEntities.RoleAdmin, true)
+	space, err := service.CreateSpace(adminCtx, uuid.NewString(), validCreateSpace("schedule-window"))
+	require.NoError(t, err)
+
+	missing := validCreateActivity("schedule-missing", nil)
+	missing.Kind = pointer("schedule")
+	missing.AllowsMoment = pointer(false)
+	_, missingErr := service.CreateActivity(adminCtx, uuid.NewString(), missing)
+
+	first := validCreateActivity("schedule-first", &space.ID)
+	first.Kind = pointer("schedule")
+	first.AllowsMoment = pointer(false)
+	created, createErr := service.CreateActivity(adminCtx, uuid.NewString(), first)
+	require.NoError(t, createErr)
+
+	overlapping := validCreateActivity("schedule-overlap", &space.ID)
+	overlapping.Kind = pointer("schedule")
+	overlapping.AllowsMoment = pointer(false)
+	_, overlapErr := service.CreateActivity(adminCtx, uuid.NewString(), overlapping)
+	_, updateErr := service.UpdateActivity(adminCtx, created.ID, uuid.NewString(), &messages.UpdateAdminActivityRequestDTO{StartsAt: optional(*first.StartsAt.Value)})
+
+	assertAdminError(t, missingErr, http.StatusBadRequest, "INVALID_REQUEST")
+	assertAdminError(t, overlapErr, http.StatusConflict, "SCHEDULE_TIME_CONFLICT")
+	require.NoError(t, updateErr)
 }
 
 func TestAdminInstallationService_RejectsInvalidSpaceAndActivityPayloads(t *testing.T) {

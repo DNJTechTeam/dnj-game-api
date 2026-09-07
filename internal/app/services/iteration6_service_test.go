@@ -9,13 +9,16 @@ import (
 	"testing"
 	"time"
 
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
+	"github.com/dnjtechteam/dnj-game-api/internal/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +28,7 @@ func setupIteration6Test(t *testing.T) *GameService {
 	t.Helper()
 	TestSuite.DefaultSetup(t)
 	for _, model := range []interface{ TableName() string }{
-		&models.ManagerOperation{}, &models.PointEntry{}, &models.ActivityRunParticipant{}, &models.Participation{}, &models.ActivityRunQRCode{}, &models.ActivityRun{},
+		&models.ManagerOperation{}, &models.PointEntry{}, &models.ScheduleQRCheckIn{}, &models.QRScanBlock{}, &models.ActivityRunParticipant{}, &models.Participation{}, &models.ActivityRunQRCode{}, &models.ActivityRun{},
 		&models.ParticipantOperation{}, &models.UserFavorite{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.GroupMembership{}, &models.Activity{}, &models.Space{}, &models.User{}, &models.Group{},
 	} {
 		TestSuite.TruncateTable(t, model)
@@ -135,26 +138,129 @@ func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NoError(t, retryErr)
-	require.NoError(t, repeatedErr)
 	require.NoError(t, currentRunErr)
 	assert.Equal(t, http.StatusCreated, status)
 	assert.Equal(t, http.StatusCreated, retryStatus)
-	assert.Equal(t, http.StatusOK, repeatedStatus)
 	assert.Equal(t, "scored", validated.Action)
 	assert.Equal(t, "scored", retry.Action)
-	assert.Equal(t, "joined", repeated.Action)
 	assert.Equal(t, string(activityEntities.KindLive), validated.ActivityKind)
 	assert.Equal(t, string(activityEntities.KindLive), retry.ActivityKind)
 	assert.Equal(t, 25, validated.PointsAwarded)
-	assert.Zero(t, repeated.PointsAwarded)
 	assert.Equal(t, 25, *validated.Participation.NewTotalPoints)
-	assert.Equal(t, 25, *repeated.Participation.NewTotalPoints)
+	assert.Nil(t, repeated)
+	assert.Zero(t, repeatedStatus)
+	apiServiceError(t, repeatedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 	assert.Nil(t, currentRun)
 	assert.Equal(t, 25, refreshed.Points)
 }
 
+func TestIteration6_ScheduleSpaceQRUsesCurrentActivityAndGlobalBlock(t *testing.T) {
+	service := setupIteration6Test(t)
+	now := iteration6Now
+	service.now = func() time.Time { return now }
+	participant, participantCtx := seedIteration6User(t, "Schedule participant", userEntities.RoleDefault, true, 0)
+	spaceID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Space{ID: spaceID, Slug: "schedule-space-" + spaceID, Name: "Schedule Space", CreatedAt: now, UpdatedAt: now}).Error)
+	firstID, secondID := uuid.NewString(), uuid.NewString()
+	for _, activity := range []models.Activity{
+		{ID: firstID, SpaceID: &spaceID, Slug: "first-" + firstID, Name: "Primeira programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: timePointer(now.Add(-time.Hour)), EndsAt: timePointer(now.Add(10 * time.Minute)), CheckInPoints: 15, CreatedAt: now, UpdatedAt: now},
+		{ID: secondID, SpaceID: &spaceID, Slug: "second-" + secondID, Name: "Segunda programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: timePointer(now.Add(10 * time.Minute)), EndsAt: timePointer(now.Add(time.Hour)), CheckInPoints: 20, CreatedAt: now, UpdatedAt: now},
+	} {
+		require.NoError(t, TestSuite.DbConn.Create(&activity).Error)
+	}
+	token := service.scheduleQRToken(spaceID)
+	key := uuid.NewString()
+
+	first, firstStatus, firstErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: key})
+	retry, retryStatus, retryErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: key})
+	_, _, blockedErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	now = now.Add(10 * time.Minute)
+	second, secondStatus, secondErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	now = now.Add(time.Hour)
+	_, _, unavailableErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	_, _, invalidTokenErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token + "x", IdempotencyKey: uuid.NewString()})
+
+	require.NoError(t, firstErr)
+	require.NoError(t, retryErr)
+	require.NoError(t, secondErr)
+	assert.Equal(t, http.StatusCreated, firstStatus)
+	assert.Equal(t, http.StatusCreated, retryStatus)
+	assert.Equal(t, http.StatusCreated, secondStatus)
+	assert.Equal(t, "scored", first.Action)
+	assert.Equal(t, "scored", retry.Action)
+	assert.Equal(t, "scored", second.Action)
+	assert.Equal(t, firstID, first.Participation.Activity.ID)
+	assert.Equal(t, firstID, retry.Participation.Activity.ID)
+	assert.Equal(t, secondID, second.Participation.Activity.ID)
+	assert.Equal(t, 15, first.PointsAwarded)
+	assert.Equal(t, 20, second.PointsAwarded)
+	apiServiceError(t, blockedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
+	apiServiceError(t, unavailableErr, http.StatusConflict, "QR_UNAVAILABLE")
+	apiServiceError(t, invalidTokenErr, http.StatusConflict, "QR_UNAVAILABLE")
+	var refreshed models.User
+	require.NoError(t, TestSuite.DbConn.First(&refreshed, participant.ID).Error)
+	assert.Equal(t, 35, refreshed.Points)
+}
+
+func TestIteration6_ScheduleQRSignatureAndScanBlockBranches(t *testing.T) {
+	spaceID := uuid.NewString()
+	secret := "schedule-secret"
+	service := &GameService{secret: func() string { return secret }}
+	token := service.scheduleQRToken(spaceID)
+
+	parsedID, valid := service.parseScheduleQR(token)
+	_, invalid := service.parseScheduleQR(token + "x")
+	assert.Equal(t, spaceID, parsedID)
+	assert.True(t, valid)
+	assert.False(t, invalid)
+
+	t.Run("active block", func(t *testing.T) {
+		games := mocks.NewMockGameRepositoryInterface(t)
+		until := iteration6Now.Add(time.Minute)
+		games.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(&until, nil).Once()
+		err := (&GameService{games: games}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now)
+		apiServiceError(t, err, http.StatusConflict, "QR_SCAN_BLOCKED")
+	})
+
+	t.Run("repository failures and successful claim", func(t *testing.T) {
+		lookupGames := mocks.NewMockGameRepositoryInterface(t)
+		lookupGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, assert.AnError).Once()
+		assert.ErrorIs(t, (&GameService{games: lookupGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now), appErrors.InternalError)
+
+		saveGames := mocks.NewMockGameRepositoryInterface(t)
+		saveGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Once()
+		saveGames.On("SaveQRScanBlock", mock.Anything, uint64(42), mock.Anything).Return(assert.AnError).Once()
+		assert.ErrorIs(t, (&GameService{games: saveGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now), appErrors.InternalError)
+
+		successGames := mocks.NewMockGameRepositoryInterface(t)
+		successGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Once()
+		successGames.On("SaveQRScanBlock", mock.Anything, uint64(42), iteration6Now.Add(10*time.Minute)).Return(nil).Once()
+		require.NoError(t, (&GameService{games: successGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now))
+	})
+
+	t.Run("admin QR generation validates role and secret", func(t *testing.T) {
+		admin := &userEntities.User{ID: 84, Role: userEntities.RoleAdmin, OnboardingComplete: true}
+		users := mocks.NewMockUserRepositoryInterface(t)
+		users.On("FindByID", mock.Anything, uint64(84)).Return(admin, nil).Once()
+		adminService := &GameService{users: users, secret: func() string { return secret }}
+		qr, err := adminService.AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), spaceID)
+		require.NoError(t, err)
+		assert.Equal(t, token, qr.QRToken)
+
+		_, malformedErr := adminService.AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), "invalid")
+		apiServiceError(t, malformedErr, http.StatusNotFound, "NOT_FOUND")
+
+		noSecretUsers := mocks.NewMockUserRepositoryInterface(t)
+		noSecretUsers.On("FindByID", mock.Anything, uint64(84)).Return(admin, nil).Once()
+		_, noSecretErr := (&GameService{users: noSecretUsers, secret: func() string { return "" }}).AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), spaceID)
+		assert.ErrorIs(t, noSecretErr, appErrors.InternalError)
+	})
+}
+
 func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
 	service := setupIteration6Test(t)
+	now := iteration6Now
+	service.now = func() time.Time { return now }
 	manager, managerCtx := seedIteration6User(t, "Activity manager", userEntities.RoleEventManager, true, 0)
 	participant, participantCtx := seedIteration6User(t, "Activity participant", userEntities.RoleDefault, true, 0)
 
@@ -181,14 +287,13 @@ func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testin
 	assert.Equal(t, "scored", checkpointResult.Action)
 	assert.Equal(t, string(activityEntities.KindCheckpoint), checkpointResult.ActivityKind)
 	assert.Equal(t, 15, checkpointResult.PointsAwarded)
-	require.NoError(t, checkpointRepeatErr)
-	assert.Equal(t, http.StatusOK, checkpointRepeatStatus)
-	assert.Equal(t, "joined", checkpointRepeat.Action)
-	assert.Zero(t, checkpointRepeat.PointsAwarded)
-	assert.Equal(t, 15, *checkpointRepeat.Participation.NewTotalPoints)
+	assert.Nil(t, checkpointRepeat)
+	assert.Zero(t, checkpointRepeatStatus)
+	apiServiceError(t, checkpointRepeatErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 
 	challengeRun := createIteration6Run(t, service, managerCtx, challengeID)
 	challengeQR := rotateIteration6QR(t, service, managerCtx, challengeRun.ID)
+	now = now.Add(10 * time.Minute)
 	challengeResult := validateIteration6QR(t, service, participantCtx, challengeQR.QRToken)
 	assert.Equal(t, "joined", challengeResult.Action)
 	assert.Equal(t, string(activityEntities.KindChallenge), challengeResult.ActivityKind)
@@ -404,17 +509,16 @@ func TestIteration6_QRRotationValidationRetryAndExpiry(t *testing.T) {
 	apiServiceError(t, rotatedErr, http.StatusConflict, "QR_UNAVAILABLE")
 	require.NoError(t, createErr)
 	require.NoError(t, retryErr)
-	require.NoError(t, repeatedErr)
 	assert.Equal(t, http.StatusCreated, createdStatus)
 	assert.Equal(t, http.StatusCreated, retryStatus)
-	assert.Equal(t, http.StatusOK, repeatedStatus)
 	assert.Equal(t, created.Participation.ID, retry.Participation.ID)
-	assert.Equal(t, created.Participation.ID, repeated.Participation.ID)
 	assert.Zero(t, created.Participation.CheckInPoints)
 	assert.True(t, created.Participation.CanShareMoment)
 	assert.Equal(t, 0, *created.Participation.NewTotalPoints)
 	assert.Equal(t, 0, *retry.Participation.NewTotalPoints)
-	assert.Equal(t, 99, *repeated.Participation.NewTotalPoints)
+	assert.Nil(t, repeated)
+	assert.Zero(t, repeatedStatus)
+	apiServiceError(t, repeatedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 	apiServiceError(t, reusedErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
 	apiServiceError(t, crossStoreErr, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED")
 	apiServiceError(t, expiredErr, http.StatusGone, "QR_EXPIRED")
@@ -599,14 +703,19 @@ func TestIteration6_ConcurrentCreationAndScansRemainSingleEffect(t *testing.T) {
 	for id := range participationIDs {
 		scanned = append(scanned, id)
 	}
+	var blocked int
 	for err := range scanErrors {
-		require.NoError(t, err)
+		if err == nil {
+			continue
+		}
+		apiServiceError(t, err, http.StatusConflict, "QR_SCAN_BLOCKED")
+		blocked++
 	}
 
 	// then
 	assert.Equal(t, ids[0], ids[1])
-	require.Len(t, scanned, 2)
-	assert.Equal(t, scanned[0], scanned[1])
+	require.Len(t, scanned, 1)
+	assert.Equal(t, 1, blocked)
 	var participations int64
 	var points int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.Participation{}).Where("user_id = ?", participant.ID).Count(&participations).Error)

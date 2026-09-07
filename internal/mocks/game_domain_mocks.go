@@ -493,6 +493,69 @@ func (_c *MockGameRepositoryInterface_CreateRun_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// CreateScheduleQRCheckInAndAward provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) CreateScheduleQRCheckInAndAward(ctx context.Context, checkIn *entities.ScheduleQRCheckIn, entry *entities.PointEntry) error {
+	ret := _mock.Called(ctx, checkIn, entry)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateScheduleQRCheckInAndAward")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *entities.ScheduleQRCheckIn, *entities.PointEntry) error); ok {
+		r0 = returnFunc(ctx, checkIn, entry)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateScheduleQRCheckInAndAward'
+type MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call struct {
+	*mock.Call
+}
+
+// CreateScheduleQRCheckInAndAward is a helper method to define mock.On call
+//   - ctx context.Context
+//   - checkIn *entities.ScheduleQRCheckIn
+//   - entry *entities.PointEntry
+func (_e *MockGameRepositoryInterface_Expecter) CreateScheduleQRCheckInAndAward(ctx interface{}, checkIn interface{}, entry interface{}) *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call {
+	return &MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call{Call: _e.mock.On("CreateScheduleQRCheckInAndAward", ctx, checkIn, entry)}
+}
+
+func (_c *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call) Run(run func(ctx context.Context, checkIn *entities.ScheduleQRCheckIn, entry *entities.PointEntry)) *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *entities.ScheduleQRCheckIn
+		if args[1] != nil {
+			arg1 = args[1].(*entities.ScheduleQRCheckIn)
+		}
+		var arg2 *entities.PointEntry
+		if args[2] != nil {
+			arg2 = args[2].(*entities.PointEntry)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call) Return(err error) *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call) RunAndReturn(run func(ctx context.Context, checkIn *entities.ScheduleQRCheckIn, entry *entities.PointEntry) error) *MockGameRepositoryInterface_CreateScheduleQRCheckInAndAward_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DisableActiveQR provides a mock function for the type MockGameRepositoryInterface
 func (_mock *MockGameRepositoryInterface) DisableActiveQR(ctx context.Context, runID string, updatedAt time.Time) error {
 	ret := _mock.Called(ctx, runID, updatedAt)
@@ -764,6 +827,74 @@ func (_c *MockGameRepositoryInterface_FindCurrentRanking_Call) Return(individual
 }
 
 func (_c *MockGameRepositoryInterface_FindCurrentRanking_Call) RunAndReturn(run func(ctx context.Context, userID uint64) (*entities.IndividualRanking, *entities.GroupRanking, error)) *MockGameRepositoryInterface_FindCurrentRanking_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindLatestScheduleQRCheckIn provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindLatestScheduleQRCheckIn(ctx context.Context, userID uint64) (*entities.ScheduleQRCheckIn, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindLatestScheduleQRCheckIn")
+	}
+
+	var r0 *entities.ScheduleQRCheckIn
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*entities.ScheduleQRCheckIn, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *entities.ScheduleQRCheckIn); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ScheduleQRCheckIn)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindLatestScheduleQRCheckIn'
+type MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call struct {
+	*mock.Call
+}
+
+// FindLatestScheduleQRCheckIn is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+func (_e *MockGameRepositoryInterface_Expecter) FindLatestScheduleQRCheckIn(ctx interface{}, userID interface{}) *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call {
+	return &MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call{Call: _e.mock.On("FindLatestScheduleQRCheckIn", ctx, userID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call) Run(run func(ctx context.Context, userID uint64)) *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call) Return(scheduleQRCheckIn *entities.ScheduleQRCheckIn, err error) *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call {
+	_c.Call.Return(scheduleQRCheckIn, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call) RunAndReturn(run func(ctx context.Context, userID uint64) (*entities.ScheduleQRCheckIn, error)) *MockGameRepositoryInterface_FindLatestScheduleQRCheckIn_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1434,6 +1565,74 @@ func (_c *MockGameRepositoryInterface_FindQRByTokenHashForUpdate_Call) RunAndRet
 	return _c
 }
 
+// FindQRScanBlock provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindQRScanBlock(ctx context.Context, userID uint64) (*time.Time, error) {
+	ret := _mock.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindQRScanBlock")
+	}
+
+	var r0 *time.Time
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*time.Time, error)); ok {
+		return returnFunc(ctx, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *time.Time); ok {
+		r0 = returnFunc(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*time.Time)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindQRScanBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindQRScanBlock'
+type MockGameRepositoryInterface_FindQRScanBlock_Call struct {
+	*mock.Call
+}
+
+// FindQRScanBlock is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+func (_e *MockGameRepositoryInterface_Expecter) FindQRScanBlock(ctx interface{}, userID interface{}) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	return &MockGameRepositoryInterface_FindQRScanBlock_Call{Call: _e.mock.On("FindQRScanBlock", ctx, userID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) Run(run func(ctx context.Context, userID uint64)) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) Return(time1 *time.Time, err error) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Return(time1, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindQRScanBlock_Call) RunAndReturn(run func(ctx context.Context, userID uint64) (*time.Time, error)) *MockGameRepositoryInterface_FindQRScanBlock_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindRunForManager provides a mock function for the type MockGameRepositoryInterface
 func (_mock *MockGameRepositoryInterface) FindRunForManager(ctx context.Context, runID string, actorUserID uint64, global bool, lock bool) (*entities.ActivityRun, error) {
 	ret := _mock.Called(ctx, runID, actorUserID, global, lock)
@@ -1598,6 +1797,220 @@ func (_c *MockGameRepositoryInterface_FindRunForParticipant_Call) Return(activit
 }
 
 func (_c *MockGameRepositoryInterface_FindRunForParticipant_Call) RunAndReturn(run func(ctx context.Context, userID uint64, runID *string) (*entities.ActivityRun, *entities.RunParticipant, error)) *MockGameRepositoryInterface_FindRunForParticipant_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindScheduleQRCheckIn provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindScheduleQRCheckIn(ctx context.Context, userID uint64, activityID string) (*entities.ScheduleQRCheckIn, error) {
+	ret := _mock.Called(ctx, userID, activityID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindScheduleQRCheckIn")
+	}
+
+	var r0 *entities.ScheduleQRCheckIn
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, string) (*entities.ScheduleQRCheckIn, error)); ok {
+		return returnFunc(ctx, userID, activityID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, string) *entities.ScheduleQRCheckIn); ok {
+		r0 = returnFunc(ctx, userID, activityID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ScheduleQRCheckIn)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64, string) error); ok {
+		r1 = returnFunc(ctx, userID, activityID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindScheduleQRCheckIn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindScheduleQRCheckIn'
+type MockGameRepositoryInterface_FindScheduleQRCheckIn_Call struct {
+	*mock.Call
+}
+
+// FindScheduleQRCheckIn is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+//   - activityID string
+func (_e *MockGameRepositoryInterface_Expecter) FindScheduleQRCheckIn(ctx interface{}, userID interface{}, activityID interface{}) *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call {
+	return &MockGameRepositoryInterface_FindScheduleQRCheckIn_Call{Call: _e.mock.On("FindScheduleQRCheckIn", ctx, userID, activityID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call) Run(run func(ctx context.Context, userID uint64, activityID string)) *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call) Return(scheduleQRCheckIn *entities.ScheduleQRCheckIn, err error) *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call {
+	_c.Call.Return(scheduleQRCheckIn, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call) RunAndReturn(run func(ctx context.Context, userID uint64, activityID string) (*entities.ScheduleQRCheckIn, error)) *MockGameRepositoryInterface_FindScheduleQRCheckIn_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FindScheduleQRCheckInByID provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) FindScheduleQRCheckInByID(ctx context.Context, checkInID string) (*entities.ScheduleQRCheckIn, error) {
+	ret := _mock.Called(ctx, checkInID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindScheduleQRCheckInByID")
+	}
+
+	var r0 *entities.ScheduleQRCheckIn
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*entities.ScheduleQRCheckIn, error)); ok {
+		return returnFunc(ctx, checkInID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *entities.ScheduleQRCheckIn); ok {
+		r0 = returnFunc(ctx, checkInID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ScheduleQRCheckIn)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, checkInID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindScheduleQRCheckInByID'
+type MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call struct {
+	*mock.Call
+}
+
+// FindScheduleQRCheckInByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - checkInID string
+func (_e *MockGameRepositoryInterface_Expecter) FindScheduleQRCheckInByID(ctx interface{}, checkInID interface{}) *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call {
+	return &MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call{Call: _e.mock.On("FindScheduleQRCheckInByID", ctx, checkInID)}
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call) Run(run func(ctx context.Context, checkInID string)) *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call) Return(scheduleQRCheckIn *entities.ScheduleQRCheckIn, err error) *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call {
+	_c.Call.Return(scheduleQRCheckIn, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call) RunAndReturn(run func(ctx context.Context, checkInID string) (*entities.ScheduleQRCheckIn, error)) *MockGameRepositoryInterface_FindScheduleQRCheckInByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsActiveSpecialEventRun provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) IsActiveSpecialEventRun(ctx context.Context, runID string, now time.Time) (bool, error) {
+	ret := _mock.Called(ctx, runID, now)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsActiveSpecialEventRun")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) (bool, error)); ok {
+		return returnFunc(ctx, runID, now)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time) bool); ok {
+		r0 = returnFunc(ctx, runID, now)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Time) error); ok {
+		r1 = returnFunc(ctx, runID, now)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockGameRepositoryInterface_IsActiveSpecialEventRun_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsActiveSpecialEventRun'
+type MockGameRepositoryInterface_IsActiveSpecialEventRun_Call struct {
+	*mock.Call
+}
+
+// IsActiveSpecialEventRun is a helper method to define mock.On call
+//   - ctx context.Context
+//   - runID string
+//   - now time.Time
+func (_e *MockGameRepositoryInterface_Expecter) IsActiveSpecialEventRun(ctx interface{}, runID interface{}, now interface{}) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	return &MockGameRepositoryInterface_IsActiveSpecialEventRun_Call{Call: _e.mock.On("IsActiveSpecialEventRun", ctx, runID, now)}
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) Run(run func(ctx context.Context, runID string, now time.Time)) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) Return(b bool, err error) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call) RunAndReturn(run func(ctx context.Context, runID string, now time.Time) (bool, error)) *MockGameRepositoryInterface_IsActiveSpecialEventRun_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2149,6 +2562,69 @@ func (_c *MockGameRepositoryInterface_LockUsers_Call) Return(err error) *MockGam
 }
 
 func (_c *MockGameRepositoryInterface_LockUsers_Call) RunAndReturn(run func(ctx context.Context, userIDs []uint64) error) *MockGameRepositoryInterface_LockUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SaveQRScanBlock provides a mock function for the type MockGameRepositoryInterface
+func (_mock *MockGameRepositoryInterface) SaveQRScanBlock(ctx context.Context, userID uint64, blockedUntil time.Time) error {
+	ret := _mock.Called(ctx, userID, blockedUntil)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveQRScanBlock")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, time.Time) error); ok {
+		r0 = returnFunc(ctx, userID, blockedUntil)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockGameRepositoryInterface_SaveQRScanBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveQRScanBlock'
+type MockGameRepositoryInterface_SaveQRScanBlock_Call struct {
+	*mock.Call
+}
+
+// SaveQRScanBlock is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint64
+//   - blockedUntil time.Time
+func (_e *MockGameRepositoryInterface_Expecter) SaveQRScanBlock(ctx interface{}, userID interface{}, blockedUntil interface{}) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	return &MockGameRepositoryInterface_SaveQRScanBlock_Call{Call: _e.mock.On("SaveQRScanBlock", ctx, userID, blockedUntil)}
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) Run(run func(ctx context.Context, userID uint64, blockedUntil time.Time)) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 time.Time
+		if args[2] != nil {
+			arg2 = args[2].(time.Time)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) Return(err error) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockGameRepositoryInterface_SaveQRScanBlock_Call) RunAndReturn(run func(ctx context.Context, userID uint64, blockedUntil time.Time) error) *MockGameRepositoryInterface_SaveQRScanBlock_Call {
 	_c.Call.Return(run)
 	return _c
 }

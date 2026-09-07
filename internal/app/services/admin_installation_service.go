@@ -377,6 +377,25 @@ func validateActivityEntity(activity *activityEntities.Activity) error {
 	if activity.AllowsMoment && activity.Kind == activityEntities.KindSchedule {
 		return adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "Activities schedule não permitem Moment.")
 	}
+	if activity.Kind == activityEntities.KindSchedule {
+		if activity.SpaceID == nil || activity.StartsAt == nil || activity.EndsAt == nil || activity.CheckInPoints <= 0 {
+			return adminAPIError(http.StatusBadRequest, "INVALID_REQUEST", "Programação exige Space, período e checkInPoints positivo.")
+		}
+	}
+	return nil
+}
+
+func (s *AdminInstallationService) validateScheduleOverlap(ctx context.Context, activity *activityEntities.Activity, excludeActivityID *string) error {
+	if activity.Kind != activityEntities.KindSchedule || activity.Status == activityEntities.StatusArchived {
+		return nil
+	}
+	overlap, err := s.activities.HasScheduleOverlap(ctx, *activity.SpaceID, *activity.StartsAt, *activity.EndsAt, excludeActivityID)
+	if err != nil {
+		return appErrors.InternalError
+	}
+	if overlap {
+		return adminAPIError(http.StatusConflict, "SCHEDULE_TIME_CONFLICT", "Já existe uma programação neste Space nesse horário.")
+	}
 	return nil
 }
 
@@ -442,6 +461,9 @@ func (s *AdminInstallationService) CreateActivity(ctx context.Context, key strin
 		}
 		activity := &activityEntities.Activity{ID: uuid.NewString(), SpaceID: spaceID, Slug: slug, Name: name, Description: description, Kind: kind, Status: initialStatus, StartsAt: adminUTCTime(request.StartsAt.Value), EndsAt: adminUTCTime(request.EndsAt.Value), CheckInPoints: *request.CheckInPoints, MomentPoints: *request.MomentPoints, CooldownSeconds: *request.CooldownSeconds, AllowsMoment: *request.AllowsMoment, CreatedAt: now, UpdatedAt: now}
 		if err := validateActivityEntity(activity); err != nil {
+			return nil, err
+		}
+		if err := s.validateScheduleOverlap(txCtx, activity, nil); err != nil {
 			return nil, err
 		}
 		created, err := s.activities.Create(txCtx, activity)
@@ -583,6 +605,9 @@ func (s *AdminInstallationService) UpdateActivity(ctx context.Context, rawActivi
 			fields = append(fields, "status")
 		}
 		if err := validateActivityEntity(current); err != nil {
+			return nil, err
+		}
+		if err := s.validateScheduleOverlap(txCtx, current, &current.ID); err != nil {
 			return nil, err
 		}
 		changed := !reflect.DeepEqual(before, *current)
