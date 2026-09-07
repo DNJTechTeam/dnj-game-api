@@ -80,7 +80,7 @@ func TestMediaMoments_HandlerHappyPaths(t *testing.T) {
 		mediaMomentRequest(engine, http.MethodPost, "/v2/moments", `{"mediaAssetId":"asset-1","publishConsent":true}`, map[string]string{"Idempotency-Key": key}),
 		mediaMomentRequest(engine, http.MethodPost, "/v2/moments/moment-1/likes", "", map[string]string{"Idempotency-Key": key}),
 		mediaMomentRequest(engine, http.MethodGet, "/v2/admin/moments/moderation?queue=general", "", nil),
-		mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points"}`, map[string]string{"Idempotency-Key": key}),
+		mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points","reason":"teste"}`, map[string]string{"Idempotency-Key": key}),
 	}
 	for i, r := range responses {
 		assert.Lessf(t, r.Code, 300, "response %d: %s", i, r.Body.String())
@@ -192,7 +192,7 @@ func TestMediaMoments_HandlerErrorBranches(t *testing.T) {
 
 	momentService.On("Moderate", mock.Anything, "moment-1", "", mock.AnythingOfType("*messages.ModerationRequestDTO")).
 		Return(nil, appErrors.NewAPIServiceError(http.StatusConflict, "MODERATION_ACTION_INVALID", "invalid", nil)).Once()
-	r = mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points"}`, nil)
+	r = mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points","reason":"teste"}`, nil)
 	assert.Equal(t, http.StatusConflict, r.Code)
 	assert.Contains(t, r.Body.String(), "MODERATION_ACTION_INVALID")
 }
