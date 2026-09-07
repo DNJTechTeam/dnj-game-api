@@ -25,7 +25,7 @@ func setupIteration6Test(t *testing.T) *GameService {
 	t.Helper()
 	TestSuite.DefaultSetup(t)
 	for _, model := range []interface{ TableName() string }{
-		&models.ManagerOperation{}, &models.PointEntry{}, &models.ActivityRunParticipant{}, &models.Participation{}, &models.ActivityRunQRCode{}, &models.ActivityRun{},
+		&models.ManagerOperation{}, &models.PointEntry{}, &models.ScheduleQRCheckIn{}, &models.QRScanBlock{}, &models.ActivityRunParticipant{}, &models.Participation{}, &models.ActivityRunQRCode{}, &models.ActivityRun{},
 		&models.ParticipantOperation{}, &models.UserFavorite{}, &models.OperationAudit{}, &models.ActivityManagerAssignment{}, &models.GroupMembership{}, &models.Activity{}, &models.Space{}, &models.User{}, &models.Group{},
 	} {
 		TestSuite.TruncateTable(t, model)
@@ -149,6 +149,54 @@ func TestIteration6_LiveQRCodeCreditsPointsWithoutJoiningRun(t *testing.T) {
 	apiServiceError(t, repeatedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
 	assert.Nil(t, currentRun)
 	assert.Equal(t, 25, refreshed.Points)
+}
+
+func TestIteration6_ScheduleSpaceQRUsesCurrentActivityAndGlobalBlock(t *testing.T) {
+	service := setupIteration6Test(t)
+	now := iteration6Now
+	service.now = func() time.Time { return now }
+	participant, participantCtx := seedIteration6User(t, "Schedule participant", userEntities.RoleDefault, true, 0)
+	spaceID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Space{ID: spaceID, Slug: "schedule-space-" + spaceID, Name: "Schedule Space", CreatedAt: now, UpdatedAt: now}).Error)
+	firstID, secondID := uuid.NewString(), uuid.NewString()
+	for _, activity := range []models.Activity{
+		{ID: firstID, SpaceID: &spaceID, Slug: "first-" + firstID, Name: "Primeira programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: timePointer(now.Add(-time.Hour)), EndsAt: timePointer(now.Add(10 * time.Minute)), CheckInPoints: 15, CreatedAt: now, UpdatedAt: now},
+		{ID: secondID, SpaceID: &spaceID, Slug: "second-" + secondID, Name: "Segunda programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: timePointer(now.Add(10 * time.Minute)), EndsAt: timePointer(now.Add(time.Hour)), CheckInPoints: 20, CreatedAt: now, UpdatedAt: now},
+	} {
+		require.NoError(t, TestSuite.DbConn.Create(&activity).Error)
+	}
+	token := service.scheduleQRToken(spaceID)
+	key := uuid.NewString()
+
+	first, firstStatus, firstErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: key})
+	retry, retryStatus, retryErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: key})
+	_, _, blockedErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	now = now.Add(10 * time.Minute)
+	second, secondStatus, secondErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	now = now.Add(time.Hour)
+	_, _, unavailableErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token, IdempotencyKey: uuid.NewString()})
+	_, _, invalidTokenErr := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: token + "x", IdempotencyKey: uuid.NewString()})
+
+	require.NoError(t, firstErr)
+	require.NoError(t, retryErr)
+	require.NoError(t, secondErr)
+	assert.Equal(t, http.StatusCreated, firstStatus)
+	assert.Equal(t, http.StatusCreated, retryStatus)
+	assert.Equal(t, http.StatusCreated, secondStatus)
+	assert.Equal(t, "scored", first.Action)
+	assert.Equal(t, "scored", retry.Action)
+	assert.Equal(t, "scored", second.Action)
+	assert.Equal(t, firstID, first.Participation.Activity.ID)
+	assert.Equal(t, firstID, retry.Participation.Activity.ID)
+	assert.Equal(t, secondID, second.Participation.Activity.ID)
+	assert.Equal(t, 15, first.PointsAwarded)
+	assert.Equal(t, 20, second.PointsAwarded)
+	apiServiceError(t, blockedErr, http.StatusConflict, "QR_SCAN_BLOCKED")
+	apiServiceError(t, unavailableErr, http.StatusConflict, "QR_UNAVAILABLE")
+	apiServiceError(t, invalidTokenErr, http.StatusConflict, "QR_UNAVAILABLE")
+	var refreshed models.User
+	require.NoError(t, TestSuite.DbConn.First(&refreshed, participant.ID).Error)
+	assert.Equal(t, 35, refreshed.Points)
 }
 
 func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
