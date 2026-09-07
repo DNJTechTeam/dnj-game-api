@@ -322,6 +322,9 @@ func seedChallengeParticipation(
 
 func seedActiveMomentChallenge(t *testing.T) string {
 	t.Helper()
+	// Remove any existing active challenges to avoid ErrConflict when
+	// FindActiveMomentChallengeForUpdate finds multiple rows.
+	require.NoError(t, TestSuite.DbConn.Where("kind = ? AND status = ?", "challenge", "active").Delete(&models.Activity{}).Error)
 	activityID := uuid.NewString()
 	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{
 		ID:           activityID,
