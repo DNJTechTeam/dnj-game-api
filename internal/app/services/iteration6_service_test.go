@@ -9,13 +9,16 @@ import (
 	"testing"
 	"time"
 
+	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
+	"github.com/dnjtechteam/dnj-game-api/internal/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -197,6 +200,43 @@ func TestIteration6_ScheduleSpaceQRUsesCurrentActivityAndGlobalBlock(t *testing.
 	var refreshed models.User
 	require.NoError(t, TestSuite.DbConn.First(&refreshed, participant.ID).Error)
 	assert.Equal(t, 35, refreshed.Points)
+}
+
+func TestIteration6_ScheduleQRSignatureAndScanBlockBranches(t *testing.T) {
+	spaceID := uuid.NewString()
+	secret := "schedule-secret"
+	service := &GameService{secret: func() string { return secret }}
+	token := service.scheduleQRToken(spaceID)
+
+	parsedID, valid := service.parseScheduleQR(token)
+	_, invalid := service.parseScheduleQR(token + "x")
+	assert.Equal(t, spaceID, parsedID)
+	assert.True(t, valid)
+	assert.False(t, invalid)
+
+	t.Run("active block", func(t *testing.T) {
+		games := mocks.NewMockGameRepositoryInterface(t)
+		until := iteration6Now.Add(time.Minute)
+		games.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(&until, nil).Once()
+		err := (&GameService{games: games}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now)
+		apiServiceError(t, err, http.StatusConflict, "QR_SCAN_BLOCKED")
+	})
+
+	t.Run("repository failures and successful claim", func(t *testing.T) {
+		lookupGames := mocks.NewMockGameRepositoryInterface(t)
+		lookupGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, assert.AnError).Once()
+		assert.ErrorIs(t, (&GameService{games: lookupGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now), appErrors.InternalError)
+
+		saveGames := mocks.NewMockGameRepositoryInterface(t)
+		saveGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Once()
+		saveGames.On("SaveQRScanBlock", mock.Anything, uint64(42), mock.Anything).Return(assert.AnError).Once()
+		assert.ErrorIs(t, (&GameService{games: saveGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now), appErrors.InternalError)
+
+		successGames := mocks.NewMockGameRepositoryInterface(t)
+		successGames.On("FindQRScanBlock", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Once()
+		successGames.On("SaveQRScanBlock", mock.Anything, uint64(42), iteration6Now.Add(10*time.Minute)).Return(nil).Once()
+		require.NoError(t, (&GameService{games: successGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now))
+	})
 }
 
 func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
