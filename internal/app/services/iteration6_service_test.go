@@ -237,6 +237,24 @@ func TestIteration6_ScheduleQRSignatureAndScanBlockBranches(t *testing.T) {
 		successGames.On("SaveQRScanBlock", mock.Anything, uint64(42), iteration6Now.Add(10*time.Minute)).Return(nil).Once()
 		require.NoError(t, (&GameService{games: successGames}).claimQRScanWindow(TestSuite.Ctx, 42, iteration6Now))
 	})
+
+	t.Run("admin QR generation validates role and secret", func(t *testing.T) {
+		admin := &userEntities.User{ID: 84, Role: userEntities.RoleAdmin, OnboardingComplete: true}
+		users := mocks.NewMockUserRepositoryInterface(t)
+		users.On("FindByID", mock.Anything, uint64(84)).Return(admin, nil).Once()
+		adminService := &GameService{users: users, secret: func() string { return secret }}
+		qr, err := adminService.AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), spaceID)
+		require.NoError(t, err)
+		assert.Equal(t, token, qr.QRToken)
+
+		_, malformedErr := adminService.AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), "invalid")
+		apiServiceError(t, malformedErr, http.StatusNotFound, "NOT_FOUND")
+
+		noSecretUsers := mocks.NewMockUserRepositoryInterface(t)
+		noSecretUsers.On("FindByID", mock.Anything, uint64(84)).Return(admin, nil).Once()
+		_, noSecretErr := (&GameService{users: noSecretUsers, secret: func() string { return "" }}).AdminScheduleSpaceQR(TestSuite.ContextWithUser(84), spaceID)
+		assert.ErrorIs(t, noSecretErr, appErrors.InternalError)
+	})
 }
 
 func TestIteration6_QRSupportsCheckpointAndChallengeButRejectsSchedule(t *testing.T) {
