@@ -7,6 +7,7 @@ import (
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	mediaEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/media/entities"
 	momentEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/entities"
 	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
@@ -227,10 +228,57 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 			assert.ErrorIs(t, err, appErrors.InternalError)
 		})
 
+		t.Run("participation and activity queries", func(t *testing.T) {
+			for name, result := range map[string]struct {
+				participation    *gameEntities.Participation
+				participationErr error
+				activityErr      error
+			}{
+				"participation": {participationErr: databaseErr},
+				"activity": {
+					participation: &gameEntities.Participation{ID: uuid.NewString(), UserID: 42, ActivityID: uuid.NewString()},
+					activityErr:   databaseErr,
+				},
+			} {
+				t.Run(name, func(t *testing.T) {
+					moments := mocks.NewMockMomentRepository(t)
+					media := mocks.NewMockMediaRepository(t)
+					storage := mocks.NewMockMediaStorage(t)
+					users := mocks.NewMockUserRepositoryInterface(t)
+					assetID := uuid.NewString()
+					participationID := uuid.NewString()
+					users.On("FindByID", mock.Anything, uint64(42)).Return(defaultMediaUser(), nil)
+					media.On("FindAsset", mock.Anything, assetID, true).Return(&mediaEntities.Asset{
+						ID: assetID, OwnerUserID: 42, State: mediaEntities.AssetAvailable,
+						RetentionDueAt: mediaMomentNow.Add(time.Hour),
+					}, nil)
+					media.On("FindOperation", mock.Anything, uint64(42), mock.Anything).
+						Return(nil, appErrors.ErrNotFound)
+					media.On("FindLegacyOperation", mock.Anything, uint64(42), mock.Anything).Return(false, nil)
+					moments.On("FindParticipationForUpdate", mock.Anything, participationID).
+						Return(result.participation, result.participationErr)
+					if result.participation != nil {
+						moments.On("FindActivityForUpdate", mock.Anything, result.participation.ActivityID).
+							Return("", false, (*time.Time)(nil), (*time.Time)(nil), 0, "", (*string)(nil), result.activityErr)
+					}
+					_, _, err := mockMomentService(t, moments, media, storage, users).Create(
+						ctx,
+						uuid.NewString(),
+						&messages.CreateMomentRequestDTO{
+							MediaAssetID: assetID, ParticipationID: &participationID,
+						},
+					)
+					assert.ErrorIs(t, err, appErrors.InternalError)
+				})
+			}
+		})
+
 		for name, result := range map[string]struct {
+			award            bool
 			operationFailure bool
 		}{
 			"moment insert":           {},
+			"challenge award":         {award: true},
 			"idempotency persistence": {operationFailure: true},
 		} {
 			t.Run(name, func(t *testing.T) {
@@ -248,11 +296,26 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 				media.On("FindOperation", mock.Anything, uint64(42), mock.Anything).
 					Return(nil, appErrors.ErrNotFound)
 				media.On("FindLegacyOperation", mock.Anything, uint64(42), mock.Anything).Return(false, nil)
-				request := &messages.CreateMomentRequestDTO{MediaAssetID: assetID, PublishConsent: false}
+				request := &messages.CreateMomentRequestDTO{MediaAssetID: assetID, PublishConsent: result.award}
+				if result.award {
+					participationID := uuid.NewString()
+					activityID := uuid.NewString()
+					request.ParticipationID = &participationID
+					moments.On("FindParticipationForUpdate", mock.Anything, participationID).
+						Return(&gameEntities.Participation{
+							ID: participationID, UserID: 42, ActivityID: activityID, CanShareMoment: true,
+						}, nil)
+					moments.On("FindActivityForUpdate", mock.Anything, activityID).
+						Return("active", true, (*time.Time)(nil), (*time.Time)(nil), 10, "Challenge", (*string)(nil), nil)
+				}
 				if name == "moment insert" {
 					moments.On("CreateMoment", mock.Anything, mock.Anything).Return(databaseErr)
 				} else {
 					moments.On("CreateMoment", mock.Anything, mock.Anything).Return(nil)
+				}
+				if result.award {
+					moments.On("AwardMoment", mock.Anything, mock.Anything, uint64(42), mock.Anything, 10, mediaMomentNow).
+						Return(databaseErr)
 				}
 				if result.operationFailure {
 					media.On("CreateOperation", mock.Anything, mock.Anything).Return(databaseErr)

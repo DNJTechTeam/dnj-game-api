@@ -127,13 +127,16 @@ func TestE2E_AdminJourney(t *testing.T) {
 		"POST /v2/qr/validate cria a Participation usada pelos moments seguintes.",
 	)
 	require.Equal(t, http.StatusCreated, joinResp.Code, joinResp.Body.String())
+	var joined messages.ParticipationEnvelopeDTO
+	mustDecodeInto(t, joinResp.Body.Bytes(), &joined)
+	participationID := joined.Participation.ID
 
-	// The first photo is a challenge moment; the second is a free/spontaneous
-	// moment. That exercises both moderation queues: "challenge" for the
-	// first, "general" for the second.
-	seedE2EMomentChallenge(t)
-	momentToApprove := createE2EMoment(t, rig, rec, "player", playerToken, true)
-	momentToReject := createE2EMoment(t, rig, rec, "player", playerToken, false)
+	// A Participation can back at most one Moment (moments_participation_unique),
+	// so the second photo is a "free" moment (no participationId) -- a
+	// spontaneous share rather than a challenge reward. That also exercises
+	// both moderation queues: "challenge" for the first, "general" for the second.
+	momentToApprove := createE2EMoment(t, rig, rec, "player", playerToken, participationID)
+	momentToReject := createE2EMoment(t, rig, rec, "player", playerToken, "")
 
 	challengeQueueResp := rec.call(
 		"admin lista a fila de moderação (challenge)", "ADMIN", "admin", http.MethodGet,
@@ -224,11 +227,12 @@ func TestE2E_AdminJourney(t *testing.T) {
 }
 
 // createE2EMoment uploads a tiny valid JPEG through the real media HTTP
-// surface, completes it, and creates a moment. When isChallenge is true
-// the moment is created via the challenge endpoint (origin=challenge);
-// otherwise it's a free/spontaneous moment (origin=free). Returns the
-// moment id.
-func createE2EMoment(t *testing.T, rig *e2eRig, rec *e2eRecorder, actorLabel, token string, isChallenge bool) string {
+// surface, completes it, and creates a public moment. When participationID
+// is non-empty the moment is tied to it (origin=challenge); otherwise it's a
+// free/spontaneous moment (origin=free) -- a Participation can only ever
+// back one Moment, so a second photo in the same journey must go this route.
+// Returns the moment id.
+func createE2EMoment(t *testing.T, rig *e2eRig, rec *e2eRecorder, actorLabel, token, participationID string) string {
 	t.Helper()
 	body := mediaMomentImage(t, "image/jpeg")
 
@@ -251,14 +255,13 @@ func createE2EMoment(t *testing.T, rig *e2eRig, rec *e2eRecorder, actorLabel, to
 	assetID := decodeJSONField(t, completeResp.Body.Bytes(), "id")
 
 	momentBody := `{"mediaAssetId":"` + assetID + `","publishConsent":true}`
-	endpoint := "/v2/moments"
-	if isChallenge {
-		endpoint = "/v2/moments/challenge"
+	if participationID != "" {
+		momentBody = `{"mediaAssetId":"` + assetID + `","publishConsent":true,"participationId":"` + participationID + `"}`
 	}
 	momentResp := rec.call(
 		actorLabel+" publica um moment", "DEFAULT", actorLabel, http.MethodPost,
-		endpoint, token, uuid.NewString(), momentBody,
-		"POST "+endpoint+" nasce pending e já aparece no feed (201).",
+		"/v2/moments", token, uuid.NewString(), momentBody,
+		"POST /v2/moments nasce pending e já aparece no feed (201).",
 	)
 	require.Equal(t, http.StatusCreated, momentResp.Code, momentResp.Body.String())
 	return decodeJSONField(t, momentResp.Body.Bytes(), "id")

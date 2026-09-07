@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -88,24 +86,4 @@ func promoteToEventManager(t *testing.T, rec *e2eRecorder, adminToken string, us
 
 func uint64ToString(v uint64) string {
 	return fmt.Sprint(v)
-}
-
-// seedE2EMomentChallenge inserts an active moment-challenge activity directly
-// into the database so the E2E challenge endpoint has a target.
-func seedE2EMomentChallenge(t *testing.T) {
-	t.Helper()
-	now := time.Now().UTC()
-	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{
-		ID:           uuid.NewString(),
-		Slug:         "e2e-moment-challenge-" + uuid.NewString(),
-		Name:         "Desafio do Momento E2E",
-		Kind:         "challenge",
-		Status:       "active",
-		StartsAt:     timePointer(now.Add(-time.Hour)),
-		EndsAt:       timePointer(now.Add(time.Hour)),
-		MomentPoints: 25,
-		AllowsMoment: true,
-		CreatedAt:    now.Add(-time.Hour),
-		UpdatedAt:    now,
-	}).Error)
 }

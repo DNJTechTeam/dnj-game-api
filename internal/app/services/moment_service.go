@@ -15,6 +15,7 @@ import (
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	mediaEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/media/entities"
 	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
 	momentEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/entities"
@@ -229,9 +230,10 @@ func (s *MomentService) List(
 }
 
 type createMomentIntent struct {
-	MediaAssetID   string `json:"mediaAssetId"`
-	PublishConsent bool   `json:"publishConsent"`
-	ChallengeMode  bool   `json:"challengeMode,omitempty"`
+	MediaAssetID    string  `json:"mediaAssetId"`
+	PublishConsent  bool    `json:"publishConsent"`
+	ParticipationID *string `json:"participationId,omitempty"`
+	ChallengeMode   bool    `json:"challengeMode,omitempty"`
 }
 
 func (s *MomentService) Create(
@@ -246,6 +248,10 @@ func (s *MomentService) Create(
 	if err != nil {
 		return nil, 0, notFoundError()
 	}
+	participationID, err := normalizeOptionalUUID(request.ParticipationID)
+	if err != nil {
+		return nil, 0, notFoundError()
+	}
 	key, err := parseIdempotencyKey(rawKey)
 	if err != nil {
 		return nil, 0, err
@@ -257,9 +263,10 @@ func (s *MomentService) Create(
 
 	operation := "moment.create"
 	fingerprint := intentHash(operation, createMomentIntent{
-		MediaAssetID:   assetID.String(),
-		PublishConsent: request.PublishConsent,
-		ChallengeMode:  request.ChallengeMode,
+		MediaAssetID:    assetID.String(),
+		PublishConsent:  request.PublishConsent,
+		ParticipationID: participationID,
+		ChallengeMode:   request.ChallengeMode,
 	})
 	now := utcNow(s.now)
 	signingTime := now
@@ -310,7 +317,23 @@ func (s *MomentService) Create(
 		rewardStatus := momentEntities.RewardNotApplicable
 		var activityID *string
 		points := 0
-		if request.ChallengeMode {
+		if participationID != nil {
+			participation, activityPoints, eligibilityErr := s.eligibleParticipation(
+				tx,
+				*participationID,
+				actor.ID,
+				now,
+			)
+			if eligibilityErr != nil {
+				return eligibilityErr
+			}
+			origin = momentEntities.OriginChallenge
+			rewardStatus = momentEntities.RewardDenied
+			activityID = &participation.ActivityID
+			if request.PublishConsent {
+				points = activityPoints
+			}
+		} else if request.ChallengeMode {
 			repo, ok := s.moments.(activeMomentChallengeRepository)
 			if !ok {
 				return appErrors.InternalError
@@ -345,6 +368,7 @@ func (s *MomentService) Create(
 		moment = &momentEntities.Moment{
 			ID:                uuid.NewString(),
 			UserID:            actor.ID,
+			ParticipationID:   participationID,
 			ActivityID:        activityID,
 			MediaAssetID:      asset.ID,
 			Origin:            origin,
@@ -406,6 +430,42 @@ func (s *MomentService) Create(
 		return nil, 0, err
 	}
 	return response, status, nil
+}
+
+func (s *MomentService) eligibleParticipation(
+	ctx context.Context,
+	participationID string,
+	actorID uint64,
+	now time.Time,
+) (*gameEntities.Participation, int, error) {
+	participation, err := s.moments.FindParticipationForUpdate(ctx, participationID)
+	if errors.Is(err, appErrors.ErrNotFound) || err == nil && participation.UserID != actorID {
+		return nil, 0, notFoundError()
+	}
+	if err != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	status, allowsMoment, startsAt, endsAt, momentPoints, _, _, err := s.moments.FindActivityForUpdate(
+		ctx,
+		participation.ActivityID,
+	)
+	if err != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	eligible := participation.Status != "cancelled" &&
+		participation.CanShareMoment &&
+		allowsMoment &&
+		status == "active" &&
+		(startsAt == nil || !now.Before(startsAt.UTC())) &&
+		(endsAt == nil || !now.After(endsAt.UTC()))
+	if !eligible {
+		return nil, 0, mediaMomentError(
+			http.StatusConflict,
+			"MOMENT_NOT_ELIGIBLE",
+			"Esta participação não permite publicar um Moment agora.",
+		)
+	}
+	return participation, momentPoints, nil
 }
 
 func normalizeOptionalUUID(raw *string) (*string, error) {

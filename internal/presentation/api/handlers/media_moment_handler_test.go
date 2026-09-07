@@ -95,7 +95,7 @@ func TestMediaMoments_CreateChallengeAcceptsOnlyChallengePayload(t *testing.T) {
 		mock.Anything,
 		key,
 		mock.MatchedBy(func(request *messages.CreateMomentRequestDTO) bool {
-			return request.MediaAssetID == "asset-1" && request.PublishConsent && request.ChallengeMode
+			return request.MediaAssetID == "asset-1" && request.PublishConsent && request.ChallengeMode && request.ParticipationID == nil
 		}),
 	).Return(&messages.MomentResponseDTO{ID: "moment-1", Origin: "challenge"}, http.StatusCreated, nil).Once()
 
