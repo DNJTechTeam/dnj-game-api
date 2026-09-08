@@ -65,6 +65,7 @@ type MomentResponseDTO struct {
 	LikesCount         int           `json:"likesCount"`
 	LikedByCurrentUser bool          `json:"likedByCurrentUser"`
 	GroupID            *Uint64String `json:"groupId,omitempty"`
+	GroupName          *string       `json:"groupName,omitempty"`
 }
 
 func (d MomentResponseDTO) MarshalJSON() ([]byte, error) {
@@ -87,6 +88,7 @@ func (d MomentResponseDTO) MarshalJSON() ([]byte, error) {
 		LikesCount         int           `json:"likesCount"`
 		LikedByCurrentUser bool          `json:"likedByCurrentUser"`
 		GroupID            *Uint64String `json:"groupId,omitempty"`
+		GroupName          *string       `json:"groupName,omitempty"`
 	}
 	return marshalUTC(
 		wire{
@@ -108,6 +110,7 @@ func (d MomentResponseDTO) MarshalJSON() ([]byte, error) {
 			d.LikesCount,
 			d.LikedByCurrentUser,
 			d.GroupID,
+			d.GroupName,
 		},
 	)
 }

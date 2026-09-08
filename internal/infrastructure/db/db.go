@@ -1,8 +1,9 @@
 package db
 
 import (
-	"fmt"
 	"log"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
@@ -39,13 +40,7 @@ func initConnection(disableAutomaticPing bool) *gorm.DB {
 		return gormDbConnection
 	}
 
-	user := common.GetEnv("DB_USER")
-	password := common.GetEnv("DB_PASSWORD")
-	host := common.GetEnv("DB_HOST")
-	port := common.GetEnv("DB_PORT")
-	dbname := common.GetEnv("DB_NAME")
-
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", user, password, host, port, dbname)
+	databaseURL := buildDatabaseURL()
 
 	config := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
@@ -75,4 +70,19 @@ func initConnection(disableAutomaticPing bool) *gorm.DB {
 	SetConnection(db)
 
 	return db
+}
+
+// buildDatabaseURL monta a URL de conexão a partir das envs DB_*, removendo
+// espaços/quebras de linha acidentais e escapando credenciais com caracteres
+// especiais (ex.: "?", "@", "$", "#").
+func buildDatabaseURL() string {
+	get := func(key string) string { return strings.TrimSpace(common.GetEnv(key)) }
+
+	u := url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(get("DB_USER"), get("DB_PASSWORD")),
+		Host:   get("DB_HOST") + ":" + get("DB_PORT"),
+		Path:   "/" + get("DB_NAME"),
+	}
+	return u.String()
 }

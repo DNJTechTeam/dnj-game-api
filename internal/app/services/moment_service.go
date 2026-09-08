@@ -102,6 +102,9 @@ func (s *MomentService) responseFor(
 		groupID := messages.Uint64StringFromUint64(*moment.GroupID)
 		response.GroupID = &groupID
 	}
+	if moment.GroupName != nil {
+		response.GroupName = moment.GroupName
+	}
 
 	if !moment.AssetAvailable || !signingTime.Before(moment.AssetRetentionDueAt) {
 		return response, nil
