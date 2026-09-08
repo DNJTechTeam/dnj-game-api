@@ -38,13 +38,13 @@ var staticQRExpiry = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 
 type GameService struct {
 	*BaseService
-	games        gameInterfaces.GameRepositoryInterface
-	activities   activityInterfaces.ActivityRepositoryInterface
-	users        userInterfaces.UserRepositoryInterface
-	audits       auditInterfaces.OperationAuditRepositoryInterface
+	games         gameInterfaces.GameRepositoryInterface
+	activities    activityInterfaces.ActivityRepositoryInterface
+	users         userInterfaces.UserRepositoryInterface
+	audits        auditInterfaces.OperationAuditRepositoryInterface
 	eventSettings eventInterfaces.EventSettingsRepositoryInterface
-	now          func() time.Time
-	secret       func() string
+	now           func() time.Time
+	secret        func() string
 }
 
 func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, eventSettings eventInterfaces.EventSettingsRepositoryInterface) appInterfaces.GameServiceInterface {
@@ -320,9 +320,6 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 	if err := s.requireQRSecret(); err != nil {
 		return nil, 0, err
 	}
-	if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
-		return nil, 0, gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
-	}
 	token := strings.TrimSpace(request.QRToken)
 	if spaceID, isScheduleQR := s.parseScheduleQR(token); strings.HasPrefix(token, "schedule.") {
 		if !isScheduleQR {
@@ -398,6 +395,11 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 		specialEventRun, specialEventErr := s.games.IsActiveSpecialEventRun(txCtx, qr.ActivityRunID, now)
 		if specialEventErr != nil {
 			return appErrors.InternalError
+		}
+		if !specialEventRun {
+			if closed, csErr := s.eventSettings.Get(txCtx); csErr == nil && closed.ScoringClosed {
+				return gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
+			}
 		}
 		if !specialEventRun {
 			if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
