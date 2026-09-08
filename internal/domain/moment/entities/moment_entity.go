@@ -38,6 +38,7 @@ type Moment struct {
 	AuthorName          string
 	AuthorAvatarURL     *string
 	GroupID             *uint64
+	GroupName           *string
 	ActivityName        *string
 	PlaceName           *string
 	AssetAvailable      bool
