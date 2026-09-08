@@ -145,6 +145,7 @@ func projectMoment(row *momentProjection) *momentEntities.Moment {
 	item.AuthorName = row.AuthorName
 	item.AuthorAvatarURL = row.AuthorAvatarURL
 	item.GroupID = row.GroupID
+	item.GroupName = row.GroupName
 	item.ActivityName = row.ActivityName
 	item.PlaceName = row.PlaceName
 	item.AssetAvailable = row.AssetState == string(mediaEntities.AssetAvailable)
