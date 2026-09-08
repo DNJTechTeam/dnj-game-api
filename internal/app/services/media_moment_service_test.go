@@ -1072,6 +1072,19 @@ func TestMediaMoments_CursorPaginationAndPreservedMineProjection(t *testing.T) {
 	assert.NotNil(t, mine.Items[0].ModerationMessage)
 }
 
+func TestMediaMoments_CannotCreateMomentWithOtherUsersAsset(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	owner, ownerCtx := seedMediaMomentUser(t, "moment-asset-owner@example.com", userEntities.RoleDefault, true)
+	_, otherCtx := seedMediaMomentUser(t, "moment-asset-other@example.com", userEntities.RoleDefault, true)
+	_ = owner
+	asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+
+	_, _, err := momentService.Create(otherCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: asset.ID, PublishConsent: true,
+	})
+	assertAPIErrorCode(t, err, "NOT_FOUND")
+}
+
 func assertAPIErrorCode(t *testing.T, err error, code string) {
 	t.Helper()
 	require.Error(t, err)
