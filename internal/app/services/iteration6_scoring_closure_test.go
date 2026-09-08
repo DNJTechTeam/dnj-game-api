@@ -58,21 +58,14 @@ func TestIteration6_ValidateQR_ScoringClosed(t *testing.T) {
 
 func TestIteration6_ValidateScheduleQR_ScoringClosed(t *testing.T) {
 	service := setupIteration6TestWithClosedScoring(t, true)
-	manager, managerCtx := seedIteration6User(t, "manager", userEntities.RoleEventManager, true, 0)
 	_, participantCtx := seedIteration6User(t, "participant", userEntities.RoleDefault, true, 0)
 
 	// Create a space
 	spaceID := uuid.NewString()
 	require.NoError(t, TestSuite.DbConn.Create(&models.Space{ID: spaceID, Slug: "test-space-" + uuid.NewString(), Name: "Test Space", CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
 
-	// Create a game with schedule
-	gameID := seedIteration6Game(t, "Schedule Game", activityEntities.StatusActive, nil)
-	assignIteration6Manager(t, gameID, manager.ID)
-	run := createIteration6Run(t, service, managerCtx, gameID)
-	qr := rotateIteration6QR(t, service, managerCtx, run.ID)
-
 	// Create a schedule QR for the space
-	scheduleQR := "schedule." + spaceID + "." + qr.QRToken
+	scheduleQR := service.scheduleQRToken(spaceID)
 
 	// Try to validate the schedule QR - should fail with SCORING_CLOSED
 	response, status, err := service.ValidateQR(participantCtx, &messages.QRValidateRequestDTO{QRToken: scheduleQR, IdempotencyKey: uuid.NewString()})
