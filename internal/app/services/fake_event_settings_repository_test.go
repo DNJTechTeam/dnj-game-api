@@ -9,6 +9,7 @@ import (
 
 type fakeEventSettingsRepository struct {
 	closed bool
+	err    error
 }
 
 func newFakeEventSettingsRepository() *fakeEventSettingsRepository {
@@ -16,6 +17,9 @@ func newFakeEventSettingsRepository() *fakeEventSettingsRepository {
 }
 
 func (r *fakeEventSettingsRepository) Get(ctx context.Context) (*entities.EventSettings, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
 	now := time.Now().UTC()
 	return &entities.EventSettings{
 		ID:            "global",
