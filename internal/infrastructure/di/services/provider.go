@@ -19,6 +19,7 @@ import (
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
 	refreshInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/refreshsession/interfaces"
 	spaceInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/space/interfaces"
+	eventInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/eventsettings/interfaces"
 	specialInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/specialevent/interfaces"
 	swInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhook/interfaces"
 	svcInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/subscriptionwebhookverificationcode/interfaces"
@@ -84,8 +85,9 @@ func ProvideGameService(
 	activityRepository activityInterfaces.ActivityRepositoryInterface,
 	userRepository uInterfaces.UserRepositoryInterface,
 	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+	eventSettingsRepository eventInterfaces.EventSettingsRepositoryInterface,
 ) appInterfaces.GameServiceInterface {
-	return services.NewGameService(baseService, gameRepository, activityRepository, userRepository, auditRepository)
+	return services.NewGameService(baseService, gameRepository, activityRepository, userRepository, auditRepository, eventSettingsRepository)
 }
 
 func ProvideSpecialEventService(baseService *services.BaseService, repository specialInterfaces.Repository, activityRepository activityInterfaces.ActivityRepositoryInterface, gameRepository gameInterfaces.GameRepositoryInterface, userRepository uInterfaces.UserRepositoryInterface, notificationRepository notificationInterfaces.Repository) appInterfaces.SpecialEventServiceInterface {
@@ -108,6 +110,7 @@ func ProvideMomentService(
 	mediaStorage mediaInterfaces.Storage,
 	userRepository uInterfaces.UserRepositoryInterface,
 	auditRepository auditInterfaces.OperationAuditRepositoryInterface,
+	eventSettingsRepository eventInterfaces.EventSettingsRepositoryInterface,
 ) appInterfaces.MomentServiceInterface {
 	return services.NewMomentService(
 		baseService,
@@ -116,6 +119,7 @@ func ProvideMomentService(
 		mediaStorage,
 		userRepository,
 		auditRepository,
+		eventSettingsRepository,
 	)
 }
 
@@ -256,4 +260,12 @@ func ProvideUserService(
 	membershipRepository membershipInterfaces.GroupMembershipRepositoryInterface,
 ) appInterfaces.UserServiceInterface {
 	return services.NewUserService(baseService, userRepository, groupRepository, membershipRepository)
+}
+
+func ProvideEventSettingsService(
+	baseService *services.BaseService,
+	eventSettingsRepository eventInterfaces.EventSettingsRepositoryInterface,
+	userRepository uInterfaces.UserRepositoryInterface,
+) appInterfaces.EventSettingsServiceInterface {
+	return services.NewEventSettingsService(baseService, eventSettingsRepository, userRepository)
 }
