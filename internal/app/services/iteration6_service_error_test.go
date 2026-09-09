@@ -22,7 +22,7 @@ import (
 func iteration6ServiceWithMocks(t *testing.T, games gameInterfaces.GameRepositoryInterface, users userInterfaces.UserRepositoryInterface) *GameService {
 	t.Helper()
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits).(*GameService)
+	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits, newFakeEventSettingsRepository()).(*GameService)
 	service.now = func() time.Time { return iteration6Now }
 	service.secret = func() string { return "iteration-6-error-secret" }
 	return service
@@ -231,7 +231,7 @@ func TestIteration6_WriteServicesRollbackAdapterFailures(t *testing.T) {
 		games := mocks.NewMockGameRepositoryInterface(t)
 		users := mocks.NewMockUserRepositoryInterface(t)
 		audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-		service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
+		service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, eventSettings: newFakeEventSettingsRepository(), now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
 		users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(iteration6DefaultUser(), nil).Once()
 		games.On("FindParticipantOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
 		games.On("FindManagerOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
@@ -246,7 +246,7 @@ func TestIteration6_WriteServicesRollbackAdapterFailures(t *testing.T) {
 		games := mocks.NewMockGameRepositoryInterface(t)
 		users := mocks.NewMockUserRepositoryInterface(t)
 		audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-		service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
+		service := &GameService{BaseService: TestSuite.BaseService, games: games, users: users, audits: audits, eventSettings: newFakeEventSettingsRepository(), now: func() time.Time { return iteration6Now }, secret: func() string { return "secret" }}
 		users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(iteration6DefaultUser(), nil).Once()
 		games.On("FindParticipantOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, appErrors.ErrNotFound).Once()
 		games.On("FindManagerOperation", mock.Anything, uint64(42), mock.Anything).Return(nil, dbFailure).Once()
@@ -374,7 +374,7 @@ func TestIteration6_IdentityRepositoryFailuresAndPureFallbacks(t *testing.T) {
 	games := mocks.NewMockGameRepositoryInterface(t)
 	users := mocks.NewMockUserRepositoryInterface(t)
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits).(*GameService)
+	service := NewGameService(TestSuite.BaseService, games, TestSuite.ActivityRepository, users, audits, newFakeEventSettingsRepository()).(*GameService)
 	assert.Equal(t, os.Getenv("DOCUMENT_HMAC_SECRET"), service.secret())
 	assert.Equal(t, "fallback", valueOr(nil, "fallback"))
 	assert.Equal(t, "paused", dashboardStatus(gameEntities.RunStatusPaused))

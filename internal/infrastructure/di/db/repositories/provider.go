@@ -2,6 +2,7 @@ package repositories
 
 import (
 	activityInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/interfaces"
+	eventInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/eventsettings/interfaces"
 	adminInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/adminoperation/interfaces"
 	emailSignupInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/emailsignupcode/interfaces"
 	favoriteInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/favorite/interfaces"
@@ -106,4 +107,8 @@ func ProvideSubscriptionWebhookVerificationCodeRepository(
 	db *gorm.DB,
 ) svcInterfaces.SubscriptionWebhookVerificationCodeRepositoryInterface {
 	return repositories.NewSubscriptionWebhookVerificationCodeRepository(db)
+}
+
+func ProvideEventSettingsRepository(db *gorm.DB) eventInterfaces.EventSettingsRepositoryInterface {
+	return repositories.NewEventSettingsRepository(db)
 }

@@ -40,6 +40,7 @@ func InitializeServer() *api.API {
 		repositories.ProvideAdminOperationRepository,
 		repositories.ProvideSubscriptionWebhookRepository,
 		repositories.ProvideSubscriptionWebhookVerificationCodeRepository,
+		repositories.ProvideEventSettingsRepository,
 
 		services.ProvideBaseService,
 		services.ProvideJwtService,
@@ -64,6 +65,7 @@ func InitializeServer() *api.API {
 		services.ProvideMomentService,
 		services.ProvideNotificationService,
 		services.ProvideAdminInstallationService,
+		services.ProvideEventSettingsService,
 
 		diApi.ProvideEngine,
 		diStorage.ProvideMediaStorage,
@@ -87,6 +89,7 @@ func InitializeServer() *api.API {
 		wire.Struct(new(handlers.MediaHandler), "*"),
 		wire.Struct(new(handlers.MomentHandler), "*"),
 		wire.Struct(new(handlers.NotificationHandler), "*"),
+		wire.Struct(new(handlers.EventSettingsHandler), "*"),
 		wire.Struct(new(handlers.Handlers), "*"),
 		wire.Struct(new(api.API), "*"),
 	)

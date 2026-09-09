@@ -30,7 +30,7 @@ func newMomentServiceWithMocks(t *testing.T) (
 	storage := mocks.NewMockMediaStorage(t)
 	users := mocks.NewMockUserRepositoryInterface(t)
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewMomentService(TestSuite.BaseService, moments, media, storage, users, audits).(*MomentService)
+	service := NewMomentService(TestSuite.BaseService, moments, media, storage, users, audits, newFakeEventSettingsRepository()).(*MomentService)
 	return service, moments, media, users, audits
 }
 

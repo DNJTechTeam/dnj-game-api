@@ -33,7 +33,7 @@ func setupIteration6Test(t *testing.T) *GameService {
 	} {
 		TestSuite.TruncateTable(t, model)
 	}
-	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
+	service := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository, newFakeEventSettingsRepository()).(*GameService)
 	service.now = func() time.Time { return iteration6Now }
 	service.secret = func() string { return "iteration-6-qr-secret" }
 	return service
