@@ -216,6 +216,7 @@ func setupMediaMomentServices(
 		storage,
 		TestSuite.UserRepository,
 		TestSuite.OperationAuditRepository,
+		newFakeEventSettingsRepository(),
 	).(*MomentService)
 	mediaService.now = func() time.Time { return mediaMomentNow }
 	momentService.now = func() time.Time { return mediaMomentNow }
@@ -1074,6 +1075,19 @@ func TestMediaMoments_CursorPaginationAndPreservedMineProjection(t *testing.T) {
 	require.NotEmpty(t, mine.Items)
 	assert.Empty(t, mine.Items[0].ImageURL)
 	assert.NotNil(t, mine.Items[0].ModerationMessage)
+}
+
+func TestMediaMoments_CannotCreateMomentWithOtherUsersAsset(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	owner, ownerCtx := seedMediaMomentUser(t, "moment-asset-owner@example.com", userEntities.RoleDefault, true)
+	_, otherCtx := seedMediaMomentUser(t, "moment-asset-other@example.com", userEntities.RoleDefault, true)
+	_ = owner
+	asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+
+	_, _, err := momentService.Create(otherCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: asset.ID, PublishConsent: true,
+	})
+	assertAPIErrorCode(t, err, "NOT_FOUND")
 }
 
 func assertAPIErrorCode(t *testing.T, err error, code string) {

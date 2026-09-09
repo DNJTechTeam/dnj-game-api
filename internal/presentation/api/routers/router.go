@@ -49,6 +49,7 @@ func (r *Router) RegisterRoutes() *gin.Engine {
 	r.RegisterSpecialEventRoutes()
 	r.RegisterMediaMomentRoutes()
 	r.RegisterNotificationRoutes()
+	r.RegisterEventSettingsRoutes()
 
 	return r.engine
 }

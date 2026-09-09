@@ -26,7 +26,7 @@ func mockMomentService(
 ) *MomentService {
 	t.Helper()
 	audits := mocks.NewMockOperationAuditRepositoryInterface(t)
-	service := NewMomentService(TestSuite.BaseService, moments, media, storage, users, audits).(*MomentService)
+	service := NewMomentService(TestSuite.BaseService, moments, media, storage, users, audits, newFakeEventSettingsRepository()).(*MomentService)
 	service.now = func() time.Time { return mediaMomentNow }
 	service.cursorSecret = func() string { return "cursor-test-secret" }
 	return service

@@ -39,7 +39,7 @@ func setupSpecialEventHTTPTest(t *testing.T) (*SpecialEventService, *GameService
 	require.Equal(t, "test-document-hmac-secret", special.secret())
 	special.now = func() time.Time { return specialEventHTTPNow }
 	special.secret = func() string { return "special-event-http-secret" }
-	game := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository).(*GameService)
+	game := NewGameService(TestSuite.BaseService, TestSuite.GameRepository, TestSuite.ActivityRepository, TestSuite.UserRepository, TestSuite.OperationAuditRepository, newFakeEventSettingsRepository()).(*GameService)
 	game.now = func() time.Time { return specialEventHTTPNow }
 	game.secret = func() string { return "special-event-http-secret" }
 	return special, game

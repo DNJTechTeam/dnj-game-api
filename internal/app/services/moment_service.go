@@ -15,6 +15,7 @@ import (
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	appInterfaces "github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
+	eventInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/eventsettings/interfaces"
 	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	mediaEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/media/entities"
 	mediaInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/media/interfaces"
@@ -29,13 +30,14 @@ const mediaReadLifetime = 5 * time.Minute
 
 type MomentService struct {
 	*BaseService
-	moments      momentInterfaces.Repository
-	media        mediaInterfaces.Repository
-	storage      mediaInterfaces.Storage
-	users        userInterfaces.UserRepositoryInterface
-	audits       auditInterfaces.OperationAuditRepositoryInterface
-	now          func() time.Time
-	cursorSecret func() string
+	moments       momentInterfaces.Repository
+	media         mediaInterfaces.Repository
+	storage       mediaInterfaces.Storage
+	users         userInterfaces.UserRepositoryInterface
+	audits        auditInterfaces.OperationAuditRepositoryInterface
+	eventSettings eventInterfaces.EventSettingsRepositoryInterface
+	now           func() time.Time
+	cursorSecret  func() string
 }
 
 type activeMomentChallengeRepository interface {
@@ -50,16 +52,18 @@ func NewMomentService(
 	storage mediaInterfaces.Storage,
 	users userInterfaces.UserRepositoryInterface,
 	audits auditInterfaces.OperationAuditRepositoryInterface,
+	eventSettings eventInterfaces.EventSettingsRepositoryInterface,
 ) appInterfaces.MomentServiceInterface {
 	return &MomentService{
-		BaseService:  base,
-		moments:      moments,
-		media:        media,
-		storage:      storage,
-		users:        users,
-		audits:       audits,
-		now:          time.Now,
-		cursorSecret: func() string { return os.Getenv("DNJ_CURSOR_HMAC_SECRET") },
+		BaseService:   base,
+		moments:       moments,
+		media:         media,
+		storage:       storage,
+		users:         users,
+		audits:        audits,
+		eventSettings: eventSettings,
+		now:           time.Now,
+		cursorSecret:  func() string { return os.Getenv("DNJ_CURSOR_HMAC_SECRET") },
 	}
 }
 
@@ -97,6 +101,9 @@ func (s *MomentService) responseFor(
 	if moment.GroupID != nil {
 		groupID := messages.Uint64StringFromUint64(*moment.GroupID)
 		response.GroupID = &groupID
+	}
+	if moment.GroupName != nil {
+		response.GroupName = moment.GroupName
 	}
 
 	if !moment.AssetAvailable || !signingTime.Before(moment.AssetRetentionDueAt) {
@@ -318,6 +325,9 @@ func (s *MomentService) Create(
 		var activityID *string
 		points := 0
 		if participationID != nil {
+			if closed, csErr := s.eventSettings.Get(tx); csErr == nil && closed.ScoringClosed {
+				return mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
+			}
 			participation, activityPoints, eligibilityErr := s.eligibleParticipation(
 				tx,
 				*participationID,
@@ -334,6 +344,9 @@ func (s *MomentService) Create(
 				points = activityPoints
 			}
 		} else if request.ChallengeMode {
+			if closed, csErr := s.eventSettings.Get(tx); csErr == nil && closed.ScoringClosed {
+				return mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
+			}
 			repo, ok := s.moments.(activeMomentChallengeRepository)
 			if !ok {
 				return appErrors.InternalError
