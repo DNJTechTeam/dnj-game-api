@@ -54,14 +54,16 @@ func (s *AdminInstallationService) announceChallenge(ctx context.Context, activi
 	if activity.Kind != activityEntities.KindChallenge || activity.Status != activityEntities.StatusActive {
 		return nil
 	}
+	// Moment challenges are announced by the app's live banner. They must not
+	// create a persisted notification or an external push delivery.
+	if activity.AllowsMoment {
+		return nil
+	}
 	recipients, err := s.notifications.ResolveAnnouncementRecipients(ctx, nil)
 	if err != nil {
 		return appErrors.InternalError
 	}
 	category, title := notificationEntities.CategoryChallenge, "Novo desafio disponível"
-	if activity.AllowsMoment {
-		category, title = notificationEntities.CategoryMomentChallenge, "Desafio Momento disponível"
-	}
 	body := activity.Name
 	if activity.Description != nil && strings.TrimSpace(*activity.Description) != "" {
 		body = strings.TrimSpace(*activity.Description)

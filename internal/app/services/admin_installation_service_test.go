@@ -150,11 +150,11 @@ func TestAdminInstallationService_ChallengeActivationNotifications(t *testing.T)
 
 	var notifications []models.Notification
 	require.NoError(t, TestSuite.DbConn.Where("user_id = ?", recipient.ID).Order("created_at, title").Find(&notifications).Error)
-	require.Len(t, notifications, 2)
-	assert.ElementsMatch(t, []string{"challenge", "moment_challenge"}, []string{notifications[0].Category, notifications[1].Category})
-	assert.ElementsMatch(t, []string{"Corrida do saco", description}, []string{notifications[0].Body, notifications[1].Body})
+	require.Len(t, notifications, 1)
+	assert.Equal(t, "challenge", notifications[0].Category)
+	assert.Equal(t, "Corrida do saco", notifications[0].Body)
 	var deliveries int64
-	require.NoError(t, TestSuite.DbConn.Model(&models.NotificationDelivery{}).Where("notification_id IN ?", []string{notifications[0].ID, notifications[1].ID}).Count(&deliveries).Error)
+	require.NoError(t, TestSuite.DbConn.Model(&models.NotificationDelivery{}).Where("notification_id IN ?", []string{notifications[0].ID}).Count(&deliveries).Error)
 	assert.Zero(t, deliveries)
 }
 
