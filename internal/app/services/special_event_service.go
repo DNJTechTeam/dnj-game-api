@@ -145,9 +145,6 @@ func (s *SpecialEventService) Create(ctx context.Context, request *messages.Crea
 		if _, err = s.activities.Create(tx, activity); err != nil {
 			return appErrors.InternalError
 		}
-		if _, err = s.activities.CreateManagerAssignment(tx, &activityEntities.ManagerAssignment{ActivityID: id, UserID: actor.ID, CreatedAt: now}); err != nil {
-			return appErrors.InternalError
-		}
 		event := &specialEntities.Event{ID: id, ActivityID: id, Title: title, Description: description, Points: request.Points, DurationMinutes: request.DurationMinutes, Targets: request.Targets, Status: specialEntities.StatusDraft, EndsAt: ends, CreatedBy: actor.ID, CreatedAt: now, UpdatedAt: now}
 		if err = s.events.Create(tx, event); err != nil {
 			return appErrors.InternalError

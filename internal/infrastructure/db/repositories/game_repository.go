@@ -92,10 +92,7 @@ func manageableGameQuery(db *gorm.DB, actorUserID uint64, global bool, generated
 		generatedAt,
 	)
 	if !global {
-		query = query.Joins(
-			"JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = activities.id AND activity_manager_assignments.user_id = ?",
-			actorUserID,
-		)
+		query = query.Joins("JOIN users ON users.id = ?", actorUserID).Where(managerScopeRunPredicate, actorUserID)
 	}
 	return query
 }
@@ -131,10 +128,7 @@ func (r *GameRepository) FindManageableActivityForUpdate(
 		Where("activities.id = ? AND activities.kind IN ? AND activities.status IN ('active','paused')", activityID, managerRunActivityKinds)
 	query = publiclyVisibleActivities(query, generatedAt)
 	if !global {
-		query = query.Joins(
-			"JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = activities.id AND activity_manager_assignments.user_id = ?",
-			actorUserID,
-		)
+		query = query.Joins("JOIN users ON users.id = ?", actorUserID).Where(managerScopeRunPredicate, actorUserID)
 	}
 	if err := query.Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
@@ -216,10 +210,7 @@ func (r *GameRepository) FindOpenRunByActivityForUpdate(
 func managerRunQuery(db *gorm.DB, actorUserID uint64, global bool) *gorm.DB {
 	query := db.Model(&models.ActivityRun{}).Select("activity_runs.*")
 	if !global {
-		query = query.Joins(
-			"JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = activity_runs.activity_id AND activity_manager_assignments.user_id = ?",
-			actorUserID,
-		)
+		query = query.Joins("JOIN activities ON activities.id = activity_runs.activity_id JOIN users ON users.id = ?", actorUserID).Where(managerScopeRunPredicate, actorUserID)
 	}
 	return query
 }

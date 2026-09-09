@@ -1248,6 +1248,17 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		Down: func(db *gorm.DB) error { return nil },
 	})
 
+	registry.Register(Migration{
+		Name:        "manager_scope_authorization",
+		Description: "Backfill legacy operational users for area-based manager authorization.",
+		Version:     "2.12.1",
+		Definition:  "manager-scope-authorization-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`UPDATE users SET manager_scope = 'actions' WHERE role = 'EVENT_MANAGER' AND manager_scope IS NULL`).Error
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
+
 	registry.Register(createModelMigration(
 		"create_special_events_table",
 		"2.13.0",
