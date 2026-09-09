@@ -137,7 +137,7 @@ func TestAdminInstallationService_ChallengeActivationNotifications(t *testing.T)
 	now := time.Now().UTC()
 
 	require.NoError(t, service.announceChallenge(TestSuite.Ctx, &activityEntities.Activity{
-		ID: uuid.NewString(), Name: "Corrida do saco", Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, CreatedAt: now,
+		ID: uuid.NewString(), Name: "Corrida do saco", Description: pointer("Participe da corrida"), Kind: activityEntities.KindChallenge, Status: activityEntities.StatusActive, CreatedAt: now,
 	}, now))
 
 	description := "Registre uma foto no chafariz"
@@ -152,7 +152,7 @@ func TestAdminInstallationService_ChallengeActivationNotifications(t *testing.T)
 	require.NoError(t, TestSuite.DbConn.Where("user_id = ?", recipient.ID).Order("created_at, title").Find(&notifications).Error)
 	require.Len(t, notifications, 1)
 	assert.Equal(t, "challenge", notifications[0].Category)
-	assert.Equal(t, "Corrida do saco", notifications[0].Body)
+	assert.Equal(t, "Participe da corrida", notifications[0].Body)
 	var deliveries int64
 	require.NoError(t, TestSuite.DbConn.Model(&models.NotificationDelivery{}).Where("notification_id IN ?", []string{notifications[0].ID}).Count(&deliveries).Error)
 	assert.Zero(t, deliveries)
