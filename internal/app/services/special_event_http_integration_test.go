@@ -117,6 +117,13 @@ func TestIteration6_SpecialEventsHTTPFullLifecycleAwardsPointsAndNotifies(t *tes
 	require.NoError(t, json.Unmarshal(teaserActive.Body.Bytes(), &teaserActiveBody))
 	var teaserDisplayBody messages.LiveDisplaySpecialEventDTO
 	require.NoError(t, json.Unmarshal(teaserDisplay.Body.Bytes(), &teaserDisplayBody))
+	var prewarmed models.SpecialEvent
+	require.NoError(t, TestSuite.DbConn.First(&prewarmed, "id = ?", created.ID).Error)
+	require.NotNil(t, prewarmed.ActivityRunID)
+	require.NotNil(t, prewarmed.QRToken)
+	var prewarmedQRCount int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.ActivityRunQRCode{}).Where("activity_run_id = ?", *prewarmed.ActivityRunID).Count(&prewarmedQRCount).Error)
+	assert.Equal(t, int64(1), prewarmedQRCount)
 	special.secret = func() string { return "" }
 	missingSecretQR := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/special-events/qr", `{"eventId":"`+created.ID+`"}`, managerToken, "")
 	special.secret = func() string { return "special-event-http-secret" }
