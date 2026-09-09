@@ -46,11 +46,12 @@ type RankingResponseDTO struct {
 }
 
 type PointEntryResponseDTO struct {
-	ID        string    `json:"id"`
-	Label     string    `json:"label"`
-	Points    int       `json:"points"`
-	Icon      string    `json:"icon"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID            string    `json:"id"`
+	Label         string    `json:"label"`
+	Points        int       `json:"points"`
+	Icon          string    `json:"icon"`
+	RemovalReason *string   `json:"removalReason,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type GameCurrentResponseDTO struct {

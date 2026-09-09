@@ -449,13 +449,14 @@ func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	assert.Equal(t, moment.ID, feed.Items[0].ID)
 
 	moderationKey := uuid.NewString()
-	decision, err := momentService.Moderate(adminCtx, moment.ID, moderationKey, &messages.ModerationRequestDTO{Action: "deny_points"})
+	reason := "test reason"
+	decision, err := momentService.Moderate(adminCtx, moment.ID, moderationKey, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 	require.NoError(t, err)
 	assert.Equal(t, "reversed", decision.RewardStatus)
 	assert.Equal(t, "private", decision.PublicationStatus)
 	assert.Equal(t, "rejected", decision.ModerationStatus)
 
-	replayedDecision, err := momentService.Moderate(adminCtx, moment.ID, moderationKey, &messages.ModerationRequestDTO{Action: "deny_points"})
+	replayedDecision, err := momentService.Moderate(adminCtx, moment.ID, moderationKey, &messages.ModerationRequestDTO{Action: "deny_points", Reason: &reason})
 	require.NoError(t, err)
 	assert.Equal(t, decision, replayedDecision)
 
@@ -927,15 +928,18 @@ func TestMediaMoments_EligibilityIdempotencyAndCorrectiveModeration(t *testing.T
 	assert.Zero(t, privateMoment.PointsAwarded)
 	_, err = momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
 		Action: "deny_points",
+		Reason: func() *string { r := "test reason"; return &r }(),
 	})
 	assertAPIErrorCode(t, err, "MODERATION_ACTION_INVALID")
 	deleted, err := momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
 		Action: "delete_photo",
+		Reason: func() *string { r := "test reason"; return &r }(),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "deleted", deleted.PhotoStatus)
 	replayedTerminal, err := momentService.Moderate(adminCtx, privateMoment.ID, uuid.NewString(), &messages.ModerationRequestDTO{
 		Action: "delete_photo",
+		Reason: func() *string { r := "test reason"; return &r }(),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, deleted.PhotoStatus, replayedTerminal.PhotoStatus)

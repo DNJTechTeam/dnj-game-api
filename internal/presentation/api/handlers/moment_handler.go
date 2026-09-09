@@ -135,7 +135,7 @@ func (h *MomentHandler) Moderate(c *gin.Context) {
 	}
 	var request messages.ModerationRequestDTO
 	if err := ParseStrictRequest(c, &request); err != nil {
-		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie somente action.", nil)
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie somente action e reason (obrigatório para deny_points/delete_photo).", nil)
 		return
 	}
 	response, err := h.MomentService.Moderate(

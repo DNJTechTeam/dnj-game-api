@@ -99,7 +99,7 @@ func TestMediaMomentsHTTP_MiddlewareHandlerServiceRepositoryAndDatabase(t *testi
 		engine,
 		http.MethodPost,
 		"/v2/admin/moments/"+moment.ID+"/moderation",
-		`{"action":"delete_photo"}`,
+		`{"action":"delete_photo","reason":"foto inadequada"}`,
 		adminToken,
 		uuid.NewString(),
 	)

@@ -164,7 +164,7 @@ func TestE2E_AdminJourney(t *testing.T) {
 
 	rejectResp := rec.call(
 		"admin rejeita o segundo moment", "ADMIN", "admin", http.MethodPost,
-		"/v2/admin/moments/"+momentToReject+"/moderation", adminToken, uuid.NewString(), `{"action":"delete_photo"}`,
+		"/v2/admin/moments/"+momentToReject+"/moderation", adminToken, uuid.NewString(), `{"action":"delete_photo","reason":"foto inadequada"}`,
 		"POST .../moderation com action=delete_photo derruba a foto e rejeita o moment (200).",
 	)
 	require.Equal(t, http.StatusOK, rejectResp.Code, rejectResp.Body.String())

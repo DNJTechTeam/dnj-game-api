@@ -126,7 +126,7 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, userBeforeReverse.Points, 30)
 
-	reversed, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, now)
+	reversed, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, "test reason", now)
 	require.NoError(t, err)
 	assert.True(t, reversed)
 	userAfterReverse, err := TestSuite.UserRepository.FindByID(ctx, owner.ID)
@@ -141,7 +141,7 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	assert.Zero(t, reversalNotificationCount)
 
 	// Reversing an already-reversed award is a safe, durable no-op — not a double-decrement.
-	reversedAgain, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, now)
+	reversedAgain, err := momentRepo.ReverseMomentAward(ctx, moment.ID, owner.ID, "test reason", now)
 	require.NoError(t, err)
 	assert.False(t, reversedAgain)
 	userAfterSecondReverse, err := TestSuite.UserRepository.FindByID(ctx, owner.ID)
@@ -153,7 +153,7 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	moderationMoment := seedChallengeMoment(t, ctx, mediaRepo, momentRepo, owner.ID, activityID2, participationID2, "public")
 	require.NoError(t, momentRepo.AwardMoment(ctx, moderationMoment.ID, owner.ID, activityID2, 40, now))
 
-	denied, deniedAsset, changed, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "deny_points", 0, uuid.NewString(), now)
+	denied, deniedAsset, changed, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "deny_points", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.True(t, changed)
 	assert.Equal(t, momentEntities.PublicationPrivate, denied.PublicationStatus)
@@ -167,18 +167,18 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 	assert.Equal(t, "unread", moderationNotification.State)
 
 	// deny_points on a moment with no award in effect is a conflict.
-	_, _, _, err = momentRepo.ApplyModeration(ctx, zeroMoment.ID, "deny_points", 0, uuid.NewString(), now)
+	_, _, _, err = momentRepo.ApplyModeration(ctx, zeroMoment.ID, "deny_points", 0, uuid.NewString(), "test reason", now)
 	assert.ErrorIs(t, err, appErrors.ErrConflict)
 
 	// Applying the same decision again is a durable, idempotent no-op (changed=false).
-	_, _, changedAgain, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "deny_points", 0, uuid.NewString(), now)
+	_, _, changedAgain, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "deny_points", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.False(t, changedAgain)
 
 	// A second, different decision (delete_photo) on an already-rejected Moment still
 	// changes state (the asset is actually deleted) and must still notify the owner —
 	// the moderation-status transition alone no longer gates the notification.
-	_, secondDecisionAsset, secondDecisionChanged, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "delete_photo", 0, uuid.NewString(), now)
+	_, secondDecisionAsset, secondDecisionChanged, err := momentRepo.ApplyModeration(ctx, moderationMoment.ID, "delete_photo", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.True(t, secondDecisionChanged)
 	assert.Equal(t, mediaEntities.AssetDeleted, secondDecisionAsset.State)
@@ -201,13 +201,13 @@ func TestMediaMoments_AwardReverseAndModerationRepositoryLifecycle(t *testing.T)
 		RewardStatus: momentEntities.RewardNotApplicable, CapturedAt: now, CreatedAt: now, UpdatedAt: now,
 	}
 	require.NoError(t, momentRepo.CreateMoment(ctx, freeMoment))
-	deletedMoment, deletedAsset, deletedChanged, err := momentRepo.ApplyModeration(ctx, freeMoment.ID, "delete_photo", 0, uuid.NewString(), now)
+	deletedMoment, deletedAsset, deletedChanged, err := momentRepo.ApplyModeration(ctx, freeMoment.ID, "delete_photo", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.True(t, deletedChanged)
 	assert.Equal(t, mediaEntities.AssetDeleted, deletedAsset.State)
 	assert.Equal(t, momentEntities.ModerationRejected, deletedMoment.ModerationStatus)
 
-	_, _, deletedAgainChanged, err := momentRepo.ApplyModeration(ctx, freeMoment.ID, "delete_photo", 0, uuid.NewString(), now)
+	_, _, deletedAgainChanged, err := momentRepo.ApplyModeration(ctx, freeMoment.ID, "delete_photo", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.False(t, deletedAgainChanged)
 
@@ -261,7 +261,7 @@ func TestNotifications_PointsNotificationRespectsPreferenceOptOut(t *testing.T) 
 		Where("user_id = ? AND category = ?", owner.ID, "points").Count(&pointsCount).Error)
 	assert.Zero(t, pointsCount)
 
-	_, _, changed, err := momentRepo.ApplyModeration(ctx, moment.ID, "deny_points", 0, uuid.NewString(), now)
+	_, _, changed, err := momentRepo.ApplyModeration(ctx, moment.ID, "deny_points", 0, uuid.NewString(), "test reason", now)
 	require.NoError(t, err)
 	assert.True(t, changed)
 

@@ -165,7 +165,7 @@ func TestMediaMoments_MomentRepositorySQLFailures(t *testing.T) {
 		gormDB, mock := newMockDB(t)
 		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
 		mock.ExpectQuery(`SELECT`).WillReturnError(errors.New("connection reset"))
-		_, err := repo.ReverseMomentAward(context.Background(), "moment-1", 1, time.Now())
+		_, err := repo.ReverseMomentAward(context.Background(), "moment-1", 1, "reason", time.Now())
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 
@@ -173,7 +173,7 @@ func TestMediaMoments_MomentRepositorySQLFailures(t *testing.T) {
 		gormDB, mock := newMockDB(t)
 		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
 		mock.ExpectQuery(`SELECT`).WillReturnError(errors.New("connection reset"))
-		_, _, _, err := repo.ApplyModeration(context.Background(), "moment-1", "deny_points", 1, "key", time.Now())
+		_, _, _, err := repo.ApplyModeration(context.Background(), "moment-1", "deny_points", 1, "key", "reason", time.Now())
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 

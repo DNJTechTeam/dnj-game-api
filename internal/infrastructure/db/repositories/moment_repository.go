@@ -340,6 +340,7 @@ func (r *MomentRepository) ReverseMomentAward(
 	ctx context.Context,
 	momentID string,
 	userID uint64,
+	removalReason string,
 	now time.Time,
 ) (bool, error) {
 	var row models.Moment
@@ -360,7 +361,7 @@ func (r *MomentRepository) ReverseMomentAward(
 		return false, appErrors.ErrConflict
 	}
 	result := r.getDB(ctx).
-		Exec(`INSERT INTO point_entries (id,user_id,activity_id,activity_run_id,participation_id,moment_id,origin,reason,delta,created_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (moment_id,user_id,reason) WHERE moment_id IS NOT NULL DO NOTHING`, uuid.NewString(), userID, row.ActivityID, nil, row.ParticipationID, row.ID, "moment", "moment_moderation_reversal", -row.PointsAwarded, now)
+		Exec(`INSERT INTO point_entries (id,user_id,activity_id,activity_run_id,participation_id,moment_id,origin,reason,delta,removal_reason,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (moment_id,user_id,reason) WHERE moment_id IS NOT NULL DO NOTHING`, uuid.NewString(), userID, row.ActivityID, nil, row.ParticipationID, row.ID, "moment", "moment_moderation_reversal", -row.PointsAwarded, removalReason, now)
 	if result.Error != nil {
 		return false, handleRepositoryError(result.Error)
 	}
@@ -381,6 +382,7 @@ func (r *MomentRepository) ApplyModeration(
 	momentID, action string,
 	actor uint64,
 	key string,
+	removalReason string,
 	now time.Time,
 ) (*momentEntities.Moment, *mediaEntities.Asset, bool, error) {
 	var ref struct{ MediaAssetID string }
@@ -405,7 +407,7 @@ func (r *MomentRepository) ApplyModeration(
 	assetJustDeleted := false
 	if action == "deny_points" {
 		if row.RewardStatus == string(momentEntities.RewardAwarded) {
-			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, now)
+			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, removalReason, now)
 			if err != nil {
 				return nil, nil, false, err
 			}
@@ -416,7 +418,7 @@ func (r *MomentRepository) ApplyModeration(
 		}
 	} else if action == "delete_photo" {
 		if row.RewardStatus == string(momentEntities.RewardAwarded) {
-			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, now)
+			reversed, err := r.ReverseMomentAward(ctx, row.ID, row.UserID, removalReason, now)
 			if err != nil {
 				return nil, nil, false, err
 			}

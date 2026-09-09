@@ -219,6 +219,13 @@ func (s *MomentService) Moderate(
 			"action deve ser approve, deny_points ou delete_photo.",
 		)
 	}
+	removalReason := ""
+	switch request.Action {
+	case "deny_points":
+		removalReason = "Sua foto não atendeu às regras para pontuar!"
+	case "delete_photo":
+		removalReason = "Sua foto não seguiu as normas da comunidade."
+	}
 	key, err := parseIdempotencyKey(rawKey)
 	if err != nil {
 		return nil, err
@@ -260,6 +267,7 @@ func (s *MomentService) Moderate(
 			request.Action,
 			actor.ID,
 			key,
+			removalReason,
 			now,
 		)
 		if errors.Is(applyErr, appErrors.ErrNotFound) {

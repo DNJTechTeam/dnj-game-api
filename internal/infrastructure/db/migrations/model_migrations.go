@@ -1465,6 +1465,24 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		Down: func(db *gorm.DB) error { return nil },
 	})
 
+	registry.Register(Migration{
+		Name:        "add_point_entries_removal_reason",
+		Description: "Store the operator-provided reason when points are reversed",
+		Version:     "2.24.0",
+		Definition:  "point-entries-removal-reason-v1",
+		Up: func(db *gorm.DB) error {
+			if db.Migrator().HasColumn(&models.PointEntry{}, "removal_reason") {
+				return nil
+			}
+			return db.Exec(`ALTER TABLE point_entries ADD COLUMN removal_reason TEXT DEFAULT NULL`).Error
+		},
+		Down: func(db *gorm.DB) error {
+			if db.Migrator().HasColumn(&models.PointEntry{}, "removal_reason") {
+				return db.Exec(`ALTER TABLE point_entries DROP COLUMN removal_reason`).Error
+			}
+			return nil
+		},
+	})
 	registry.Register(createModelMigration(
 		"create_event_settings_table",
 		"2.24.0",

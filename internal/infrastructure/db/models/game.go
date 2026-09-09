@@ -70,6 +70,7 @@ type PointEntry struct {
 	Origin          string    `gorm:"not null"`
 	Reason          string    `gorm:"not null"`
 	Delta           int       `gorm:"not null"`
+	RemovalReason   *string   `gorm:"default:null"`
 	CreatedAt       time.Time `gorm:"autoCreateTime:nano;index"`
 }
 

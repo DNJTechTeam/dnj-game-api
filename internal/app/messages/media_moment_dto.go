@@ -126,7 +126,8 @@ type LikeResponseDTO struct {
 }
 
 type ModerationRequestDTO struct {
-	Action string `json:"action"`
+	Action string  `json:"action"`
+	Reason *string `json:"reason,omitempty"`
 }
 type ModerationActivitySummaryDTO struct {
 	ID   string `json:"id"`
