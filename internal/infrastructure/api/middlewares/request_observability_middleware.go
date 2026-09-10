@@ -11,6 +11,7 @@ import (
 	"time"
 
 	infraCommon "github.com/dnjtechteam/dnj-game-api/internal/infrastructure/common"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db"
 	"github.com/dnjtechteam/dnj-game-api/internal/presentation/api/handlers"
 	"github.com/gin-gonic/gin"
 )
@@ -39,6 +40,7 @@ func RequestObservabilityMiddleware(logger *slog.Logger) gin.HandlerFunc {
 		}
 
 		ctx := context.WithValue(c.Request.Context(), infraCommon.RequestIDContextKey, requestID)
+		ctx, queryStats := db.WithQueryStats(ctx)
 		c.Request = c.Request.WithContext(ctx)
 		c.Header(requestIDHeader, requestID)
 		startedAt := time.Now()
@@ -55,6 +57,8 @@ func RequestObservabilityMiddleware(logger *slog.Logger) gin.HandlerFunc {
 			"route", route,
 			"status", c.Writer.Status(),
 			"latencyMs", time.Since(startedAt).Milliseconds(),
+			"dbQueries", queryStats.Count(),
+			"dbMs", queryStats.Duration().Milliseconds(),
 			"responseBytes", c.Writer.Size(),
 		)
 	}

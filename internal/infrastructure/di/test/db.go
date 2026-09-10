@@ -14,7 +14,6 @@ import (
 	postgresContainer "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -53,7 +52,7 @@ func provideDb(ctx context.Context, dockerNetwork *testcontainers.DockerNetwork,
 	}
 
 	dbConnection, err := gorm.Open(
-		postgres.Open(fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "root", "rootpassword", host, port.Port(), "dnjgame_db")),
+		db.NewDialector(fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "root", "rootpassword", host, port.Port(), "dnjgame_db")),
 		&gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
 			Logger:                                   logger.Default.LogMode(logger.Silent),
