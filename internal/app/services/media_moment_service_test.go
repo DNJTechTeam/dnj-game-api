@@ -372,6 +372,57 @@ func TestMediaMoments_ChallengeModeAwardsWithoutQRParticipation(t *testing.T) {
 	assert.Equal(t, "MOMENT_ALREADY_COMPLETED", apiErr.Code)
 }
 
+func TestMediaMoments_StaffPublishesWithParticipantViewButNoPoints(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	admin, adminCtx := seedMediaMomentUser(t, "staff-admin@example.com", userEntities.RoleAdmin, true)
+	_, participantCtx := seedMediaMomentUser(t, "staff-viewer@example.com", userEntities.RoleDefault, true)
+	TestSuite.TruncateTable(t, &models.Activity{})
+	seedActiveMomentChallenge(t)
+
+	// given an ADMIN with completed onboarding publishing a free moment
+	freeAsset := createAvailableAsset(t, mediaService, storage, adminCtx, "image/jpeg")
+	freeMoment, status, err := momentService.Create(adminCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: freeAsset.ID, PublishConsent: true,
+	})
+	// then it is created like any participant moment
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "free", freeMoment.Origin)
+	assert.Zero(t, freeMoment.PointsAwarded)
+
+	// when the same ADMIN completes the active moment challenge
+	challengeAsset := createAvailableAsset(t, mediaService, storage, adminCtx, "image/jpeg")
+	challengeMoment, _, err := momentService.Create(adminCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: challengeAsset.ID, PublishConsent: true, ChallengeMode: true,
+	})
+	// then the moment is linked to the challenge but no points are granted
+	require.NoError(t, err)
+	assert.Equal(t, "challenge", challengeMoment.Origin)
+	assert.Zero(t, challengeMoment.PointsAwarded)
+	var points uint64
+	require.NoError(t, TestSuite.DbConn.Table("users").Select("points").Where("id = ?", admin.ID).Scan(&points).Error)
+	assert.Zero(t, points)
+	var entries int64
+	require.NoError(t, TestSuite.DbConn.Table("point_entries").Where("user_id = ?", admin.ID).Count(&entries).Error)
+	assert.Zero(t, entries)
+
+	// and both moments reach the participant feed, and the ADMIN sees the same feed
+	feed, err := momentService.List(participantCtx, "feed", "")
+	require.NoError(t, err)
+	require.Len(t, feed.Items, 2)
+	adminFeed, err := momentService.List(adminCtx, "feed", "")
+	require.NoError(t, err)
+	require.Len(t, adminFeed.Items, 2)
+	mine, err := momentService.List(adminCtx, "mine", "")
+	require.NoError(t, err)
+	require.Len(t, mine.Items, 2)
+
+	// and the ADMIN can like a moment like any participant
+	like, err := momentService.ToggleLike(adminCtx, feed.Items[0].ID, uuid.NewString())
+	require.NoError(t, err)
+	assert.True(t, like.Liked)
+}
+
 func TestMediaMoments_FullLifecycleUsesDurableState(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	participant, participantCtx := seedMediaMomentUser(t, "moment-owner@example.com", userEntities.RoleDefault, true)
@@ -588,6 +639,26 @@ func TestMediaMoments_AuthenticationAndIdempotencyHelperFailures(t *testing.T) {
 		assertAPIErrorCode(t, err, "FORBIDDEN")
 	})
 
+	t.Run("onboarded actor accepts any role but still requires onboarding", func(t *testing.T) {
+		users := mocks.NewMockUserRepositoryInterface(t)
+		users.On("FindByID", mock.Anything, uint64(42)).Return(&userEntities.User{
+			ID: 42, Role: userEntities.RoleAdmin, OnboardingComplete: true,
+		}, nil).Once()
+		actor, err := requireOnboardedActor(ctx, users, false)
+		require.NoError(t, err)
+		assert.Equal(t, userEntities.RoleAdmin, actor.Role)
+
+		users.On("FindByID", mock.Anything, uint64(42)).Return(&userEntities.User{
+			ID: 42, Role: userEntities.RoleAdmin,
+		}, nil).Once()
+		_, err = requireOnboardedActor(ctx, users, false)
+		assertAPIErrorCode(t, err, "ONBOARDING_REQUIRED")
+
+		users.On("FindByID", mock.Anything, uint64(42)).Return(nil, appErrors.ErrNotFound).Once()
+		_, err = requireOnboardedActor(ctx, users, false)
+		assertAPIErrorCode(t, err, "UNAUTHENTICATED")
+	})
+
 	t.Run("admin actor database and missing identity failures", func(t *testing.T) {
 		users := mocks.NewMockUserRepositoryInterface(t)
 		_, err := requireAdminActor(context.Background(), users)
@@ -748,13 +819,17 @@ func TestMediaMoments_GroupRoleAndRemovedAuthorChangesAreImmediate(t *testing.T)
 	require.NoError(t, err)
 	assert.Empty(t, groupPage.Items)
 
+	// Staff roles keep the same participant view: a promoted author stays in
+	// the feed and still reads their own history.
 	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("id = ?", owner.ID).
 		Update("role", string(userEntities.RoleEventManager)).Error)
 	feed, err := momentService.List(viewerCtx, "feed", "")
 	require.NoError(t, err)
-	assert.Empty(t, feed.Items)
-	_, err = momentService.List(ownerCtx, "mine", "")
-	assertAPIErrorCode(t, err, "FORBIDDEN")
+	require.Len(t, feed.Items, 1)
+	assert.Equal(t, moment.ID, feed.Items[0].ID)
+	mine, err := momentService.List(ownerCtx, "mine", "")
+	require.NoError(t, err)
+	require.Len(t, mine.Items, 1)
 
 	require.NoError(t, TestSuite.DbConn.Delete(&models.User{}, owner.ID).Error)
 	var historical int64

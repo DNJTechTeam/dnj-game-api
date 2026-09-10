@@ -102,7 +102,7 @@ func (s *MediaService) CreateUploadIntent(
 	if err != nil {
 		return nil, 0, err
 	}
-	if _, err = requireDefaultActor(ctx, s.users, false); err != nil {
+	if _, err = requireOnboardedActor(ctx, s.users, false); err != nil {
 		return nil, 0, err
 	}
 	now := utcNow(s.now)
@@ -111,7 +111,7 @@ func (s *MediaService) CreateUploadIntent(
 	var asset *mediaEntities.Asset
 	status := http.StatusCreated
 	err = s.WithTransaction(ctx, func(tx context.Context) error {
-		actor, authErr := requireDefaultActor(tx, s.users, true)
+		actor, authErr := requireOnboardedActor(tx, s.users, true)
 		if authErr != nil {
 			return authErr
 		}
@@ -229,7 +229,7 @@ func (s *MediaService) CompleteUpload(
 	if err != nil {
 		return nil, 0, err
 	}
-	actor, err := requireDefaultActor(ctx, s.users, false)
+	actor, err := requireOnboardedActor(ctx, s.users, false)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -251,7 +251,7 @@ func (s *MediaService) CompleteUpload(
 		if findErr != nil {
 			return appErrors.InternalError
 		}
-		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+		if _, authErr := requireOnboardedActor(tx, s.users, true); authErr != nil {
 			return authErr
 		}
 		op, findErr = findIdempotencyOperation(tx, s.repo, actor.ID, key, operation, hash)
@@ -494,7 +494,7 @@ func (s *MediaService) finalizeUpload(
 		if locked.OwnerUserID != actor {
 			return mediaMomentError(http.StatusNotFound, "NOT_FOUND", "Recurso não encontrado.")
 		}
-		if _, err := requireDefaultActor(tx, s.users, true); err != nil {
+		if _, err := requireOnboardedActor(tx, s.users, true); err != nil {
 			return err
 		}
 		locked.State = mediaEntities.AssetAvailable
