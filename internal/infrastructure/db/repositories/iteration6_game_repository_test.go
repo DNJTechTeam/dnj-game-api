@@ -47,3 +47,15 @@ func TestIteration6GameRepository_ListOpenRunsReturnsEmptyList(t *testing.T) {
 	assert.Empty(t, runs)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestIteration6GameRepository_FindOpenRunForManagerReturnsSafeError(t *testing.T) {
+	database, mock := newMockDB(t)
+	mock.ExpectQuery(`SELECT .*activity_runs.*`).WillReturnError(errors.New("database unavailable"))
+	repository := &GameRepository{BaseRepository: NewBaseRepository[models.ActivityRun](database)}
+
+	run, err := repository.FindOpenRunForManager(context.Background(), 42, true)
+
+	assert.Nil(t, run)
+	assert.ErrorIs(t, err, appErrors.InternalError)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
