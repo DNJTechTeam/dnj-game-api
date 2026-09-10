@@ -792,6 +792,44 @@ func TestIteration6_CurrentReadsAndManagerDashboardUsePersistedRun(t *testing.T)
 	require.NotNil(t, archivedOverview.Actions.Run)
 }
 
+func TestIteration6_ManagerOverviewSeparatesCurrentActivitiesAcrossSpaces(t *testing.T) {
+	// given
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Schedule Manager", userEntities.RoleEventManager, true, 0)
+	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("id = ?", manager.ID).Update("manager_scope", "space").Error)
+	spaceA := uuid.NewString()
+	spaceB := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Space{ID: spaceA, Slug: "space-a", Name: "Palco A", CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	require.NoError(t, TestSuite.DbConn.Create(&models.Space{ID: spaceB, Slug: "space-b", Name: "Palco B", CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	currentStart := iteration6Now.Add(-time.Minute)
+	currentEnd := iteration6Now.Add(time.Hour)
+	futureStart := iteration6Now.Add(2 * time.Hour)
+	futureEnd := futureStart.Add(time.Hour)
+	for _, item := range []struct {
+		name, id, space string
+		status          activityEntities.Status
+		start, end      *time.Time
+	}{
+		{name: "Agora A", id: uuid.NewString(), space: spaceA, status: activityEntities.StatusActive, start: &currentStart, end: &currentEnd},
+		{name: "Agora B", id: uuid.NewString(), space: spaceB, status: activityEntities.StatusPaused, start: &currentStart, end: &currentEnd},
+		{name: "Depois A", id: uuid.NewString(), space: spaceA, status: activityEntities.StatusDraft, start: &futureStart, end: &futureEnd},
+	} {
+		require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: item.id, SpaceID: &item.space, Slug: "schedule-" + item.id, Name: item.name, Kind: string(activityEntities.KindSchedule), Status: string(item.status), StartsAt: item.start, EndsAt: item.end, CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
+	}
+
+	// when
+	overview, err := service.ManagerOverview(managerCtx)
+
+	// then
+	require.NoError(t, err)
+	require.NotNil(t, overview.Space)
+	assert.Len(t, overview.Space.Now, 2)
+	assert.Equal(t, []string{"Agora A", "Agora B"}, []string{overview.Space.Now[0].Title, overview.Space.Now[1].Title})
+	require.Len(t, overview.Space.Upcoming, 1)
+	assert.Equal(t, "Depois A", overview.Space.Upcoming[0].Title)
+	assert.Equal(t, "Palco A", overview.Space.Now[0].SpaceName)
+}
+
 func TestIteration6_AuthenticationAndRoleChangesAreRevalidated(t *testing.T) {
 	service := setupIteration6Test(t)
 	removed, removedCtx := seedIteration6User(t, "Removed", userEntities.RoleDefault, true, 0)

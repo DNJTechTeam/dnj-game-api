@@ -653,16 +653,25 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	space := &messages.ManagerSpaceOverviewDTO{Upcoming: make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule))}
+	space := &messages.ManagerSpaceOverviewDTO{
+		Now:      make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule)),
+		Upcoming: make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule)),
+	}
 	for index := range schedule {
 		item := schedule[index]
-		spaceItem := messages.ManagerSpaceItemResponseDTO{ID: item.Activity.ID, Title: item.Activity.Name, StartsAt: utcPointer(item.Activity.StartsAt), StartedAt: utcPointer(item.Activity.ActualStartedAt), Status: string(item.Activity.Status), FlexMinutes: item.Activity.FlexMinutes}
+		spaceItem := messages.ManagerSpaceItemResponseDTO{ID: item.Activity.ID, Title: item.Activity.Name, StartsAt: utcPointer(item.Activity.StartsAt), EndsAt: utcPointer(item.Activity.EndsAt), StartedAt: utcPointer(item.Activity.ActualStartedAt), Status: string(item.Activity.Status), FlexMinutes: item.Activity.FlexMinutes}
 		if item.Space != nil {
 			spaceItem.SpaceName = item.Space.Name
 		}
-		if space.Current == nil && item.Activity.Status != activityEntities.StatusCompleted {
-			copy := spaceItem
-			space.Current = &copy
+		if item.Activity.Status == activityEntities.StatusCompleted {
+			continue
+		}
+		isNow := item.Activity.ActualStartedAt != nil && (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused)
+		if !isNow && item.Activity.StartsAt != nil && item.Activity.EndsAt != nil {
+			isNow = (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused) && !now.Before(*item.Activity.StartsAt) && now.Before(*item.Activity.EndsAt)
+		}
+		if isNow {
+			space.Now = append(space.Now, spaceItem)
 		} else {
 			space.Upcoming = append(space.Upcoming, spaceItem)
 		}

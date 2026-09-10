@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
@@ -43,7 +44,20 @@ func (h *InstallationHandler) AdvanceScheduledActivity(c *gin.Context) {
 }
 
 func (h *InstallationHandler) StartScheduledActivity(c *gin.Context) {
-	h.transitionScheduledActivity(c, h.ActivityService.StartScheduled)
+	request := struct {
+		ItemID    string     `json:"itemId"`
+		StartedAt *time.Time `json:"startedAt"`
+	}{}
+	if err := ParseStrictRequest(c, &request); err != nil || request.ItemID == "" {
+		ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Envie itemId e, opcionalmente, startedAt.", nil)
+		return
+	}
+	result, err := h.ActivityService.StartScheduled(c.Request.Context(), request.ItemID, c.GetHeader("Idempotency-Key"), request.StartedAt)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	ResponseSuccess(c, http.StatusOK, result)
 }
 
 func (h *InstallationHandler) FlexScheduledActivity(c *gin.Context) {
