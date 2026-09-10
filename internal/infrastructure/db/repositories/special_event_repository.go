@@ -42,7 +42,7 @@ func (r *SpecialEventRepository) Save(ctx context.Context, event *specialEntitie
 func (r *SpecialEventRepository) ListForManager(ctx context.Context, userID uint64, global bool) ([]specialEntities.Event, error) {
 	q := r.getDB(ctx).Model(&models.SpecialEvent{}).Where("status <> 'closed'")
 	if !global {
-		q = q.Joins("JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = special_events.activity_id AND activity_manager_assignments.user_id = ?", userID)
+		q = q.Joins("JOIN users ON users.id = ?", userID).Where("COALESCE(users.manager_scope, 'special_events') = 'special_events'")
 	}
 	var rows []models.SpecialEvent
 	if err := q.Order("created_at DESC").Find(&rows).Error; err != nil {
@@ -57,7 +57,7 @@ func (r *SpecialEventRepository) ListForManager(ctx context.Context, userID uint
 func (r *SpecialEventRepository) FindForManager(ctx context.Context, id string, userID uint64, global, lock bool) (*specialEntities.Event, error) {
 	q := r.getDB(ctx).Model(&models.SpecialEvent{}).Where("special_events.id = ?", id)
 	if !global {
-		q = q.Joins("JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = special_events.activity_id AND activity_manager_assignments.user_id = ?", userID)
+		q = q.Joins("JOIN users ON users.id = ?", userID).Where("COALESCE(users.manager_scope, 'special_events') = 'special_events'")
 	}
 	if lock {
 		q = q.Clauses(clause.Locking{Strength: "UPDATE"})

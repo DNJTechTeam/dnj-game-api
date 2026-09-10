@@ -96,7 +96,7 @@ func (r *ActivityRepository) ListSchedule(ctx context.Context, sectorSlug string
 func (r *ActivityRepository) ListManagerSchedule(ctx context.Context, actorUserID uint64, global bool) ([]activityEntities.PublicActivity, error) {
 	query := publicActivityQuery(r.getDB(ctx)).Where("activities.kind = ? AND activities.status <> ? AND activities.starts_at IS NOT NULL AND activities.ends_at IS NOT NULL AND activities.starts_at < activities.ends_at", string(activityEntities.KindSchedule), string(activityEntities.StatusArchived))
 	if !global {
-		query = query.Joins("JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = activities.id AND activity_manager_assignments.user_id = ?", actorUserID)
+		query = query.Joins("JOIN users ON users.id = ?", actorUserID).Where("COALESCE(users.manager_scope, 'space') = 'space'")
 	}
 	query = orderPublicActivities(query)
 	var rows []publicActivityRow

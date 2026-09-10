@@ -27,7 +27,7 @@ func (r *ActivityRepository) FindAuthorizedForUpdate(ctx context.Context, activi
 	var row models.Activity
 	query := r.getDB(ctx).Model(&models.Activity{}).Clauses(clause.Locking{Strength: "UPDATE"}).Where("activities.id = ?", activityID)
 	if !global {
-		query = query.Joins("JOIN activity_manager_assignments ON activity_manager_assignments.activity_id = activities.id AND activity_manager_assignments.user_id = ?", actorUserID)
+		query = query.Joins("JOIN users ON users.id = ?", actorUserID).Where(managerScopeActivityPredicate, actorUserID)
 	}
 	if err := query.First(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)

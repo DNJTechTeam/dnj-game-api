@@ -796,9 +796,6 @@ func (s *GameService) CreateManagerGame(ctx context.Context, rawKey string, requ
 		if createErr != nil {
 			return appErrors.InternalError
 		}
-		if _, assignErr := s.activities.CreateManagerAssignment(txCtx, &activityEntities.ManagerAssignment{ActivityID: created.ID, UserID: actor.ID, CreatedAt: now}); assignErr != nil {
-			return appErrors.InternalError
-		}
 		entityID := created.ID
 		metadata, _ := json.Marshal(map[string]any{"name": created.Name, "scope": actor.ManagerScope})
 		if _, auditErr := s.audits.Create(txCtx, &auditEntities.OperationAudit{ID: uuid.NewString(), ActorUserID: &actor.ID, Action: "manager.game.create", EntityType: "activity", EntityID: &entityID, Metadata: metadata, IdempotencyKey: key, CreatedAt: now}); auditErr != nil {

@@ -40,11 +40,11 @@ func TestE2E_EventManagerJourney(t *testing.T) {
 	activityA := seedActiveActivity(t, rec, adminToken, "em-journey-a", managerA.ID, managerAToken)
 	activityB := seedActiveActivity(t, rec, adminToken, "em-journey-b", managerB.ID, managerBToken)
 
-	// Manager A's own-scope overview must show activity A and must not leak activity B.
+	// Managers in the same area share the complete operational overview.
 	overviewResp := rec.call(
 		"gestor A vê seu próprio painel", "EVENT_MANAGER", "manager-a", http.MethodGet,
 		"/v2/manager/game-overview", managerAToken, "", "",
-		"GET /v2/manager/game-overview só lista activities atribuídas a este gestor (não vê a activity do gestor B).",
+		"GET /v2/manager/game-overview lista as activities da área do gestor.",
 	)
 	require.Equal(t, http.StatusOK, overviewResp.Code, overviewResp.Body.String())
 	var overview messages.ManagerGameOverviewResponseDTO
@@ -54,7 +54,7 @@ func TestE2E_EventManagerJourney(t *testing.T) {
 		gameIDs[i] = game.ID
 	}
 	assert.Contains(t, gameIDs, activityA)
-	assert.NotContains(t, gameIDs, activityB)
+	assert.Contains(t, gameIDs, activityB)
 
 	// Manager A runs its own activity end to end.
 	createResp := rec.call(
@@ -108,7 +108,7 @@ func TestE2E_EventManagerJourney(t *testing.T) {
 	)
 	require.Equal(t, http.StatusOK, finalizeResp.Code, finalizeResp.Body.String())
 
-	// Manager B runs its own activity, just enough to have a run to withhold from A.
+	// Manager B runs an activity in the same area; A can operate that run too.
 	createBResp := rec.call(
 		"gestor B cria um run na própria activity", "EVENT_MANAGER", "manager-b", http.MethodPost,
 		"/v2/manager/runs", managerBToken, uuid.NewString(), `{"gameId":"`+activityB+`"}`,
@@ -118,13 +118,13 @@ func TestE2E_EventManagerJourney(t *testing.T) {
 	var runB messages.ManagerRunResponseDTO
 	mustDecodeInto(t, createBResp.Body.Bytes(), &runB)
 
-	// --- Jurisdiction proof: a manager never sees a peer's run. ---
+	// --- Area proof: a manager can see a peer's run in the same area. ---
 	crossRunResp := rec.call(
 		"gestor A tenta ver o run do gestor B", "EVENT_MANAGER", "manager-a", http.MethodGet,
 		"/v2/manager/runs/"+runB.ID, managerAToken, "", "",
-		"GET /v2/manager/runs/:id de um run alheio retorna 404 -- o escopo do gestor é só o que ele gerencia.",
+		"GET /v2/manager/runs/:id retorna 200 para um run da mesma área.",
 	)
-	assert.Equal(t, http.StatusNotFound, crossRunResp.Code, crossRunResp.Body.String())
+	assert.Equal(t, http.StatusOK, crossRunResp.Code, crossRunResp.Body.String())
 
 	// --- Negative proof: every admin-only surface rejects a manager. ---
 	for _, negative := range []struct {

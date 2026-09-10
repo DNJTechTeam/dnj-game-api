@@ -155,7 +155,9 @@ func TestActivityRepository_AssignmentIsolationAndConditionalTransition(t *testi
 	require.NoError(t, globalErr)
 	assert.Equal(t, activityID, assigned.ID)
 	assert.Equal(t, activityID, global.ID)
-	assert.ErrorIs(t, outsideErr, appErrors.ErrNotFound)
+	// Authorization is area-based: both operational users have the legacy
+	// Radicalidade fallback and can operate the same activity.
+	require.NoError(t, outsideErr)
 	require.NoError(t, transitionErr)
 	assert.ErrorIs(t, staleErr, appErrors.ErrConflict)
 }

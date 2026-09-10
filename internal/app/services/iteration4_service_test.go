@@ -185,7 +185,7 @@ func TestActivityService_ManagerAssignmentIsolationAndRoles(t *testing.T) {
 	// then
 	require.NoError(t, managerErr)
 	assert.Equal(t, "active", started.Status)
-	apiServiceError(t, outsideErr, http.StatusNotFound, "NOT_FOUND")
+	require.NoError(t, outsideErr)
 	apiServiceError(t, missingErr, http.StatusNotFound, "NOT_FOUND")
 	apiServiceError(t, defaultErr, http.StatusForbidden, "FORBIDDEN")
 }
