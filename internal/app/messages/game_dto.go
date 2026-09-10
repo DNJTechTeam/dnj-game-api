@@ -103,8 +103,9 @@ type ManagerRunResponseDTO struct {
 }
 
 type ManagerGameResponseDTO struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
+	ID     string                          `json:"id"`
+	Name   string                          `json:"name"`
+	Run    *ManagerDashboardRunResponseDTO `json:"run"`
 	Points struct {
 		First         int `json:"first"`
 		Second        int `json:"second"`
@@ -121,6 +122,8 @@ type ManagerDashboardRunResponseDTO struct {
 	StartedAt    *time.Time                  `json:"startedAt"`
 	EndedAt      *time.Time                  `json:"endedAt"`
 	Participants []RunParticipantResponseDTO `json:"participants"`
+	QRToken      string                      `json:"qrToken,omitempty"`
+	QRExpiresAt  *time.Time                  `json:"qrExpiresAt,omitempty"`
 }
 
 type ManagerGameOverviewActionsDTO struct {

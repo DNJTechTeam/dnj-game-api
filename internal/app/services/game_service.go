@@ -680,39 +680,72 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 			space.Upcoming = append(space.Upcoming, spaceItem)
 		}
 	}
+	runs, err := listManagerOpenRuns(ctx, s.games, actor.ID, global)
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	runsByActivity := make(map[string]*gameEntities.ActivityRun, len(runs))
+	runDTOsByActivity := make(map[string]*messages.ManagerDashboardRunResponseDTO, len(runs))
+	for _, candidate := range runs {
+		if managerRunVisibleForScope(candidate, scope, global) {
+			runsByActivity[candidate.ActivityID] = candidate
+			participants, participantsErr := s.games.ListRunParticipants(ctx, candidate.ID)
+			if participantsErr != nil {
+				return nil, appErrors.InternalError
+			}
+			runDTOsByActivity[candidate.ActivityID] = s.managerDashboardRunDTO(ctx, candidate, participants)
+			if response.Actions.Run == nil {
+				response.Actions.Run = runDTOsByActivity[candidate.ActivityID]
+			}
+		}
+	}
 	response.Space = space
 	rules := gameEntities.DefaultPointRules()
 	for i := range games {
 		response.Actions.Games[i].ID = games[i].Activity.ID
 		response.Actions.Games[i].Name = games[i].Activity.Name
+		if run := runsByActivity[games[i].Activity.ID]; run != nil {
+			response.Actions.Games[i].Run = runDTOsByActivity[run.ActivityID]
+		}
 		response.Actions.Games[i].Points.First = rules.First
 		response.Actions.Games[i].Points.Second = rules.Second
 		response.Actions.Games[i].Points.Third = rules.Third
 		response.Actions.Games[i].Points.Participation = rules.Participation
 	}
-	run, err := s.games.FindOpenRunForManager(ctx, actor.ID, global)
-	if errors.Is(err, appErrors.ErrNotFound) {
-		return response, nil
-	}
-	if err != nil {
-		return nil, appErrors.InternalError
-	}
-	if !managerRunVisibleForScope(run, scope, global) {
-		return response, nil
-	}
-	participants, err := s.games.ListRunParticipants(ctx, run.ID)
-	if err != nil {
-		return nil, appErrors.InternalError
-	}
+	return response, nil
+}
+
+func (s *GameService) managerDashboardRunDTO(ctx context.Context, run *gameEntities.ActivityRun, participants []gameEntities.RunParticipant) *messages.ManagerDashboardRunResponseDTO {
 	dashboard := &messages.ManagerDashboardRunResponseDTO{ID: run.ID, GameID: run.ActivityID, Status: dashboardStatus(run.Status), StartedAt: utcPointer(run.StartedAt), EndedAt: utcPointer(run.EndedAt), Participants: make([]messages.RunParticipantResponseDTO, len(participants))}
 	if run.Activity != nil {
 		dashboard.GameName = run.Activity.Name
+		if qr, err := s.games.FindActiveQRByRun(ctx, run.ID); err == nil {
+			dashboard.QRToken = s.qrToken(qr.ID)
+			dashboard.QRExpiresAt = utcPointer(&qr.ExpiresAt)
+		}
 	}
 	for i := range participants {
 		dashboard.Participants[i] = appMappers.MapRunParticipantToResponseDTO(participants[i])
 	}
-	response.Actions.Run = dashboard
-	return response, nil
+	return dashboard
+}
+
+type managerOpenRunsLister interface {
+	ListOpenRunsForManager(context.Context, uint64, bool) ([]*gameEntities.ActivityRun, error)
+}
+
+func listManagerOpenRuns(ctx context.Context, games gameInterfaces.GameRepositoryInterface, actorID uint64, global bool) ([]*gameEntities.ActivityRun, error) {
+	if lister, ok := games.(managerOpenRunsLister); ok {
+		return lister.ListOpenRunsForManager(ctx, actorID, global)
+	}
+	run, err := games.FindOpenRunForManager(ctx, actorID, global)
+	if errors.Is(err, appErrors.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return []*gameEntities.ActivityRun{run}, nil
 }
 
 func managerRunVisibleForScope(run *gameEntities.ActivityRun, scope string, global bool) bool {

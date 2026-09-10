@@ -792,6 +792,30 @@ func TestIteration6_CurrentReadsAndManagerDashboardUsePersistedRun(t *testing.T)
 	require.NotNil(t, archivedOverview.Actions.Run)
 }
 
+func TestIteration6_ManagerOverviewReturnsRunsPerCompetitiveGame(t *testing.T) {
+	service := setupIteration6Test(t)
+	manager, managerCtx := seedIteration6User(t, "Multi Game Manager", userEntities.RoleEventManager, true, 0)
+	firstGameID := seedIteration6Game(t, "First Game", activityEntities.StatusActive, nil)
+	secondGameID := seedIteration6Game(t, "Second Game", activityEntities.StatusActive, nil)
+	assignIteration6Manager(t, firstGameID, manager.ID)
+	assignIteration6Manager(t, secondGameID, manager.ID)
+	firstRun := createIteration6Run(t, service, managerCtx, firstGameID)
+	secondRun := createIteration6Run(t, service, managerCtx, secondGameID)
+
+	overview, err := service.ManagerOverview(managerCtx)
+
+	require.NoError(t, err)
+	require.Len(t, overview.Actions.Games, 2)
+	byID := make(map[string]*messages.ManagerDashboardRunResponseDTO, len(overview.Actions.Games))
+	for _, game := range overview.Actions.Games {
+		byID[game.ID] = game.Run
+	}
+	require.NotNil(t, byID[firstGameID])
+	require.NotNil(t, byID[secondGameID])
+	assert.Equal(t, firstRun.ID, byID[firstGameID].ID)
+	assert.Equal(t, secondRun.ID, byID[secondGameID].ID)
+}
+
 func TestIteration6_ManagerOverviewSeparatesCurrentActivitiesAcrossSpaces(t *testing.T) {
 	// given
 	service := setupIteration6Test(t)
