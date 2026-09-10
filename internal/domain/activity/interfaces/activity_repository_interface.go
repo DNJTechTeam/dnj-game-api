@@ -13,6 +13,7 @@ type ActivityRepositoryInterface interface {
 	FindAuthorizedForUpdate(ctx context.Context, activityID string, actorUserID uint64, global bool) (*entities.Activity, error)
 	TransitionStatus(ctx context.Context, activityID string, from, to entities.Status, updatedAt time.Time) error
 	List(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Activity], error)
+	ListAdmin(ctx context.Context, page uint64, kind, status string) (*messages.PaginatedResponse[entities.Activity], error)
 	Create(ctx context.Context, activity *entities.Activity) (*entities.Activity, error)
 	FindByID(ctx context.Context, activityID string) (*entities.Activity, error)
 	FindByIDForUpdate(ctx context.Context, activityID string) (*entities.Activity, error)

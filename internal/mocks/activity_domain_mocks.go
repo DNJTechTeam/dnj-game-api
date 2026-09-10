@@ -829,6 +829,70 @@ func (_c *MockActivityRepositoryInterface_List_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// ListAdmin provides a mock function for the type MockActivityRepositoryInterface
+func (_mock *MockActivityRepositoryInterface) ListAdmin(ctx context.Context, page uint64, kind string, status string) (*messages.PaginatedResponse[entities.Activity], error) {
+	ret := _mock.Called(ctx, page, kind, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAdmin")
+	}
+
+	var r0 *messages.PaginatedResponse[entities.Activity]
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, string, string) (*messages.PaginatedResponse[entities.Activity], error)); ok {
+		return returnFunc(ctx, page, kind, status)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, string, string) *messages.PaginatedResponse[entities.Activity]); ok {
+		r0 = returnFunc(ctx, page, kind, status)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*messages.PaginatedResponse[entities.Activity])
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64, string, string) error); ok {
+		r1 = returnFunc(ctx, page, kind, status)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+type MockActivityRepositoryInterface_ListAdmin_Call struct{ *mock.Call }
+
+func (_e *MockActivityRepositoryInterface_Expecter) ListAdmin(ctx interface{}, page interface{}, kind interface{}, status interface{}) *MockActivityRepositoryInterface_ListAdmin_Call {
+	return &MockActivityRepositoryInterface_ListAdmin_Call{Call: _e.mock.On("ListAdmin", ctx, page, kind, status)}
+}
+
+func (_c *MockActivityRepositoryInterface_ListAdmin_Call) Run(run func(ctx context.Context, page uint64, kind string, status string)) *MockActivityRepositoryInterface_ListAdmin_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2, arg3 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(arg0, arg1, arg2, arg3)
+	})
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListAdmin_Call) Return(response *messages.PaginatedResponse[entities.Activity], err error) *MockActivityRepositoryInterface_ListAdmin_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockActivityRepositoryInterface_ListAdmin_Call) RunAndReturn(run func(ctx context.Context, page uint64, kind string, status string) (*messages.PaginatedResponse[entities.Activity], error)) *MockActivityRepositoryInterface_ListAdmin_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListManagerSchedule provides a mock function for the type MockActivityRepositoryInterface
 func (_mock *MockActivityRepositoryInterface) ListManagerSchedule(ctx context.Context, actorUserID uint64, global bool) ([]entities.PublicActivity, error) {
 	ret := _mock.Called(ctx, actorUserID, global)

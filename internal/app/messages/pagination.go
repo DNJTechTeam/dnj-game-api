@@ -9,4 +9,5 @@ type Pagination struct {
 	CurrentPage Uint64String `json:"currentPage"`
 	HasNextPage bool         `json:"hasNextPage"`
 	Limit       int          `json:"limit"`
+	Total       int          `json:"total,omitempty"`
 }

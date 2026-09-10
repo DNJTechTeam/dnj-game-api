@@ -70,7 +70,11 @@ type UpdateAdminActivityRequestDTO struct {
 	Status          Optional[string]    `json:"status"`
 }
 
-type ListAdminActivitiesFilterDTO struct{ PaginationFilter }
+type ListAdminActivitiesFilterDTO struct {
+	PaginationFilter
+	Kind   string
+	Status string
+}
 
 type AdminActivityResponseDTO struct {
 	ID              string     `json:"id"`
