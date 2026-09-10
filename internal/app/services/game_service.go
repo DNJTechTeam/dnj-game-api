@@ -648,6 +648,7 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	if actor.ManagerScope != nil && *actor.ManagerScope != "" {
 		scope = *actor.ManagerScope
 	}
+	games = filterManagerGamesByScope(games, scope, global)
 	response := &messages.ManagerGameOverviewResponseDTO{Scope: scope, Actions: messages.ManagerGameOverviewActionsDTO{Games: make([]messages.ManagerGameResponseDTO, len(games))}}
 	schedule, err := s.activities.ListManagerSchedule(ctx, actor.ID, global)
 	if err != nil {
@@ -709,6 +710,28 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	}
 	response.Actions.Run = dashboard
 	return response, nil
+}
+
+func filterManagerGamesByScope(games []activityEntities.PublicActivity, scope string, global bool) []activityEntities.PublicActivity {
+	if global {
+		return games
+	}
+	var allowedKind activityEntities.Kind
+	switch scope {
+	case "actions":
+		allowedKind = activityEntities.KindCompetitive
+	case "special_events":
+		allowedKind = activityEntities.KindLive
+	default:
+		return []activityEntities.PublicActivity{}
+	}
+	filtered := make([]activityEntities.PublicActivity, 0, len(games))
+	for _, game := range games {
+		if game.Activity.Kind == allowedKind {
+			filtered = append(filtered, game)
+		}
+	}
+	return filtered
 }
 
 func (s *GameService) findPriorManagerOperation(ctx context.Context, actorID uint64, key, operation, hash string) (*gameEntities.ManagerOperation, error) {
