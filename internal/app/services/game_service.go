@@ -648,23 +648,55 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	if actor.ManagerScope != nil && *actor.ManagerScope != "" {
 		scope = *actor.ManagerScope
 	}
+	games = filterManagerGamesByScope(games, scope, global)
 	response := &messages.ManagerGameOverviewResponseDTO{Scope: scope, Actions: messages.ManagerGameOverviewActionsDTO{Games: make([]messages.ManagerGameResponseDTO, len(games))}}
 	schedule, err := s.activities.ListManagerSchedule(ctx, actor.ID, global)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	space := &messages.ManagerSpaceOverviewDTO{Upcoming: make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule))}
+	space := &messages.ManagerSpaceOverviewDTO{
+		Now:      make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule)),
+		Upcoming: make([]messages.ManagerSpaceItemResponseDTO, 0, len(schedule)),
+	}
 	for index := range schedule {
 		item := schedule[index]
-		spaceItem := messages.ManagerSpaceItemResponseDTO{ID: item.Activity.ID, Title: item.Activity.Name, StartsAt: utcPointer(item.Activity.StartsAt), StartedAt: utcPointer(item.Activity.ActualStartedAt), Status: string(item.Activity.Status), FlexMinutes: item.Activity.FlexMinutes}
+		spaceItem := messages.ManagerSpaceItemResponseDTO{ID: item.Activity.ID, Title: item.Activity.Name, StartsAt: utcPointer(item.Activity.StartsAt), EndsAt: utcPointer(item.Activity.EndsAt), StartedAt: utcPointer(item.Activity.ActualStartedAt), Status: string(item.Activity.Status), FlexMinutes: item.Activity.FlexMinutes}
 		if item.Space != nil {
 			spaceItem.SpaceName = item.Space.Name
 		}
-		if space.Current == nil && item.Activity.Status != activityEntities.StatusCompleted {
-			copy := spaceItem
-			space.Current = &copy
+		if item.Activity.Status == activityEntities.StatusCompleted {
+			continue
+		}
+		if item.Activity.Status != activityEntities.StatusActive && item.Activity.Status != activityEntities.StatusPaused {
+			continue
+		}
+		isNow := item.Activity.ActualStartedAt != nil && (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused)
+		if !isNow && item.Activity.StartsAt != nil && item.Activity.EndsAt != nil {
+			isNow = (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused) && !now.Before(*item.Activity.StartsAt) && now.Before(*item.Activity.EndsAt)
+		}
+		if isNow {
+			space.Now = append(space.Now, spaceItem)
 		} else {
 			space.Upcoming = append(space.Upcoming, spaceItem)
+		}
+	}
+	runs, err := listManagerOpenRuns(ctx, s.games, actor.ID, global)
+	if err != nil {
+		return nil, appErrors.InternalError
+	}
+	runsByActivity := make(map[string]*gameEntities.ActivityRun, len(runs))
+	runDTOsByActivity := make(map[string]*messages.ManagerDashboardRunResponseDTO, len(runs))
+	for _, candidate := range runs {
+		if managerRunVisibleForScope(candidate, scope, global) {
+			runsByActivity[candidate.ActivityID] = candidate
+			participants, participantsErr := s.games.ListRunParticipants(ctx, candidate.ID)
+			if participantsErr != nil {
+				return nil, appErrors.InternalError
+			}
+			runDTOsByActivity[candidate.ActivityID] = s.managerDashboardRunDTO(ctx, candidate, participants)
+			if response.Actions.Run == nil {
+				response.Actions.Run = runDTOsByActivity[candidate.ActivityID]
+			}
 		}
 	}
 	response.Space = space
@@ -672,31 +704,87 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	for i := range games {
 		response.Actions.Games[i].ID = games[i].Activity.ID
 		response.Actions.Games[i].Name = games[i].Activity.Name
+		if run := runsByActivity[games[i].Activity.ID]; run != nil {
+			response.Actions.Games[i].Run = runDTOsByActivity[run.ActivityID]
+		}
 		response.Actions.Games[i].Points.First = rules.First
 		response.Actions.Games[i].Points.Second = rules.Second
 		response.Actions.Games[i].Points.Third = rules.Third
 		response.Actions.Games[i].Points.Participation = rules.Participation
 	}
-	run, err := s.games.FindOpenRunForManager(ctx, actor.ID, global)
-	if errors.Is(err, appErrors.ErrNotFound) {
-		return response, nil
-	}
-	if err != nil {
-		return nil, appErrors.InternalError
-	}
-	participants, err := s.games.ListRunParticipants(ctx, run.ID)
-	if err != nil {
-		return nil, appErrors.InternalError
-	}
+	return response, nil
+}
+
+func (s *GameService) managerDashboardRunDTO(ctx context.Context, run *gameEntities.ActivityRun, participants []gameEntities.RunParticipant) *messages.ManagerDashboardRunResponseDTO {
 	dashboard := &messages.ManagerDashboardRunResponseDTO{ID: run.ID, GameID: run.ActivityID, Status: dashboardStatus(run.Status), StartedAt: utcPointer(run.StartedAt), EndedAt: utcPointer(run.EndedAt), Participants: make([]messages.RunParticipantResponseDTO, len(participants))}
 	if run.Activity != nil {
 		dashboard.GameName = run.Activity.Name
+		if qr, err := s.games.FindActiveQRByRun(ctx, run.ID); err == nil {
+			dashboard.QRToken = s.qrToken(qr.ID)
+			dashboard.QRExpiresAt = utcPointer(&qr.ExpiresAt)
+		}
 	}
 	for i := range participants {
 		dashboard.Participants[i] = appMappers.MapRunParticipantToResponseDTO(participants[i])
 	}
-	response.Actions.Run = dashboard
-	return response, nil
+	return dashboard
+}
+
+type managerOpenRunsLister interface {
+	ListOpenRunsForManager(context.Context, uint64, bool) ([]*gameEntities.ActivityRun, error)
+}
+
+func listManagerOpenRuns(ctx context.Context, games gameInterfaces.GameRepositoryInterface, actorID uint64, global bool) ([]*gameEntities.ActivityRun, error) {
+	if lister, ok := games.(managerOpenRunsLister); ok {
+		return lister.ListOpenRunsForManager(ctx, actorID, global)
+	}
+	run, err := games.FindOpenRunForManager(ctx, actorID, global)
+	if errors.Is(err, appErrors.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return []*gameEntities.ActivityRun{run}, nil
+}
+
+func managerRunVisibleForScope(run *gameEntities.ActivityRun, scope string, global bool) bool {
+	if run == nil {
+		return false
+	}
+	if global || run.Activity == nil {
+		return true
+	}
+	switch scope {
+	case "actions":
+		return run.Activity.Kind == activityEntities.KindCompetitive
+	case "special_events":
+		return run.Activity.Kind == activityEntities.KindLive
+	default:
+		return false
+	}
+}
+
+func filterManagerGamesByScope(games []activityEntities.PublicActivity, scope string, global bool) []activityEntities.PublicActivity {
+	if global {
+		return games
+	}
+	var allowedKind activityEntities.Kind
+	switch scope {
+	case "actions":
+		allowedKind = activityEntities.KindCompetitive
+	case "special_events":
+		allowedKind = activityEntities.KindLive
+	default:
+		return []activityEntities.PublicActivity{}
+	}
+	filtered := make([]activityEntities.PublicActivity, 0, len(games))
+	for _, game := range games {
+		if game.Activity.Kind == allowedKind {
+			filtered = append(filtered, game)
+		}
+	}
+	return filtered
 }
 
 func (s *GameService) findPriorManagerOperation(ctx context.Context, actorID uint64, key, operation, hash string) (*gameEntities.ManagerOperation, error) {

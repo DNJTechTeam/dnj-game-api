@@ -145,7 +145,7 @@ func (s *ActivityService) Conclude(ctx context.Context, activityID, idempotencyK
 	return s.transition(ctx, activityID, idempotencyKey, "activity.conclude", []activityEntities.Status{activityEntities.StatusActive, activityEntities.StatusPaused}, activityEntities.StatusCompleted, []activityEntities.Kind{activityEntities.KindChallenge, activityEntities.KindCompetitive, activityEntities.KindLive})
 }
 
-func (s *ActivityService) scheduleOperation(ctx context.Context, rawActivityID, rawKey, action string) (*messages.ActivityStateResponseDTO, error) {
+func (s *ActivityService) scheduleOperation(ctx context.Context, rawActivityID, rawKey, action string, requestedStartedAt *time.Time) (*messages.ActivityStateResponseDTO, error) {
 	activityUUID, err := uuid.Parse(rawActivityID)
 	if err != nil {
 		return nil, activityOperationError(http.StatusNotFound, "NOT_FOUND", "Atividade não encontrada.")
@@ -209,6 +209,12 @@ func (s *ActivityService) scheduleOperation(ctx context.Context, rawActivityID, 
 				return activityOperationError(http.StatusConflict, "ACTIVITY_STATE_CONFLICT", "A atividade não está disponível para início.")
 			}
 			startedAt := s.now().UTC()
+			if requestedStartedAt != nil {
+				if requestedStartedAt.After(startedAt) {
+					return activityOperationError(http.StatusBadRequest, "INVALID_REQUEST", "O início real não pode estar no futuro.")
+				}
+				startedAt = requestedStartedAt.UTC()
+			}
 			activity.ActualStartedAt = &startedAt
 		case "schedule.flex":
 			if activity.ActualStartedAt == nil || activity.Status == activityEntities.StatusCompleted {
@@ -248,14 +254,14 @@ func (s *ActivityService) scheduleOperation(ctx context.Context, rawActivityID, 
 	return response, nil
 }
 
-func (s *ActivityService) StartScheduled(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.start")
+func (s *ActivityService) StartScheduled(ctx context.Context, activityID, idempotencyKey string, startedAt *time.Time) (*messages.ActivityStateResponseDTO, error) {
+	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.start", startedAt)
 }
 
 func (s *ActivityService) FlexScheduled(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.flex")
+	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.flex", nil)
 }
 
 func (s *ActivityService) AdvanceScheduled(ctx context.Context, activityID, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.advance")
+	return s.scheduleOperation(ctx, activityID, idempotencyKey, "schedule.advance", nil)
 }

@@ -103,8 +103,9 @@ type ManagerRunResponseDTO struct {
 }
 
 type ManagerGameResponseDTO struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
+	ID     string                          `json:"id"`
+	Name   string                          `json:"name"`
+	Run    *ManagerDashboardRunResponseDTO `json:"run"`
 	Points struct {
 		First         int `json:"first"`
 		Second        int `json:"second"`
@@ -121,6 +122,8 @@ type ManagerDashboardRunResponseDTO struct {
 	StartedAt    *time.Time                  `json:"startedAt"`
 	EndedAt      *time.Time                  `json:"endedAt"`
 	Participants []RunParticipantResponseDTO `json:"participants"`
+	QRToken      string                      `json:"qrToken,omitempty"`
+	QRExpiresAt  *time.Time                  `json:"qrExpiresAt,omitempty"`
 }
 
 type ManagerGameOverviewActionsDTO struct {
@@ -132,6 +135,7 @@ type ManagerSpaceItemResponseDTO struct {
 	ID          string     `json:"id"`
 	Title       string     `json:"title"`
 	StartsAt    *time.Time `json:"startsAt"`
+	EndsAt      *time.Time `json:"endsAt"`
 	StartedAt   *time.Time `json:"startedAt"`
 	Status      string     `json:"status"`
 	FlexMinutes int        `json:"flexMinutes"`
@@ -139,7 +143,7 @@ type ManagerSpaceItemResponseDTO struct {
 }
 
 type ManagerSpaceOverviewDTO struct {
-	Current  *ManagerSpaceItemResponseDTO  `json:"current,omitempty"`
+	Now      []ManagerSpaceItemResponseDTO `json:"now"`
 	Upcoming []ManagerSpaceItemResponseDTO `json:"upcoming"`
 }
 

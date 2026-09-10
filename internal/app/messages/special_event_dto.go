@@ -29,26 +29,28 @@ type SpecialEventQRResponseDTO struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 type ActiveSpecialEventDTO struct {
-	ID            string     `json:"id"`
-	Title         string     `json:"title"`
-	Status        string     `json:"status"`
-	StartsAt      time.Time  `json:"startsAt"`
-	EndsAt        time.Time  `json:"endsAt"`
-	TeaserSeconds int        `json:"teaserSeconds"`
-	Points        int        `json:"points"`
-	QRAvailableAt *time.Time `json:"qrAvailableAt"`
-	QRToken       *string    `json:"qrToken,omitempty"`
+	ID              string     `json:"id"`
+	Title           string     `json:"title"`
+	Status          string     `json:"status"`
+	StartsAt        time.Time  `json:"startsAt"`
+	TeaserStartedAt *time.Time `json:"teaserStartedAt,omitempty"`
+	EndsAt          time.Time  `json:"endsAt"`
+	TeaserSeconds   int        `json:"teaserSeconds"`
+	Points          int        `json:"points"`
+	QRAvailableAt   *time.Time `json:"qrAvailableAt"`
+	QRToken         *string    `json:"qrToken,omitempty"`
 }
 type ActiveSpecialEventResponseDTO struct {
 	Event           *ActiveSpecialEventDTO `json:"event"`
 	MomentChallenge any                    `json:"momentChallenge"`
 }
 type LiveDisplaySpecialEventDTO struct {
-	ID      string     `json:"id"`
-	Title   string     `json:"title"`
-	Status  string     `json:"status"`
-	Points  int        `json:"points"`
-	EndsAt  time.Time  `json:"endsAt"`
-	ReadyAt *time.Time `json:"readyAt"`
-	QRToken *string    `json:"qrToken"`
+	ID              string     `json:"id"`
+	Title           string     `json:"title"`
+	Status          string     `json:"status"`
+	Points          int        `json:"points"`
+	TeaserStartedAt *time.Time `json:"teaserStartedAt,omitempty"`
+	EndsAt          time.Time  `json:"endsAt"`
+	ReadyAt         *time.Time `json:"readyAt"`
+	QRToken         *string    `json:"qrToken"`
 }

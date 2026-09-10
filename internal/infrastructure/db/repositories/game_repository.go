@@ -88,7 +88,9 @@ func (r *GameRepository) FindPublicGame(
 
 func manageableGameQuery(db *gorm.DB, actorUserID uint64, global bool, generatedAt time.Time) *gorm.DB {
 	query := publiclyVisibleActivities(
-		publicActivityQuery(db).Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}),
+		publicActivityQuery(db).
+			Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}).
+			Where("activities.status IN ('active','paused')"),
 		generatedAt,
 	)
 	if !global {
@@ -243,6 +245,35 @@ func (r *GameRepository) FindOpenRunForManager(
 	}
 	run.Activity = mappers.MapActivityToEntity(&activity)
 	return run, nil
+}
+
+func (r *GameRepository) ListOpenRunsForManager(
+	ctx context.Context,
+	actorUserID uint64,
+	global bool,
+) ([]*gameEntities.ActivityRun, error) {
+	var rows []models.ActivityRun
+	query := managerRunQuery(r.getDB(ctx), actorUserID, global).
+		Where("activity_runs.status IN ('draft','active','paused','results')").
+		Order("activity_runs.created_at ASC").
+		Order("activity_runs.id ASC")
+	if err := query.Find(&rows).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	runs := make([]*gameEntities.ActivityRun, 0, len(rows))
+	for i := range rows {
+		run, err := mapRunModel(&rows[i])
+		if err != nil {
+			return nil, err
+		}
+		var activity models.Activity
+		if err := r.getDB(ctx).Where("id = ?", rows[i].ActivityID).Take(&activity).Error; err != nil {
+			return nil, handleRepositoryError(err)
+		}
+		run.Activity = mappers.MapActivityToEntity(&activity)
+		runs = append(runs, run)
+	}
+	return runs, nil
 }
 
 func (r *GameRepository) FindRunForManager(
