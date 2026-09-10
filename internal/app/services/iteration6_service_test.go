@@ -812,7 +812,8 @@ func TestIteration6_ManagerOverviewSeparatesCurrentActivitiesAcrossSpaces(t *tes
 	}{
 		{name: "Agora A", id: uuid.NewString(), space: spaceA, status: activityEntities.StatusActive, start: &currentStart, end: &currentEnd},
 		{name: "Agora B", id: uuid.NewString(), space: spaceB, status: activityEntities.StatusPaused, start: &currentStart, end: &currentEnd},
-		{name: "Depois A", id: uuid.NewString(), space: spaceA, status: activityEntities.StatusDraft, start: &futureStart, end: &futureEnd},
+		{name: "Depois A", id: uuid.NewString(), space: spaceA, status: activityEntities.StatusActive, start: &futureStart, end: &futureEnd},
+		{name: "Rascunho", id: uuid.NewString(), space: spaceB, status: activityEntities.StatusDraft, start: &futureStart, end: &futureEnd},
 	} {
 		require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: item.id, SpaceID: &item.space, Slug: "schedule-" + item.id, Name: item.name, Kind: string(activityEntities.KindSchedule), Status: string(item.status), StartsAt: item.start, EndsAt: item.end, CreatedAt: iteration6Now, UpdatedAt: iteration6Now}).Error)
 	}

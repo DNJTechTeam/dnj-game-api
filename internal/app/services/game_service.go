@@ -666,6 +666,9 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 		if item.Activity.Status == activityEntities.StatusCompleted {
 			continue
 		}
+		if item.Activity.Status != activityEntities.StatusActive && item.Activity.Status != activityEntities.StatusPaused {
+			continue
+		}
 		isNow := item.Activity.ActualStartedAt != nil && (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused)
 		if !isNow && item.Activity.StartsAt != nil && item.Activity.EndsAt != nil {
 			isNow = (item.Activity.Status == activityEntities.StatusActive || item.Activity.Status == activityEntities.StatusPaused) && !now.Before(*item.Activity.StartsAt) && now.Before(*item.Activity.EndsAt)
