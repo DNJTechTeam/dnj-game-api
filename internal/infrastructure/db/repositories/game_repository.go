@@ -88,7 +88,9 @@ func (r *GameRepository) FindPublicGame(
 
 func manageableGameQuery(db *gorm.DB, actorUserID uint64, global bool, generatedAt time.Time) *gorm.DB {
 	query := publiclyVisibleActivities(
-		publicActivityQuery(db).Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}),
+		publicActivityQuery(db).
+			Where("activities.kind IN ?", []string{string(activityEntities.KindCompetitive), string(activityEntities.KindLive)}).
+			Where("activities.status IN ('active','paused')"),
 		generatedAt,
 	)
 	if !global {

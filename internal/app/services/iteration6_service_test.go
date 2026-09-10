@@ -797,8 +797,10 @@ func TestIteration6_ManagerOverviewReturnsRunsPerCompetitiveGame(t *testing.T) {
 	manager, managerCtx := seedIteration6User(t, "Multi Game Manager", userEntities.RoleEventManager, true, 0)
 	firstGameID := seedIteration6Game(t, "First Game", activityEntities.StatusActive, nil)
 	secondGameID := seedIteration6Game(t, "Second Game", activityEntities.StatusActive, nil)
+	completedGameID := seedIteration6Game(t, "Completed Game", activityEntities.StatusCompleted, nil)
 	assignIteration6Manager(t, firstGameID, manager.ID)
 	assignIteration6Manager(t, secondGameID, manager.ID)
+	assignIteration6Manager(t, completedGameID, manager.ID)
 	firstRun := createIteration6Run(t, service, managerCtx, firstGameID)
 	secondRun := createIteration6Run(t, service, managerCtx, secondGameID)
 
