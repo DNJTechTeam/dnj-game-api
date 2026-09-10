@@ -16,10 +16,10 @@ type fakePool struct {
 	lifetime         time.Duration
 }
 
-func (f *fakePool) SetMaxIdleConns(n int)                { f.maxIdle = n }
-func (f *fakePool) SetMaxOpenConns(n int)                { f.maxOpen = n }
-func (f *fakePool) SetConnMaxIdleTime(d time.Duration)   { f.idleTime = d }
-func (f *fakePool) SetConnMaxLifetime(d time.Duration)   { f.lifetime = d }
+func (f *fakePool) SetMaxIdleConns(n int)              { f.maxIdle = n }
+func (f *fakePool) SetMaxOpenConns(n int)              { f.maxOpen = n }
+func (f *fakePool) SetConnMaxIdleTime(d time.Duration) { f.idleTime = d }
+func (f *fakePool) SetConnMaxLifetime(d time.Duration) { f.lifetime = d }
 
 func TestConfigurePool_DefaultsKeepIdleEqualToOpen(t *testing.T) {
 	// given
