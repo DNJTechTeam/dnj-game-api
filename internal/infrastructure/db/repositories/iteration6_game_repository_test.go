@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
+	"github.com/dnjtechteam/dnj-game-api/internal/infrastructure/db/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +14,7 @@ import (
 func TestIteration6GameRepository_PointBalanceAuditReturnsSafeError(t *testing.T) {
 	database, mock := newMockDB(t)
 	mock.ExpectQuery("SELECT users\\.id AS user_id").WillReturnError(errors.New("database unavailable"))
-	repository := NewGameRepository(database)
+	repository := &GameRepository{BaseRepository: NewBaseRepository[models.ActivityRun](database)}
 
 	mismatches, err := repository.ListPointBalanceMismatches(context.Background())
 
@@ -25,7 +26,7 @@ func TestIteration6GameRepository_PointBalanceAuditReturnsSafeError(t *testing.T
 func TestIteration6GameRepository_ListOpenRunsReturnsSafeError(t *testing.T) {
 	database, mock := newMockDB(t)
 	mock.ExpectQuery(`SELECT .*activity_runs.*`).WillReturnError(errors.New("database unavailable"))
-	repository := NewGameRepository(database)
+	repository := &GameRepository{BaseRepository: NewBaseRepository[models.ActivityRun](database)}
 
 	runs, err := repository.ListOpenRunsForManager(context.Background(), 42, true)
 
