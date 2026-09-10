@@ -423,7 +423,7 @@ func (s *AdminInstallationService) ListActivities(ctx context.Context, filter *m
 	if _, err := s.authorizeAdmin(ctx, false); err != nil {
 		return nil, err
 	}
-	result, err := s.activities.List(ctx, filter.GetPage())
+	result, err := s.activities.ListAdmin(ctx, filter.GetPage(), filter.Kind, filter.Status)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}

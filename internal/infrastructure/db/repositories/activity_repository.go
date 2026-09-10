@@ -47,9 +47,35 @@ func (r *ActivityRepository) TransitionStatus(ctx context.Context, activityID st
 }
 
 func (r *ActivityRepository) List(ctx context.Context, page uint64) (*messages.PaginatedResponse[entities.Activity], error) {
+	return r.list(ctx, page, "", "")
+}
+
+func (r *ActivityRepository) ListAdmin(ctx context.Context, page uint64, kind, status string) (*messages.PaginatedResponse[entities.Activity], error) {
+	return r.list(ctx, page, kind, status)
+}
+
+func (r *ActivityRepository) list(ctx context.Context, page uint64, kind, status string) (*messages.PaginatedResponse[entities.Activity], error) {
 	const limit = 20
 	var rows []models.Activity
-	err := r.getDB(ctx).Order("name ASC").Order("id ASC").Limit(limit + 1).Offset(int(page) * limit).Find(&rows).Error
+	query := r.getDB(ctx)
+	if kind != "" {
+		query = query.Where("kind = ?", kind)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	countQuery := r.getDB(ctx).Model(&models.Activity{})
+	if kind != "" {
+		countQuery = countQuery.Where("kind = ?", kind)
+	}
+	if status != "" {
+		countQuery = countQuery.Where("status = ?", status)
+	}
+	var total int64
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, handleRepositoryError(err)
+	}
+	err := query.Order("name ASC").Order("id ASC").Limit(limit + 1).Offset(int(page) * limit).Find(&rows).Error
 	if err != nil {
 		return nil, handleRepositoryError(err)
 	}
@@ -61,7 +87,7 @@ func (r *ActivityRepository) List(ctx context.Context, page uint64) (*messages.P
 	for index := range rows {
 		items[index] = *mappers.MapActivityToEntity(&rows[index])
 	}
-	return &messages.PaginatedResponse[entities.Activity]{Data: items, Pagination: messages.Pagination{CurrentPage: messages.Uint64StringFromUint64(page + 1), HasNextPage: hasNext, Limit: limit}}, nil
+	return &messages.PaginatedResponse[entities.Activity]{Data: items, Pagination: messages.Pagination{CurrentPage: messages.Uint64StringFromUint64(page + 1), HasNextPage: hasNext, Limit: limit, Total: int(total)}}, nil
 }
 
 func (r *ActivityRepository) Create(ctx context.Context, activity *entities.Activity) (*entities.Activity, error) {

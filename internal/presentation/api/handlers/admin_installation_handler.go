@@ -82,7 +82,7 @@ func (h *AdminInstallationHandler) ListActivities(c *gin.Context) {
 	if adminPageFailure(c, err) {
 		return
 	}
-	filter := &messages.ListAdminActivitiesFilterDTO{}
+	filter := &messages.ListAdminActivitiesFilterDTO{Kind: c.Query("kind"), Status: c.Query("status")}
 	filter.SetPage(page)
 	result, err := h.AdminInstallationService.ListActivities(c.Request.Context(), filter)
 	if err != nil {
