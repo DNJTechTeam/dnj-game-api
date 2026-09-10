@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	activityEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/activity/entities"
+	gameEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/game/entities"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +20,18 @@ func TestFilterManagerGamesByScope(t *testing.T) {
 	assert.Empty(t, filterManagerGamesByScope(games, "space", false))
 	assert.Empty(t, filterManagerGamesByScope(games, "pastoral_queue", false))
 	assert.Len(t, filterManagerGamesByScope(games, "actions", true), 3)
+}
+
+func TestManagerRunVisibleForScope(t *testing.T) {
+	competitive := &gameEntities.ActivityRun{Activity: &activityEntities.Activity{Kind: activityEntities.KindCompetitive}}
+	checkpoint := &gameEntities.ActivityRun{Activity: &activityEntities.Activity{Kind: activityEntities.KindCheckpoint}}
+	live := &gameEntities.ActivityRun{Activity: &activityEntities.Activity{Kind: activityEntities.KindLive}}
+
+	assert.True(t, managerRunVisibleForScope(competitive, "actions", false))
+	assert.False(t, managerRunVisibleForScope(checkpoint, "actions", false))
+	assert.False(t, managerRunVisibleForScope(live, "actions", false))
+	assert.True(t, managerRunVisibleForScope(live, "special_events", false))
+	assert.True(t, managerRunVisibleForScope(checkpoint, "anything", true))
 }
 
 func activityIDs(games []activityEntities.PublicActivity) []string {

@@ -697,6 +697,9 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
+	if !managerRunVisibleForScope(run, scope, global) {
+		return response, nil
+	}
 	participants, err := s.games.ListRunParticipants(ctx, run.ID)
 	if err != nil {
 		return nil, appErrors.InternalError
@@ -710,6 +713,23 @@ func (s *GameService) ManagerOverview(ctx context.Context) (*messages.ManagerGam
 	}
 	response.Actions.Run = dashboard
 	return response, nil
+}
+
+func managerRunVisibleForScope(run *gameEntities.ActivityRun, scope string, global bool) bool {
+	if run == nil {
+		return false
+	}
+	if global || run.Activity == nil {
+		return true
+	}
+	switch scope {
+	case "actions":
+		return run.Activity.Kind == activityEntities.KindCompetitive
+	case "special_events":
+		return run.Activity.Kind == activityEntities.KindLive
+	default:
+		return false
+	}
 }
 
 func filterManagerGamesByScope(games []activityEntities.PublicActivity, scope string, global bool) []activityEntities.PublicActivity {
