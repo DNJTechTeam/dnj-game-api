@@ -928,20 +928,19 @@ type groupRankingRow struct {
 	Position uint64
 }
 
-// groupTotalsCTE aggregates each group's consolidated points once. Group ranking is
-// bounded by the number of groups (not users), so ordering these totals is cheap; the
-// position is the row's ordinal, replacing the old ROW_NUMBER() over the same order.
-const groupTotalsCTE = `WITH totals AS (
-	SELECT groups.id AS group_id, groups.name, COUNT(users.id) AS members, COALESCE(SUM(users.points), 0) AS points
+// groupRankingSelect reads each group's consolidated points and member_count directly,
+// ordered by the index idx_groups_ranking — no GROUP BY over every membership per
+// request. The totals are kept current by the database triggers installed in the
+// consolidate_group_points migration. Position is the row's ordinal.
+const groupRankingSelect = `
+	SELECT id AS group_id, name, member_count AS members, points
 	FROM groups
-	LEFT JOIN group_memberships ON group_memberships.group_id = groups.id
-	LEFT JOIN users ON users.id = group_memberships.user_id AND users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT'
-	GROUP BY groups.id, groups.name
-)`
+	ORDER BY points DESC, name ASC, id ASC
+	LIMIT ? OFFSET ?`
 
 func (r *GameRepository) listGroups(ctx context.Context, limit int, offset int) ([]gameEntities.GroupRanking, error) {
 	var rows []groupRankingRow
-	if err := r.getDB(ctx).Raw(groupTotalsCTE+` SELECT * FROM totals ORDER BY points DESC, name ASC, group_id ASC LIMIT ? OFFSET ?`, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.getDB(ctx).Raw(groupRankingSelect, limit, offset).Scan(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.GroupRanking, len(rows))
@@ -1025,15 +1024,20 @@ func (r *GameRepository) FindCurrentRanking(
 		Points:    me.Points,
 		Position:  uint64(individualAhead) + 1,
 	}
-	// The user's group, with its position among all group totals.
+	// The user's group, with its position among all groups. Reads the consolidated
+	// groups.points (index idx_groups_ranking) instead of aggregating memberships.
 	var groupRows []groupRankingRow
-	if err := r.getDB(ctx).Raw(groupTotalsCTE+`,
-		mine AS (SELECT t.* FROM totals t JOIN group_memberships gm ON gm.group_id = t.group_id WHERE gm.user_id = ?)
-		SELECT mine.group_id, mine.name, mine.members, mine.points,
-			(SELECT count(*) FROM totals x
+	if err := r.getDB(ctx).Raw(`
+		WITH mine AS (
+			SELECT g.id, g.name, g.member_count, g.points
+			FROM groups g JOIN group_memberships gm ON gm.group_id = g.id
+			WHERE gm.user_id = ?
+		)
+		SELECT mine.id AS group_id, mine.name, mine.member_count AS members, mine.points,
+			(SELECT count(*) FROM groups x
 			   WHERE x.points > mine.points
 			      OR (x.points = mine.points AND x.name < mine.name)
-			      OR (x.points = mine.points AND x.name = mine.name AND x.group_id < mine.group_id)) + 1 AS position
+			      OR (x.points = mine.points AND x.name = mine.name AND x.id < mine.id)) + 1 AS position
 		FROM mine`, userID).Scan(&groupRows).Error; err != nil {
 		return nil, nil, handleRepositoryError(err)
 	}

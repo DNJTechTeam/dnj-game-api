@@ -1515,4 +1515,97 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			return db.Exec(`DROP INDEX IF EXISTS idx_users_ranking`).Error
 		},
 	})
+	registry.Register(Migration{
+		Name: "consolidate_group_points",
+		Description: "Maintain groups.points and groups.member_count (SUM/COUNT of eligible " +
+			"members) via a database trigger, so group ranking is an index scan instead of a " +
+			"GROUP BY over every membership on each request. The trigger recomputes the affected " +
+			"group whenever a member's points/eligibility or a membership changes, so every write " +
+			"path (Go or raw SQL) stays consistent.",
+		Version:    "2.26.0",
+		Definition: "consolidate-group-points-v1",
+		Up: func(db *gorm.DB) error {
+			stmts := []string{
+				`ALTER TABLE groups ADD COLUMN IF NOT EXISTS points BIGINT NOT NULL DEFAULT 0`,
+				`ALTER TABLE groups ADD COLUMN IF NOT EXISTS member_count INTEGER NOT NULL DEFAULT 0`,
+				// Recompute one group's consolidated totals from its eligible members.
+				`CREATE OR REPLACE FUNCTION dnj_recompute_group_points(gid BIGINT) RETURNS void AS $fn$
+					UPDATE groups g SET
+						points = COALESCE((
+							SELECT SUM(u.points) FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+							WHERE gm.group_id = gid AND u.deleted_at IS NULL AND u.onboarding_complete = TRUE AND u.role = 'DEFAULT'), 0),
+						member_count = COALESCE((
+							SELECT COUNT(*) FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+							WHERE gm.group_id = gid AND u.deleted_at IS NULL AND u.onboarding_complete = TRUE AND u.role = 'DEFAULT'), 0)
+					WHERE g.id = gid;
+				$fn$ LANGUAGE sql`,
+				// A member's points or eligibility changed -> recompute that member's group.
+				`CREATE OR REPLACE FUNCTION dnj_users_group_points() RETURNS trigger AS $fn$
+					DECLARE gid BIGINT;
+					BEGIN
+						SELECT gm.group_id INTO gid FROM group_memberships gm WHERE gm.user_id = COALESCE(NEW.id, OLD.id);
+						IF gid IS NOT NULL THEN PERFORM dnj_recompute_group_points(gid); END IF;
+						RETURN NULL;
+					END;
+				$fn$ LANGUAGE plpgsql`,
+				// A membership was added, removed, or moved between groups.
+				`CREATE OR REPLACE FUNCTION dnj_memberships_group_points() RETURNS trigger AS $fn$
+					BEGIN
+						IF TG_OP = 'INSERT' THEN
+							PERFORM dnj_recompute_group_points(NEW.group_id);
+						ELSIF TG_OP = 'DELETE' THEN
+							PERFORM dnj_recompute_group_points(OLD.group_id);
+						ELSE
+							IF NEW.group_id IS DISTINCT FROM OLD.group_id THEN
+								PERFORM dnj_recompute_group_points(OLD.group_id);
+							END IF;
+							PERFORM dnj_recompute_group_points(NEW.group_id);
+						END IF;
+						RETURN NULL;
+					END;
+				$fn$ LANGUAGE plpgsql`,
+				`DROP TRIGGER IF EXISTS trg_users_group_points ON users`,
+				`CREATE TRIGGER trg_users_group_points
+					AFTER INSERT OR DELETE OR UPDATE OF points, onboarding_complete, role, deleted_at ON users
+					FOR EACH ROW EXECUTE FUNCTION dnj_users_group_points()`,
+				`DROP TRIGGER IF EXISTS trg_memberships_group_points ON group_memberships`,
+				`CREATE TRIGGER trg_memberships_group_points
+					AFTER INSERT OR DELETE OR UPDATE OF group_id ON group_memberships
+					FOR EACH ROW EXECUTE FUNCTION dnj_memberships_group_points()`,
+				// Backfill every group's totals once (idempotent: recomputes the same values).
+				`UPDATE groups g SET
+					points = COALESCE((
+						SELECT SUM(u.points) FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+						WHERE gm.group_id = g.id AND u.deleted_at IS NULL AND u.onboarding_complete = TRUE AND u.role = 'DEFAULT'), 0),
+					member_count = COALESCE((
+						SELECT COUNT(*) FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+						WHERE gm.group_id = g.id AND u.deleted_at IS NULL AND u.onboarding_complete = TRUE AND u.role = 'DEFAULT'), 0)`,
+				`CREATE INDEX IF NOT EXISTS idx_groups_ranking ON groups (points DESC, name ASC, id ASC)`,
+			}
+			for _, stmt := range stmts {
+				if err := db.Exec(stmt).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error {
+			stmts := []string{
+				`DROP TRIGGER IF EXISTS trg_users_group_points ON users`,
+				`DROP TRIGGER IF EXISTS trg_memberships_group_points ON group_memberships`,
+				`DROP FUNCTION IF EXISTS dnj_users_group_points()`,
+				`DROP FUNCTION IF EXISTS dnj_memberships_group_points()`,
+				`DROP FUNCTION IF EXISTS dnj_recompute_group_points(BIGINT)`,
+				`DROP INDEX IF EXISTS idx_groups_ranking`,
+				`ALTER TABLE groups DROP COLUMN IF EXISTS points`,
+				`ALTER TABLE groups DROP COLUMN IF EXISTS member_count`,
+			}
+			for _, stmt := range stmts {
+				if err := db.Exec(stmt).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	})
 }
