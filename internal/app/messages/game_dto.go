@@ -26,6 +26,7 @@ const (
 type IndividualRankingResponseDTO struct {
 	ID        Uint64String `json:"id"`
 	Name      string       `json:"name"`
+	AvatarURL *string      `json:"avatarUrl"`
 	GroupName *string      `json:"groupName"`
 	Points    int          `json:"points"`
 	Position  uint64       `json:"position"`

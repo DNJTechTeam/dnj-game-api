@@ -856,6 +856,7 @@ func (r *GameRepository) IsActiveSpecialEventRun(ctx context.Context, runID stri
 type individualRankingRow struct {
 	UserID    uint64 `gorm:"column:user_id"`
 	Name      string
+	AvatarURL *string `gorm:"column:avatar_url"`
 	GroupName *string
 	Points    int
 	Position  uint64
@@ -866,7 +867,7 @@ type individualRankingRow struct {
 // it as an index scan without a full sort. The position is the row's ordinal
 // (offset + index), which equals the old ROW_NUMBER() over the identical ordering.
 const individualRankingSelect = `
-	SELECT users.id AS user_id, users.name, groups.name AS group_name, users.points
+	SELECT users.id AS user_id, users.name, users.avatar_url, groups.name AS group_name, users.points
 	FROM users
 	LEFT JOIN group_memberships ON group_memberships.user_id = users.id
 	LEFT JOIN groups ON groups.id = group_memberships.group_id
@@ -888,6 +889,7 @@ func (r *GameRepository) listIndividual(
 		data[i] = gameEntities.IndividualRanking{
 			UserID:    rows[i].UserID,
 			Name:      rows[i].Name,
+			AvatarURL: rows[i].AvatarURL,
 			GroupName: rows[i].GroupName,
 			Points:    rows[i].Points,
 			Position:  uint64(offset + i + 1),
@@ -994,7 +996,7 @@ func (r *GameRepository) FindCurrentRanking(
 	// The user's own row (consolidated points, name, group name).
 	var meRows []individualRankingRow
 	if err := r.getDB(ctx).Raw(`
-		SELECT users.id AS user_id, users.name, groups.name AS group_name, users.points
+		SELECT users.id AS user_id, users.name, users.avatar_url, groups.name AS group_name, users.points
 		FROM users
 		LEFT JOIN group_memberships ON group_memberships.user_id = users.id
 		LEFT JOIN groups ON groups.id = group_memberships.group_id
@@ -1018,6 +1020,7 @@ func (r *GameRepository) FindCurrentRanking(
 	individual := &gameEntities.IndividualRanking{
 		UserID:    me.UserID,
 		Name:      me.Name,
+		AvatarURL: me.AvatarURL,
 		GroupName: me.GroupName,
 		Points:    me.Points,
 		Position:  uint64(individualAhead) + 1,

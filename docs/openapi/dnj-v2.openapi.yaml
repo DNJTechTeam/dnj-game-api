@@ -1938,10 +1938,11 @@ components:
     IndividualRanking:
       type: object
       additionalProperties: false
-      required: [id, name, groupName, points, position]
+      required: [id, name, avatarUrl, groupName, points, position]
       properties:
         id: {type: string, pattern: '^[1-9][0-9]*$'}
         name: {type: string}
+        avatarUrl: {type: string, format: uri, nullable: true, description: "Foto de perfil, quando disponível."}
         groupName: {type: string, nullable: true}
         points: {type: integer, minimum: 0}
         position: {type: integer, format: int64, minimum: 1}
