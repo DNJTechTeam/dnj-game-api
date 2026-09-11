@@ -124,6 +124,9 @@ type LikeResponseDTO struct {
 	Liked      bool   `json:"liked"`
 	LikesCount int    `json:"likesCount"`
 }
+type DeleteMomentResponseDTO struct {
+	MomentID string `json:"momentId"`
+}
 
 type ModerationRequestDTO struct {
 	Action string  `json:"action"`

@@ -12,6 +12,7 @@ type MediaServiceInterface interface {
 type MomentServiceInterface interface {
 	List(context.Context, string, string) (*messages.MomentPageResponseDTO, error)
 	Create(context.Context, string, *messages.CreateMomentRequestDTO) (*messages.MomentResponseDTO, int, error)
+	Delete(context.Context, string, string) (*messages.DeleteMomentResponseDTO, error)
 	ToggleLike(context.Context, string, string) (*messages.LikeResponseDTO, error)
 	ListModeration(context.Context, string, uint64) (*messages.ModerationPageResponseDTO, error)
 	Moderate(context.Context, string, string, *messages.ModerationRequestDTO) (*messages.ModerationResponseDTO, error)

@@ -5123,6 +5123,16 @@ type MockMomentServiceInterface struct {
 	mock.Mock
 }
 
+// Delete provides a mock function for the type MockMomentServiceInterface.
+func (_mock *MockMomentServiceInterface) Delete(ctx context.Context, momentID string, idempotencyKey string) (*messages.DeleteMomentResponseDTO, error) {
+	ret := _mock.Called(ctx, momentID, idempotencyKey)
+	var response *messages.DeleteMomentResponseDTO
+	if value, ok := ret.Get(0).(*messages.DeleteMomentResponseDTO); ok {
+		response = value
+	}
+	return response, ret.Error(1)
+}
+
 type MockMomentServiceInterface_Expecter struct {
 	mock *mock.Mock
 }
