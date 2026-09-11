@@ -1499,4 +1499,20 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 		"2.24.0",
 		&models.EventSettings{},
 	))
+	registry.Register(Migration{
+		Name: "add_users_ranking_index",
+		Description: "Partial index matching the ranking filter and order, so top-N is an " +
+			"index scan (no full sort) and a user's position is an index range count, " +
+			"replacing the per-request ROW_NUMBER() over every user.",
+		Version:    "2.25.0",
+		Definition: "users-ranking-index-v1",
+		Up: func(db *gorm.DB) error {
+			return db.Exec(`CREATE INDEX IF NOT EXISTS idx_users_ranking
+				ON users (points DESC, name ASC, id ASC)
+				WHERE deleted_at IS NULL AND onboarding_complete = TRUE AND role = 'DEFAULT'`).Error
+		},
+		Down: func(db *gorm.DB) error {
+			return db.Exec(`DROP INDEX IF EXISTS idx_users_ranking`).Error
+		},
+	})
 }

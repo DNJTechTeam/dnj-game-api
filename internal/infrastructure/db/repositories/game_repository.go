@@ -861,14 +861,18 @@ type individualRankingRow struct {
 	Position  uint64
 }
 
-const individualRankingCTE = `WITH ranked AS (
-	SELECT users.id AS user_id, users.name, groups.name AS group_name, users.points,
-		ROW_NUMBER() OVER (ORDER BY users.points DESC, users.name ASC, users.id ASC) AS position
+// individualRankingSelect returns the ranked users already ordered, so the partial
+// index idx_users_ranking (points DESC, name, id — filtered by the same WHERE) serves
+// it as an index scan without a full sort. The position is the row's ordinal
+// (offset + index), which equals the old ROW_NUMBER() over the identical ordering.
+const individualRankingSelect = `
+	SELECT users.id AS user_id, users.name, groups.name AS group_name, users.points
 	FROM users
 	LEFT JOIN group_memberships ON group_memberships.user_id = users.id
 	LEFT JOIN groups ON groups.id = group_memberships.group_id
 	WHERE users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT'
-)`
+	ORDER BY users.points DESC, users.name ASC, users.id ASC
+	LIMIT ? OFFSET ?`
 
 func (r *GameRepository) listIndividual(
 	ctx context.Context,
@@ -876,7 +880,7 @@ func (r *GameRepository) listIndividual(
 	offset int,
 ) ([]gameEntities.IndividualRanking, error) {
 	var rows []individualRankingRow
-	if err := r.getDB(ctx).Raw(individualRankingCTE+` SELECT * FROM ranked ORDER BY position LIMIT ? OFFSET ?`, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.getDB(ctx).Raw(individualRankingSelect, limit, offset).Scan(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.IndividualRanking, len(rows))
@@ -886,7 +890,7 @@ func (r *GameRepository) listIndividual(
 			Name:      rows[i].Name,
 			GroupName: rows[i].GroupName,
 			Points:    rows[i].Points,
-			Position:  rows[i].Position,
+			Position:  uint64(offset + i + 1),
 		}
 	}
 	return data, nil
@@ -922,19 +926,20 @@ type groupRankingRow struct {
 	Position uint64
 }
 
-const groupRankingCTE = `WITH totals AS (
+// groupTotalsCTE aggregates each group's consolidated points once. Group ranking is
+// bounded by the number of groups (not users), so ordering these totals is cheap; the
+// position is the row's ordinal, replacing the old ROW_NUMBER() over the same order.
+const groupTotalsCTE = `WITH totals AS (
 	SELECT groups.id AS group_id, groups.name, COUNT(users.id) AS members, COALESCE(SUM(users.points), 0) AS points
 	FROM groups
 	LEFT JOIN group_memberships ON group_memberships.group_id = groups.id
 	LEFT JOIN users ON users.id = group_memberships.user_id AND users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT'
 	GROUP BY groups.id, groups.name
-), ranked AS (
-	SELECT totals.*, ROW_NUMBER() OVER (ORDER BY totals.points DESC, totals.name ASC, totals.group_id ASC) AS position FROM totals
 )`
 
 func (r *GameRepository) listGroups(ctx context.Context, limit int, offset int) ([]gameEntities.GroupRanking, error) {
 	var rows []groupRankingRow
-	if err := r.getDB(ctx).Raw(groupRankingCTE+` SELECT * FROM ranked ORDER BY position LIMIT ? OFFSET ?`, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.getDB(ctx).Raw(groupTotalsCTE+` SELECT * FROM totals ORDER BY points DESC, name ASC, group_id ASC LIMIT ? OFFSET ?`, limit, offset).Scan(&rows).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	data := make([]gameEntities.GroupRanking, len(rows))
@@ -944,7 +949,7 @@ func (r *GameRepository) listGroups(ctx context.Context, limit int, offset int) 
 			Name:     rows[i].Name,
 			Members:  rows[i].Members,
 			Points:   rows[i].Points,
-			Position: rows[i].Position,
+			Position: uint64(offset + i + 1),
 		}
 	}
 	return data, nil
@@ -986,22 +991,47 @@ func (r *GameRepository) FindCurrentRanking(
 	ctx context.Context,
 	userID uint64,
 ) (*gameEntities.IndividualRanking, *gameEntities.GroupRanking, error) {
-	var individualRows []individualRankingRow
-	if err := r.getDB(ctx).Raw(individualRankingCTE+` SELECT * FROM ranked WHERE user_id = ?`, userID).Scan(&individualRows).Error; err != nil {
+	// The user's own row (consolidated points, name, group name).
+	var meRows []individualRankingRow
+	if err := r.getDB(ctx).Raw(`
+		SELECT users.id AS user_id, users.name, groups.name AS group_name, users.points
+		FROM users
+		LEFT JOIN group_memberships ON group_memberships.user_id = users.id
+		LEFT JOIN groups ON groups.id = group_memberships.group_id
+		WHERE users.id = ? AND users.deleted_at IS NULL AND users.onboarding_complete = TRUE AND users.role = 'DEFAULT'`, userID).Scan(&meRows).Error; err != nil {
 		return nil, nil, handleRepositoryError(err)
 	}
-	if len(individualRows) == 0 {
+	if len(meRows) == 0 {
 		return nil, nil, appErrors.ErrNotFound
 	}
-	individual := &gameEntities.IndividualRanking{
-		UserID:    individualRows[0].UserID,
-		Name:      individualRows[0].Name,
-		GroupName: individualRows[0].GroupName,
-		Points:    individualRows[0].Points,
-		Position:  individualRows[0].Position,
+	me := meRows[0]
+	// Position = how many rank ahead + 1, an index range count over the same
+	// (points DESC, name ASC, id ASC) ordering the partial index provides.
+	var individualAhead int64
+	if err := r.getDB(ctx).Raw(`
+		SELECT count(*) FROM users
+		WHERE deleted_at IS NULL AND onboarding_complete = TRUE AND role = 'DEFAULT'
+		  AND (points > ? OR (points = ? AND name < ?) OR (points = ? AND name = ? AND id < ?))`,
+		me.Points, me.Points, me.Name, me.Points, me.Name, me.UserID).Scan(&individualAhead).Error; err != nil {
+		return nil, nil, handleRepositoryError(err)
 	}
+	individual := &gameEntities.IndividualRanking{
+		UserID:    me.UserID,
+		Name:      me.Name,
+		GroupName: me.GroupName,
+		Points:    me.Points,
+		Position:  uint64(individualAhead) + 1,
+	}
+	// The user's group, with its position among all group totals.
 	var groupRows []groupRankingRow
-	if err := r.getDB(ctx).Raw(groupRankingCTE+` SELECT ranked.* FROM ranked JOIN group_memberships ON group_memberships.group_id = ranked.group_id WHERE group_memberships.user_id = ?`, userID).Scan(&groupRows).Error; err != nil {
+	if err := r.getDB(ctx).Raw(groupTotalsCTE+`,
+		mine AS (SELECT t.* FROM totals t JOIN group_memberships gm ON gm.group_id = t.group_id WHERE gm.user_id = ?)
+		SELECT mine.group_id, mine.name, mine.members, mine.points,
+			(SELECT count(*) FROM totals x
+			   WHERE x.points > mine.points
+			      OR (x.points = mine.points AND x.name < mine.name)
+			      OR (x.points = mine.points AND x.name = mine.name AND x.group_id < mine.group_id)) + 1 AS position
+		FROM mine`, userID).Scan(&groupRows).Error; err != nil {
 		return nil, nil, handleRepositoryError(err)
 	}
 	if len(groupRows) == 0 {
