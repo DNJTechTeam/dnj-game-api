@@ -41,10 +41,20 @@ type IdentitySessionResponseDTO struct {
 	AccessToken        string                   `json:"accessToken"`
 	TokenType          string                   `json:"tokenType"`
 	ExpiresIn          int64                    `json:"expiresIn"`
+	// RefreshToken is the opaque rotating token; bearer clients persist it and
+	// send it back in the JSON body of /auth/refresh and /auth/logout.
+	RefreshToken     string `json:"refreshToken"`
+	RefreshExpiresIn int64  `json:"refreshExpiresIn"`
+	// CSRFToken only matters for the legacy cookie-based flow.
 	CSRFToken          string                   `json:"csrfToken"`
 	OnboardingRequired bool                     `json:"onboardingRequired"`
 	User               *IdentityUserResponseDTO `json:"user"`
-	RefreshToken       string                   `json:"-"`
+}
+
+// RefreshTokenRequestDTO is the JSON body accepted by /auth/refresh and
+// /auth/logout for bearer clients (no cookies, no CSRF).
+type RefreshTokenRequestDTO struct {
+	RefreshToken string `json:"refreshToken"`
 }
 
 type CurrentSessionResponseDTO struct {

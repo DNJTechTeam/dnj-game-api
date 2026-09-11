@@ -126,15 +126,26 @@ paths:
       operationId: refreshIdentitySession
       summary: Rotaciona o refresh token e renova a sessão
       description: >-
-        Requer os cookies refresh_token e csrf_token e o mesmo valor CSRF no
-        header. Reuso de refresh token revoga toda a família.
+        Contrato principal (bearer): envia {"refreshToken"} no corpo JSON e
+        recebe um novo par accessToken/refreshToken — sem cookies nem CSRF.
+        Fallback legado: cookies refresh_token + csrf_token com o mesmo valor
+        CSRF no header X-CSRF-Token. Reuso de refresh token revoga toda a
+        família (401 REFRESH_TOKEN_REUSE); qualquer falha invalida as
+        credenciais e o cliente deve voltar ao login.
       parameters:
         - {$ref: '#/components/parameters/CSRFHeader'}
       security:
+        - {}
         - refreshCookie: []
           csrfCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RefreshTokenRequest'}
       responses:
         '200': {$ref: '#/components/responses/IdentitySession'}
+        '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '500': {$ref: '#/components/responses/InternalError'}
@@ -142,12 +153,24 @@ paths:
     post:
       tags: [Identity]
       operationId: logoutIdentitySession
-      summary: Revoga a família da sessão atual e remove os cookies
+      summary: Revoga a família da sessão atual
+      description: >-
+        Contrato principal (bearer): envia {"refreshToken"} no corpo JSON;
+        a família é revogada e nenhum cookie é emitido. Fallback legado:
+        cookies refresh_token + csrf_token com X-CSRF-Token, e a resposta
+        expira os cookies. Idempotente quando o token está ausente ou já
+        foi revogado.
       parameters:
         - {$ref: '#/components/parameters/CSRFHeader'}
       security:
+        - {}
         - refreshCookie: []
           csrfCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RefreshTokenRequest'}
       responses:
         '200':
           description: Sessão revogada
@@ -157,6 +180,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/LogoutResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '500': {$ref: '#/components/responses/InternalError'}
   /auth/session:
@@ -1348,8 +1372,11 @@ components:
       schema: {type: string}
     SessionCookies:
       description: >-
-        identity_token e refresh_token são HttpOnly; csrf_token é legível pelo
-        cliente. Em ambiente publicado todos são Secure e SameSite=None.
+        Emitidos apenas no fluxo legado por cookie. identity_token e
+        refresh_token são HttpOnly; csrf_token é legível pelo cliente. Em
+        ambiente publicado todos são Secure e SameSite=None. Clientes bearer
+        (contrato principal) ignoram estes cookies e persistem os tokens do
+        corpo da resposta.
       schema: {type: string}
     Page: {description: Página atual, schema: {type: string}}
     Limit: {description: Quantidade máxima por página, schema: {type: integer}}
@@ -1358,7 +1385,8 @@ components:
     CSRFHeader:
       name: X-CSRF-Token
       in: header
-      required: true
+      required: false
+      description: Obrigatório apenas no fallback legado por cookie.
       schema: {type: string, minLength: 32}
     Page:
       name: page
@@ -1578,14 +1606,22 @@ components:
       required: [name]
       properties:
         name: {type: string, minLength: 1, example: 'Turma da Serra'}
+    RefreshTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken: {type: string, minLength: 1, description: Refresh token opaco recebido na última sessão}
     IdentitySessionResponse:
       type: object
-      required: [accessToken, tokenType, expiresIn, csrfToken, onboardingRequired, user]
+      required: [accessToken, tokenType, expiresIn, refreshToken, refreshExpiresIn, csrfToken, onboardingRequired, user]
       properties:
-        accessToken: {type: string, description: JWT HS256 válido por 900 segundos}
+        accessToken: {type: string, description: JWT HS256 válido por 900 segundos; enviar em Authorization Bearer}
         tokenType: {type: string, enum: [Bearer]}
         expiresIn: {type: integer, format: int64, enum: [900]}
-        csrfToken: {type: string, description: Mesmo valor do cookie csrf_token}
+        refreshToken: {type: string, description: Token opaco rotativo; persistir e enviar em /auth/refresh e /auth/logout}
+        refreshExpiresIn: {type: integer, format: int64, enum: [2592000], description: Validade do refresh token em segundos (30 dias)}
+        csrfToken: {type: string, description: Somente para o fluxo legado por cookie (mesmo valor do cookie csrf_token)}
         onboardingRequired: {type: boolean}
         user: {$ref: '#/components/schemas/IdentityUser'}
     CurrentSessionResponse:

@@ -36,14 +36,14 @@ operations:
   - operationId: refreshIdentitySession
     method: POST
     path: /auth/refresh
-    statuses: ['200', '401', '403', '500']
+    statuses: ['200', '400', '401', '403', '500']
     automatedTests:
       - internal/presentation/api/handlers/identity_handler_test.go
       - internal/app/services/identity_service_test.go
   - operationId: logoutIdentitySession
     method: POST
     path: /auth/logout
-    statuses: ['200', '403', '500']
+    statuses: ['200', '400', '403', '500']
     automatedTests:
       - internal/presentation/api/handlers/identity_handler_test.go
       - internal/app/services/identity_service_test.go

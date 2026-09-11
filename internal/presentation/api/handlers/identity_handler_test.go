@@ -59,7 +59,8 @@ func TestIdentityHandler_GoogleContractAndCookies(t *testing.T) {
 
 	// then
 	assert.Equal(t, http.StatusOK, recorder.Code)
-	assert.NotContains(t, recorder.Body.String(), "refresh")
+	assert.Contains(t, recorder.Body.String(), `"accessToken":"access"`)
+	assert.Contains(t, recorder.Body.String(), `"refreshToken":"refresh"`)
 	cookies := recorder.Result().Cookies()
 	assert.Len(t, cookies, 3)
 	byName := map[string]*http.Cookie{}
@@ -135,7 +136,9 @@ func TestIdentityHandler_RefreshAndLogoutRequireCSRF(t *testing.T) {
 
 	// when
 	missingCSRF := httptest.NewRecorder()
-	engine.ServeHTTP(missingCSRF, httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", nil))
+	missingCSRFRequest := httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", nil)
+	missingCSRFRequest.AddCookie(&http.Cookie{Name: apiCookies.RefreshTokenName, Value: "old-refresh"})
+	engine.ServeHTTP(missingCSRF, missingCSRFRequest)
 
 	// then
 	assert.Equal(t, http.StatusForbidden, missingCSRF.Code)
@@ -198,4 +201,75 @@ func TestIdentityHandler_ErrorAndOnboardingContracts(t *testing.T) {
 	assert.Contains(t, google.Body.String(), "INVALID_GOOGLE_TOKEN")
 	assert.Equal(t, http.StatusOK, current.Code)
 	assert.Equal(t, http.StatusNotFound, onboarding.Code)
+}
+
+func TestIdentityHandler_RefreshAndLogoutAcceptBearerJSONBody(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	service.On("Refresh", mock.Anything, "stored-refresh").Return(sessionResponse(), nil).Once()
+	service.On("Logout", mock.Anything, "stored-refresh").Return(nil).Once()
+	engine := identityTestEngine(t, service)
+	refreshRequest := httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", bytes.NewBufferString(`{"refreshToken":"stored-refresh"}`))
+	refreshRequest.Header.Set("Content-Type", "application/json")
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/v2/auth/logout", bytes.NewBufferString(`{"refreshToken":"stored-refresh"}`))
+	logoutRequest.Header.Set("Content-Type", "application/json")
+
+	// when
+	rotated := httptest.NewRecorder()
+	engine.ServeHTTP(rotated, refreshRequest)
+	logout := httptest.NewRecorder()
+	engine.ServeHTTP(logout, logoutRequest)
+
+	// then
+	assert.Equal(t, http.StatusOK, rotated.Code)
+	assert.Contains(t, rotated.Body.String(), `"refreshToken":"refresh"`)
+	assert.Empty(t, rotated.Result().Cookies(), "bearer clients must not receive session cookies")
+	assert.Equal(t, http.StatusOK, logout.Code)
+	assert.Contains(t, logout.Body.String(), "logged_out")
+	assert.Empty(t, logout.Result().Cookies())
+}
+
+func TestIdentityHandler_BearerRefreshFailurePropagates401WithoutCookies(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	service.On("Refresh", mock.Anything, "revoked").
+		Return(nil, appErrors.NewAPIServiceError(http.StatusUnauthorized, "REFRESH_TOKEN_REUSE", "Sessão inválida.", nil)).Once()
+	engine := identityTestEngine(t, service)
+	request := httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", bytes.NewBufferString(`{"refreshToken":"revoked"}`))
+	request.Header.Set("Content-Type", "application/json")
+
+	// when
+	recorder := httptest.NewRecorder()
+	engine.ServeHTTP(recorder, request)
+
+	// then
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "REFRESH_TOKEN_REUSE")
+	assert.Empty(t, recorder.Result().Cookies())
+}
+
+func TestIdentityHandler_RefreshAndLogoutWithoutAnyToken(t *testing.T) {
+	// given
+	service := mocks.NewMockIdentityServiceInterface(t)
+	service.On("Refresh", mock.Anything, "").
+		Return(nil, appErrors.NewAPIServiceError(http.StatusUnauthorized, "INVALID_REFRESH_TOKEN", "Sessão inválida.", nil)).Once()
+	service.On("Logout", mock.Anything, "").Return(nil).Once()
+	engine := identityTestEngine(t, service)
+	malformed := httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", bytes.NewBufferString(`{"refreshToken":`))
+	malformed.Header.Set("Content-Type", "application/json")
+
+	// when
+	refresh := httptest.NewRecorder()
+	engine.ServeHTTP(refresh, httptest.NewRequest(http.MethodPost, "/v2/auth/refresh", nil))
+	logout := httptest.NewRecorder()
+	engine.ServeHTTP(logout, httptest.NewRequest(http.MethodPost, "/v2/auth/logout", nil))
+	badJSON := httptest.NewRecorder()
+	engine.ServeHTTP(badJSON, malformed)
+
+	// then
+	assert.Equal(t, http.StatusUnauthorized, refresh.Code)
+	assert.Contains(t, refresh.Body.String(), "INVALID_REFRESH_TOKEN")
+	assert.Equal(t, http.StatusOK, logout.Code, "logout is idempotent when there is nothing to revoke")
+	assert.Equal(t, http.StatusBadRequest, badJSON.Code)
+	assert.Contains(t, badJSON.Body.String(), "INVALID_REQUEST")
 }

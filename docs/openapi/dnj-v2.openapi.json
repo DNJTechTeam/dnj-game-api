@@ -26,7 +26,7 @@
         }
       },
       "SessionCookies": {
-        "description": "identity_token e refresh_token são HttpOnly; csrf_token é legível pelo cliente. Em ambiente publicado todos são Secure e SameSite=None.",
+        "description": "Emitidos apenas no fluxo legado por cookie. identity_token e refresh_token são HttpOnly; csrf_token é legível pelo cliente. Em ambiente publicado todos são Secure e SameSite=None. Clientes bearer (contrato principal) ignoram estes cookies e persistem os tokens do corpo da resposta.",
         "schema": {
           "type": "string"
         }
@@ -43,9 +43,10 @@
         }
       },
       "CSRFHeader": {
+        "description": "Obrigatório apenas no fallback legado por cookie.",
         "in": "header",
         "name": "X-CSRF-Token",
-        "required": true,
+        "required": false,
         "schema": {
           "minLength": 32,
           "type": "string"
@@ -1387,11 +1388,11 @@
       "IdentitySessionResponse": {
         "properties": {
           "accessToken": {
-            "description": "JWT HS256 válido por 900 segundos",
+            "description": "JWT HS256 válido por 900 segundos; enviar em Authorization Bearer",
             "type": "string"
           },
           "csrfToken": {
-            "description": "Mesmo valor do cookie csrf_token",
+            "description": "Somente para o fluxo legado por cookie (mesmo valor do cookie csrf_token)",
             "type": "string"
           },
           "expiresIn": {
@@ -1403,6 +1404,18 @@
           },
           "onboardingRequired": {
             "type": "boolean"
+          },
+          "refreshExpiresIn": {
+            "description": "Validade do refresh token em segundos (30 dias)",
+            "enum": [
+              2592000
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "refreshToken": {
+            "description": "Token opaco rotativo; persistir e enviar em /auth/refresh e /auth/logout",
+            "type": "string"
           },
           "tokenType": {
             "enum": [
@@ -1418,6 +1431,8 @@
           "accessToken",
           "tokenType",
           "expiresIn",
+          "refreshToken",
+          "refreshExpiresIn",
           "csrfToken",
           "onboardingRequired",
           "user"
@@ -2806,6 +2821,20 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "RefreshTokenRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "refreshToken": {
+            "description": "Refresh token opaco recebido na última sessão",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
         ],
         "type": "object"
       },
@@ -4526,12 +4555,23 @@
     },
     "/auth/logout": {
       "post": {
+        "description": "Contrato principal (bearer): envia {\"refreshToken\"} no corpo JSON; a família é revogada e nenhum cookie é emitido. Fallback legado: cookies refresh_token + csrf_token com X-CSRF-Token, e a resposta expira os cookies. Idempotente quando o token está ausente ou já foi revogado.",
         "operationId": "logoutIdentitySession",
         "parameters": [
           {
             "$ref": "#/components/parameters/CSRFHeader"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4551,6 +4591,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
@@ -4559,12 +4602,13 @@
           }
         },
         "security": [
+          {},
           {
             "csrfCookie": [],
             "refreshCookie": []
           }
         ],
-        "summary": "Revoga a família da sessão atual e remove os cookies",
+        "summary": "Revoga a família da sessão atual",
         "tags": [
           "Identity"
         ]
@@ -4631,16 +4675,29 @@
     },
     "/auth/refresh": {
       "post": {
-        "description": "Requer os cookies refresh_token e csrf_token e o mesmo valor CSRF no header. Reuso de refresh token revoga toda a família.",
+        "description": "Contrato principal (bearer): envia {\"refreshToken\"} no corpo JSON e recebe um novo par accessToken/refreshToken — sem cookies nem CSRF. Fallback legado: cookies refresh_token + csrf_token com o mesmo valor CSRF no header X-CSRF-Token. Reuso de refresh token revoga toda a família (401 REFRESH_TOKEN_REUSE); qualquer falha invalida as credenciais e o cliente deve voltar ao login.",
         "operationId": "refreshIdentitySession",
         "parameters": [
           {
             "$ref": "#/components/parameters/CSRFHeader"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "$ref": "#/components/responses/IdentitySession"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -4653,6 +4710,7 @@
           }
         },
         "security": [
+          {},
           {
             "csrfCookie": [],
             "refreshCookie": []

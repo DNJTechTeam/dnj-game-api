@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/subtle"
 	"net/http"
+	"strings"
 
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
@@ -31,6 +32,32 @@ func csrfValid(c *gin.Context) bool {
 
 func setIdentityResponse(c *gin.Context, response *messages.IdentitySessionResponseDTO) {
 	apiCookies.SetIdentitySession(c, response.AccessToken, response.RefreshToken, response.CSRFToken)
+}
+
+// refreshTokenFromRequest resolves the refresh token for /auth/refresh and
+// /auth/logout. Bearer clients send it as JSON ({"refreshToken": "..."}) and
+// skip cookies and CSRF entirely. Legacy cookie clients keep the double-submit
+// CSRF check. When ok is false a response has already been written.
+func refreshTokenFromRequest(c *gin.Context) (token string, fromCookie bool, ok bool) {
+	if c.Request.ContentLength != 0 && strings.HasPrefix(c.ContentType(), "application/json") {
+		var body messages.RefreshTokenRequestDTO
+		if err := c.ShouldBindJSON(&body); err != nil {
+			ResponseAPIError(c, http.StatusBadRequest, "INVALID_REQUEST", "Corpo da requisição inválido.", nil)
+			return "", false, false
+		}
+		if token = strings.TrimSpace(body.RefreshToken); token != "" {
+			return token, false, true
+		}
+	}
+	cookie, err := c.Cookie(apiCookies.RefreshTokenName)
+	if err != nil || cookie == "" {
+		return "", false, true
+	}
+	if !csrfValid(c) {
+		ResponseAPIError(c, http.StatusForbidden, "CSRF_INVALID", "Token CSRF inválido.", nil)
+		return "", true, false
+	}
+	return cookie, true, true
 }
 
 func (h *IdentityHandler) Google(c *gin.Context) {
@@ -78,18 +105,21 @@ func (h *IdentityHandler) VerifyEmailSignup(c *gin.Context) {
 }
 
 func (h *IdentityHandler) Refresh(c *gin.Context) {
-	if !csrfValid(c) {
-		ResponseAPIError(c, http.StatusForbidden, "CSRF_INVALID", "Token CSRF inválido.", nil)
+	refreshToken, fromCookie, ok := refreshTokenFromRequest(c)
+	if !ok {
 		return
 	}
-	refreshToken, _ := c.Cookie(apiCookies.RefreshTokenName)
 	response, err := h.IdentityService.Refresh(c.Request.Context(), refreshToken)
 	if err != nil {
-		apiCookies.Logout(c)
+		if fromCookie {
+			apiCookies.Logout(c)
+		}
 		identityFailure(c, err)
 		return
 	}
-	setIdentityResponse(c, response)
+	if fromCookie {
+		setIdentityResponse(c, response)
+	}
 	ResponseSuccess(c, http.StatusOK, response)
 }
 
@@ -117,15 +147,16 @@ func (h *IdentityHandler) CompleteOnboarding(c *gin.Context) {
 }
 
 func (h *IdentityHandler) Logout(c *gin.Context) {
-	if !csrfValid(c) {
-		ResponseAPIError(c, http.StatusForbidden, "CSRF_INVALID", "Token CSRF inválido.", nil)
+	refreshToken, fromCookie, ok := refreshTokenFromRequest(c)
+	if !ok {
 		return
 	}
-	refreshToken, _ := c.Cookie(apiCookies.RefreshTokenName)
 	if err := h.IdentityService.Logout(c.Request.Context(), refreshToken); err != nil {
 		identityFailure(c, err)
 		return
 	}
-	apiCookies.Logout(c)
+	if fromCookie {
+		apiCookies.Logout(c)
+	}
 	ResponseSuccess(c, http.StatusOK, messages.LogoutResponseDTO{Status: "logged_out"})
 }

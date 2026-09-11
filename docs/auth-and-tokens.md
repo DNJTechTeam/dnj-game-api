@@ -76,21 +76,45 @@ INVALID_CODE` without revealing which reason applied.
 ## Session lifecycle
 
 - Access token: HS256 JWT, issuer `dnj-game-api`, audience `dnj-v2`, lifetime
-  15 minutes, returned in the response and in `identity_token`.
-- Refresh token: opaque random value, lifetime 30 days, sent only as
-  `refresh_token`; the database stores SHA-256 of the value, never the token.
-- Refresh rotation: every successful `POST /v2/auth/refresh` creates a new token
-  and revokes the previous row while preserving the family id.
+  15 minutes (`expiresIn: 900`), returned as `accessToken`.
+- Refresh token: opaque random value, lifetime 30 days
+  (`refreshExpiresIn: 2592000`), returned as `refreshToken`; the database
+  stores SHA-256 of the value, never the token.
+- Refresh rotation: every successful `POST /v2/auth/refresh` creates a new
+  pair (access + refresh) and revokes the previous row while preserving the
+  family id. The old refresh token stops working immediately.
 - Reuse detection: using a revoked token revokes the whole family and returns
   `401 REFRESH_TOKEN_REUSE`.
-- Logout: `POST /v2/auth/logout` revokes the current family and expires all
-  identity cookies. It is idempotent when the refresh token is absent/unknown.
+- Logout: `POST /v2/auth/logout` revokes the current family. It is idempotent
+  when the refresh token is absent/unknown.
 
 `GET /v2/auth/session` accepts `Authorization: Bearer <JWT>` first and falls
 back to `identity_token`. Validation requires HS256, issuer, audience and
-expiration. It returns the current user and `onboardingRequired`.
+expiration. It returns the current user, `role` and `onboardingRequired`, so
+the SPA restores the session and validates operational roles from it.
 
-## Cookies and CSRF
+## Bearer contract (primary) and legacy cookies
+
+The frontend calls the API directly from the browser (`NEXT_PUBLIC_API_URL`,
+no Next proxy) and keeps `accessToken`/`refreshToken` in `localStorage`. The
+API therefore treats **bearer + JSON** as the primary contract:
+
+| Operation | Bearer contract |
+|---|---|
+| `POST /v2/auth/google`, `POST /v2/auth/signup/verify` | respond with `accessToken`, `refreshToken`, `expiresIn`, `refreshExpiresIn`, `user` |
+| `POST /v2/auth/refresh` | body `{"refreshToken":"..."}`, no CSRF header; responds with a rotated pair |
+| `POST /v2/auth/logout` | body `{"refreshToken":"..."}`, no CSRF header |
+| protected routes | `Authorization: Bearer <accessToken>` |
+
+When the JSON body carries a non-empty `refreshToken`, the handler never
+reads cookies, never checks CSRF and never emits `Set-Cookie`. A malformed
+JSON body returns `400 INVALID_REQUEST`.
+
+The cookie flow is kept only as a **legacy fallback** until every consumer
+migrates: login responses still set the cookies below, and refresh/logout
+without a JSON token fall back to `refresh_token` + double-submit CSRF
+(`csrf_token` cookie mirrored in `X-CSRF-Token`; mismatch returns
+`403 CSRF_INVALID`). `csrfToken` in the response exists for that flow only.
 
 | Cookie | HttpOnly | Path | Lifetime |
 |---|---:|---|---:|
@@ -100,9 +124,17 @@ expiration. It returns the current user and `onboardingRequired`.
 
 On localhost cookies are `SameSite=Lax` without `Secure`. Published
 environments force `Secure` and `SameSite=None`; `COOKIE_DOMAIN` is optional.
-Refresh and logout use double-submit CSRF: the client reads `csrf_token` and
-sends the exact value as `X-CSRF-Token`. CORS must allow credentials and the
-specific origins in `CORS_ALLOWED_ORIGINS`.
+
+### CORS
+
+`CORS_ALLOWED_ORIGINS` lists the exact frontend origins (production and
+local development, comma-separated). The policy allows `GET, POST, PUT,
+PATCH, DELETE, OPTIONS` and the headers `Authorization`, `Content-Type`,
+`Idempotency-Key` (plus `Origin`, `Accept`, `X-Request-ID`), exposes
+`X-Request-ID`, and **does not allow credentials** — cross-origin cookies are
+not part of the contract. Because the refresh token lives in `localStorage`,
+XSS hardening (CSP, no `dangerouslySetInnerHTML` with user content, dependency
+hygiene) is an operational requirement of the frontend.
 
 ## Incomplete profile and onboarding
 
@@ -138,7 +170,9 @@ Content-Type: application/json
   "accessToken": "<15-minute-jwt>",
   "tokenType": "Bearer",
   "expiresIn": 900,
-  "csrfToken": "<same-value-as-csrf-cookie>",
+  "refreshToken": "<30-day-opaque-token>",
+  "refreshExpiresIn": 2592000,
+  "csrfToken": "<legacy-cookie-flow-only>",
   "onboardingRequired": true,
   "user": {
     "id": "42",
@@ -155,8 +189,16 @@ Content-Type: application/json
 
 ```http
 POST /v2/auth/refresh
-Cookie: refresh_token=<opaque>; csrf_token=<csrf>
-X-CSRF-Token: <csrf>
+Content-Type: application/json
+
+{"refreshToken":"<30-day-opaque-token>"}
+```
+
+```http
+POST /v2/auth/logout
+Content-Type: application/json
+
+{"refreshToken":"<30-day-opaque-token>"}
 ```
 
 ```http
@@ -169,9 +211,10 @@ Content-Type: application/json
 
 The frontend integration enabler is intentionally explicit: configure the
 Google client with the same client id, send its ID token to `/v2/auth/google`,
-include credentials on cookie requests, persist the returned CSRF value only
-in memory, and route `onboardingRequired=true` to the completion screen. No
-frontend contract is considered delivered until that consumer work is done.
+persist `accessToken`/`refreshToken`, send `Authorization: Bearer` on every
+call, refresh once on `401` (single in-flight refresh, retry the original
+request, clear credentials and surface the `401` if the refresh fails), and
+route `onboardingRequired=true` to the completion screen.
 
 ## Maintenance
 

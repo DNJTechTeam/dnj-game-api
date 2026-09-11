@@ -168,7 +168,7 @@ func (s *IdentityService) issueSession(ctx context.Context, user *userEntities.U
 	}
 	return &messages.IdentitySessionResponseDTO{
 		AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int64(AccessTokenTTL.Seconds()),
-		RefreshToken: refreshToken, CSRFToken: csrfToken, OnboardingRequired: !user.OnboardingComplete, User: responseUser,
+		RefreshToken: refreshToken, RefreshExpiresIn: int64(RefreshTokenTTL.Seconds()), CSRFToken: csrfToken, OnboardingRequired: !user.OnboardingComplete, User: responseUser,
 	}, nil
 }
 
