@@ -70,7 +70,7 @@ func (r *SpecialEventRepository) FindForManager(ctx context.Context, id string, 
 }
 func (r *SpecialEventRepository) FindVisible(ctx context.Context, target string, now time.Time) (*specialEntities.Event, error) {
 	var row models.SpecialEvent
-	// JSONB containment works on PostgreSQL and CockroachDB without conflicting
+	// JSONB containment avoids conflicting
 	// with GORM's `?` bind placeholders. Encode the target as a JSON string array.
 	targets, _ := json.Marshal([]string{target})
 	err := r.getDB(ctx).Where("status IN ('teaser','active') AND ends_at > ? AND targets @> ?::jsonb", now.UTC(), string(targets)).Order("updated_at DESC").Take(&row).Error
