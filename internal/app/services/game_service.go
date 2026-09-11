@@ -43,12 +43,13 @@ type GameService struct {
 	users         userInterfaces.UserRepositoryInterface
 	audits        auditInterfaces.OperationAuditRepositoryInterface
 	eventSettings eventInterfaces.EventSettingsRepositoryInterface
+	rankings      *rankingCache
 	now           func() time.Time
 	secret        func() string
 }
 
 func NewGameService(base *BaseService, games gameInterfaces.GameRepositoryInterface, activities activityInterfaces.ActivityRepositoryInterface, users userInterfaces.UserRepositoryInterface, audits auditInterfaces.OperationAuditRepositoryInterface, eventSettings eventInterfaces.EventSettingsRepositoryInterface) appInterfaces.GameServiceInterface {
-	return &GameService{BaseService: base, games: games, activities: activities, users: users, audits: audits, eventSettings: eventSettings, now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
+	return &GameService{BaseService: base, games: games, activities: activities, users: users, audits: audits, eventSettings: eventSettings, rankings: newRankingCache(games, rankingCacheTTL(), time.Now), now: time.Now, secret: func() string { return os.Getenv("DOCUMENT_HMAC_SECRET") }}
 }
 
 func gameError(status int, code, message string) error {
@@ -222,11 +223,10 @@ func (s *GameService) Overview(ctx context.Context) (*messages.GameOverviewRespo
 	if err != nil {
 		return nil, err
 	}
-	individual, err := s.games.TopIndividualRankings(ctx, 30)
-	if err != nil {
-		return nil, appErrors.InternalError
-	}
-	groups, err := s.games.TopGroupRankings(ctx, 10)
+	// Rankings are the shared, expensive part of the overview (window-function CTEs
+	// over every user). When the in-process cache is enabled they come from a short-
+	// lived snapshot instead of the DB; otherwise the code path is unchanged.
+	individual, groups, err := s.rankings.OverviewTop(ctx)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
@@ -237,7 +237,7 @@ func (s *GameService) Overview(ctx context.Context) (*messages.GameOverviewRespo
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
-	current, currentGroup, err := s.games.FindCurrentRanking(ctx, user.ID)
+	current, currentGroup, err := s.rankings.OverviewCurrent(ctx, user.ID)
 	if err != nil {
 		return nil, appErrors.InternalError
 	}
