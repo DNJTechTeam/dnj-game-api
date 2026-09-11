@@ -1,0 +1,8 @@
+# Segredos e dados locais — nunca commitar.
+.env.k6
+data/users.json
+
+# Saídas dos relatórios.
+out/*.html
+out/*.json
+!out/.gitkeep

@@ -36,7 +36,8 @@ OPENAPI_DIR=docs/openapi
 .PHONY: wire build run run-api media-worker vet tidy migrate openapi openapi-v1 openapi-v2 openapi-check validate \
         test test-cover test-cover-check test-cover-html coverage \
         test-services test-repos test-migrations test-race test-admin-cover-check test-iteration5-cover-check test-iteration6-cover-check test-iteration7-cover-check test-iteration8-cover-check test-iteration9-cover-check test-iteration10-cover-check loadtest-smoke handoff-check \
-        db-up db-down db-reset s3-up local-up local-down docker-build
+        db-up db-down db-reset s3-up local-up local-down docker-build \
+        k6-preflight k6-run k6-smoke k6-full k6-aws-discover
 
 # ── Build ──────────────────────────────────────────────────────────────────
 wire:
@@ -219,3 +220,32 @@ local-down:
 
 docker-build:
 	docker build -f build/docker/Dockerfile .
+
+# ---------------------------------------------------------------------------
+# Teste de carga k6 (loadtest/k6). Config e credenciais em loadtest/k6/.env.k6
+# (copie de .env.k6.example). Ver loadtest/k6/README.md e HANDOFF.md.
+# ---------------------------------------------------------------------------
+K6_DIR := loadtest/k6
+K6_ENV := $(K6_DIR)/.env.k6
+# Carrega o .env.k6 se existir, exportando as variáveis para o k6.
+define K6_RUN
+	@if [ -f "$(K6_ENV)" ]; then set -a; . "$(K6_ENV)"; set +a; fi; \
+	cd $(K6_DIR) && PROFILE=$(1) k6 run main.js
+endef
+
+k6-preflight:
+	bash $(K6_DIR)/scripts/k6-preflight.sh
+
+# make k6-run PROFILE=smoke|soak|spike|full  (default: valor do .env.k6 ou smoke)
+k6-run:
+	@if [ -f "$(K6_ENV)" ]; then set -a; . "$(K6_ENV)"; set +a; fi; \
+	cd $(K6_DIR) && k6 run -e PROFILE=$${PROFILE:-smoke} main.js
+
+k6-smoke:
+	$(call K6_RUN,smoke)
+
+k6-full:
+	$(call K6_RUN,full)
+
+k6-aws-discover:
+	bash $(K6_DIR)/scripts/k6-aws-discover.sh
