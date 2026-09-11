@@ -388,6 +388,7 @@ esse número.
 ```ts
 type RankingPerson = {
   id: string; name: string; groupName: string | null;
+  avatarUrl: string | null;
   points: number; position: number;
 };
 

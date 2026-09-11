@@ -54,6 +54,7 @@ func TestIteration6GameMapper_GameAndRankingProjection(t *testing.T) {
 	description := "Description"
 	state := "live"
 	groupName := "Equipe"
+	avatarURL := "https://images.example/ana.jpg"
 	game := MapGameToResponseDTO(&activityEntities.PublicActivity{
 		Activity: activityEntities.Activity{ID: "game", Slug: "game-slug", Name: "Game", Description: &description, StartsAt: &startsAt, EndsAt: &endsAt, AllowsMoment: true},
 		Space:    &spaceEntities.Space{ID: "space", Name: "Arena", Slug: "arena"},
@@ -63,10 +64,11 @@ func TestIteration6GameMapper_GameAndRankingProjection(t *testing.T) {
 	assert.Equal(t, time.UTC, game.StartsAt.Location())
 	assert.Equal(t, "live", *game.State)
 
-	individual := MapIndividualRankingToResponseDTO(gameEntities.IndividualRanking{UserID: 42, Name: "Ana", GroupName: &groupName, Points: 10, Position: 1})
+	individual := MapIndividualRankingToResponseDTO(gameEntities.IndividualRanking{UserID: 42, Name: "Ana", AvatarURL: &avatarURL, GroupName: &groupName, Points: 10, Position: 1})
 	group := MapGroupRankingToResponseDTO(gameEntities.GroupRanking{GroupID: 7, Name: "Equipe", Members: 3, Points: 20, Position: 1})
 	assert.Equal(t, uint64(42), uint64(individual.ID))
 	assert.Equal(t, "Equipe", *individual.GroupName)
+	assert.Equal(t, avatarURL, *individual.AvatarURL)
 	assert.Equal(t, uint64(7), uint64(group.ID))
 	assert.Equal(t, 3, group.Members)
 
