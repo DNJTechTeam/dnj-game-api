@@ -110,7 +110,7 @@ func PreferSimpleProtocol() bool {
 // TLS handshake plus pooler authentication (pgbouncer.get_auth), which
 // dominated response time before this tuning.
 const (
-	defaultMaxOpenConns    = 4
+	defaultMaxOpenConns    = 2
 	defaultConnMaxIdleTime = 5 * time.Minute
 	defaultConnMaxLifetime = time.Hour
 	warmUpTimeout          = 3 * time.Second
