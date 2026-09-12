@@ -28,7 +28,7 @@ func (r *SpaceRepository) Create(ctx context.Context, space *entities.Space) (*e
 
 func (r *SpaceRepository) FindByIDForUpdate(ctx context.Context, id string) (*entities.Space, error) {
 	var row models.Space
-	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&row).Error; err != nil {
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "NO KEY UPDATE"}).Where("id = ?", id).First(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	return mappers.MapSpaceToEntity(&row), nil

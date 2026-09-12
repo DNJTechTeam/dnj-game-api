@@ -60,7 +60,7 @@ func (r *SpecialEventRepository) FindForManager(ctx context.Context, id string, 
 		q = q.Joins("JOIN users ON users.id = ?", userID).Where("COALESCE(users.manager_scope, 'special_events') = 'special_events'")
 	}
 	if lock {
-		q = q.Clauses(clause.Locking{Strength: "UPDATE"})
+		q = q.Clauses(clause.Locking{Strength: "NO KEY UPDATE"})
 	}
 	var row models.SpecialEvent
 	if err := q.Take(&row).Error; err != nil {

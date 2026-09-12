@@ -25,7 +25,7 @@ func NewActivityRepository(db *gorm.DB) activityInterfaces.ActivityRepositoryInt
 
 func (r *ActivityRepository) FindAuthorizedForUpdate(ctx context.Context, activityID string, actorUserID uint64, global bool) (*entities.Activity, error) {
 	var row models.Activity
-	query := r.getDB(ctx).Model(&models.Activity{}).Clauses(clause.Locking{Strength: "UPDATE"}).Where("activities.id = ?", activityID)
+	query := r.getDB(ctx).Model(&models.Activity{}).Clauses(clause.Locking{Strength: "NO KEY UPDATE"}).Where("activities.id = ?", activityID)
 	if !global {
 		query = query.Joins("JOIN users ON users.id = ?", actorUserID).Where(managerScopeActivityPredicate, actorUserID)
 	}
@@ -108,7 +108,7 @@ func (r *ActivityRepository) FindByID(ctx context.Context, activityID string) (*
 
 func (r *ActivityRepository) FindByIDForUpdate(ctx context.Context, activityID string) (*entities.Activity, error) {
 	var row models.Activity
-	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", activityID).First(&row).Error; err != nil {
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "NO KEY UPDATE"}).Where("id = ?", activityID).First(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	return mappers.MapActivityToEntity(&row), nil
@@ -129,7 +129,8 @@ func (r *ActivityRepository) HasScheduleOverlap(ctx context.Context, spaceID str
 
 func (r *ActivityRepository) FindScheduleForSpaceAt(ctx context.Context, spaceID string, now time.Time) (*entities.Activity, error) {
 	var row models.Activity
-	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).
+	// Read-only lookup on the participant scan path: no row lock.
+	if err := r.getDB(ctx).
 		Where("kind = ? AND status <> ? AND space_id = ? AND starts_at <= ? AND ends_at > ?", string(entities.KindSchedule), string(entities.StatusArchived), spaceID, now.UTC(), now.UTC()).
 		Order("starts_at ASC").Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)

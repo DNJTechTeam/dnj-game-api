@@ -202,7 +202,10 @@ func (r *GameRepository) FindOpenRunByActivityForUpdate(
 ) (*gameEntities.ActivityRun, error) {
 	var row models.ActivityRun
 	err := r.getDB(ctx).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
+		// NO KEY UPDATE: the run's key never changes, and a plain FOR UPDATE would block
+		// the FOR KEY SHARE every participant insert (participations, point entries)
+		// takes on the referenced run — one stuck manager transaction froze all scans.
+		Clauses(clause.Locking{Strength: "NO KEY UPDATE"}).
 		Where("activity_id = ? AND status IN ('draft','active','paused','results')", activityID).
 		Order("created_at DESC").
 		Order("id DESC").
@@ -291,7 +294,7 @@ func (r *GameRepository) FindRunForManager(
 	var row models.ActivityRun
 	query := managerRunQuery(r.getDB(ctx), actorUserID, global).Where("activity_runs.id = ?", runID)
 	if lock {
-		query = query.Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_runs"}})
+		query = query.Clauses(clause.Locking{Strength: "NO KEY UPDATE", Table: clause.Table{Name: "activity_runs"}})
 	}
 	if err := query.Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)

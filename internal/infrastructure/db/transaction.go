@@ -47,6 +47,17 @@ func (tm *TransactionManager) BeginTransaction(ctx context.Context) (context.Con
 	if tx.Error != nil {
 		return ctx, tx.Error
 	}
+	// Fail fast instead of queueing behind a stuck transaction: a lock wait gives
+	// up after 5s (55P03, retried by the SPA with the same idempotency key) and a
+	// frozen Lambda invocation left "idle in transaction" releases its locks after
+	// 20s. SET LOCAL is transaction-scoped, so it is safe behind Supavisor in
+	// transaction mode.
+	for _, stmt := range []string{"SET LOCAL lock_timeout = '5s'", "SET LOCAL idle_in_transaction_session_timeout = '20s'"} {
+		if err := tx.Exec(stmt).Error; err != nil {
+			tx.Rollback()
+			return ctx, err
+		}
+	}
 
 	ctx = WithTransaction(ctx, tx)
 	ctx = context.WithValue(ctx, txOwnerKey{}, true)
