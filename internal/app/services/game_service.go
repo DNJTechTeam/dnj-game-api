@@ -126,6 +126,9 @@ func (s *GameService) claimQRScanWindow(ctx context.Context, userID uint64, now 
 		return appErrors.InternalError
 	}
 	if err := s.games.SaveQRScanBlock(ctx, userID, now.Add(10*time.Minute)); err != nil {
+		if errors.Is(err, appErrors.ErrConflict) {
+			return gameError(http.StatusConflict, "QR_SCAN_BLOCKED", "Aguarde 10 minutos para escanear outro QR Code.")
+		}
 		return appErrors.InternalError
 	}
 	return nil
@@ -335,7 +338,7 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 	var response *messages.ParticipationEnvelopeDTO
 	status := http.StatusCreated
 	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
-		user, authErr := s.participant(txCtx, true)
+		user, authErr := s.participant(txCtx, false)
 		if authErr != nil {
 			return authErr
 		}
@@ -482,7 +485,7 @@ func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.
 	status := http.StatusCreated
 	var response *messages.ParticipationEnvelopeDTO
 	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
-		user, authErr := s.participant(txCtx, true)
+		user, authErr := s.participant(txCtx, false)
 		if authErr != nil {
 			return authErr
 		}

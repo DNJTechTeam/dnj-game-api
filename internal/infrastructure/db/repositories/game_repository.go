@@ -842,15 +842,35 @@ func (r *GameRepository) CreateScheduleQRCheckInAndAward(ctx context.Context, ch
 
 func (r *GameRepository) FindQRScanBlock(ctx context.Context, userID uint64) (*time.Time, error) {
 	var row models.QRScanBlock
-	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).Take(&row).Error; err != nil {
+	if err := r.getDB(ctx).Where("user_id = ?", userID).Take(&row).Error; err != nil {
 		return nil, handleRepositoryError(err)
 	}
 	return &row.BlockedUntil, nil
 }
 
+// qrScanWindow mirrors the service-side cooldown: blockedUntil - qrScanWindow is
+// the instant the claim was made.
+const qrScanWindow = 10 * time.Minute
+
+// SaveQRScanBlock claims the participant's scan window atomically, without any
+// SELECT ... FOR UPDATE: a single INSERT ... ON CONFLICT DO UPDATE that only wins
+// when the previous window has already expired. A concurrent claim that loses
+// gets ErrConflict.
 func (r *GameRepository) SaveQRScanBlock(ctx context.Context, userID uint64, blockedUntil time.Time) error {
+	claimedAt := blockedUntil.Add(-qrScanWindow)
 	row := &models.QRScanBlock{UserID: userID, BlockedUntil: blockedUntil}
-	return handleRepositoryError(r.getDB(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "user_id"}}, DoUpdates: clause.AssignmentColumns([]string{"blocked_until", "updated_at"})}).Create(row).Error)
+	result := r.getDB(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"blocked_until", "updated_at"}),
+		Where:     clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "qr_scan_blocks.blocked_until <= ?", Vars: []any{claimedAt}}}},
+	}).Create(row)
+	if result.Error != nil {
+		return handleRepositoryError(result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return appErrors.ErrConflict
+	}
+	return nil
 }
 
 func (r *GameRepository) IsActiveSpecialEventRun(ctx context.Context, runID string, now time.Time) (bool, error) {
