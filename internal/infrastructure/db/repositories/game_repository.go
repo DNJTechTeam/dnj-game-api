@@ -901,7 +901,7 @@ type individualRankingRow struct {
 // it as an index scan without a full sort. The position is the row's ordinal
 // (offset + index), which equals the old ROW_NUMBER() over the identical ordering.
 const individualRankingSelect = `
-	SELECT users.id AS user_id, users.name, users.avatar_url, groups.name AS group_name, users.points
+	SELECT users.id AS user_id, users.name, ` + listAvatarURLColumn + ` AS avatar_url, groups.name AS group_name, users.points
 	FROM users
 	LEFT JOIN group_memberships ON group_memberships.user_id = users.id
 	LEFT JOIN groups ON groups.id = group_memberships.group_id
@@ -1029,7 +1029,7 @@ func (r *GameRepository) FindCurrentRanking(
 	// The user's own row (consolidated points, name, group name).
 	var meRows []individualRankingRow
 	if err := r.getDB(ctx).Raw(`
-		SELECT users.id AS user_id, users.name, users.avatar_url, groups.name AS group_name, users.points
+		SELECT users.id AS user_id, users.name, ` + listAvatarURLColumn + ` AS avatar_url, groups.name AS group_name, users.points
 		FROM users
 		LEFT JOIN group_memberships ON group_memberships.user_id = users.id
 		LEFT JOIN groups ON groups.id = group_memberships.group_id
