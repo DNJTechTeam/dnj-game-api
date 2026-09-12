@@ -488,6 +488,13 @@ func (r *GameRepository) FindActiveQRByRun(ctx context.Context, runID string) (*
 	return &gameEntities.QRCode{ID: row.ID, ActivityID: row.ActivityID, ActivityRunID: row.ActivityRunID, TokenHash: row.TokenHash, ExpiresAt: row.ExpiresAt, Status: gameEntities.QRCodeStatus(row.Status), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}, nil
 }
 
+// FindQRByTokenHashForUpdate resolves the QR a participant scanned. Despite the
+// historical name it does NOT take a row lock: ValidateQR never mutates the QR
+// row, and a FOR UPDATE here serialised every participant scanning the same QR
+// behind one another (each holding the lock for the whole ~20-query
+// transaction). Concurrency guarantees do not depend on it — the participant's
+// own users row is locked first, and participations/activity_run_participants
+// carry unique indexes on (activity_run_id, user_id).
 func (r *GameRepository) FindQRByTokenHashForUpdate(
 	ctx context.Context,
 	tokenHash string,
@@ -500,7 +507,6 @@ func (r *GameRepository) FindQRByTokenHashForUpdate(
 	query := r.getDB(ctx).
 		Model(&models.ActivityRunQRCode{}).
 		Select("activity_run_qr_codes.*, activities.allows_moment AS allows_moment").
-		Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activity_run_qr_codes"}}).
 		Joins("JOIN activity_runs ON activity_runs.id = activity_run_qr_codes.activity_run_id").
 		Joins("JOIN activities ON activities.id = activity_run_qr_codes.activity_id").
 		Where("activity_run_qr_codes.token_hash = ? AND activity_runs.status = 'draft' AND activities.kind IN ?", tokenHash, managerRunActivityKinds)
