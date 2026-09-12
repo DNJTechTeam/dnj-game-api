@@ -1222,3 +1222,49 @@ func assertAPIErrorCode(t *testing.T, err error, code string) {
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, code, apiErr.Code)
 }
+
+// TestMediaMoments_ConcurrentSameKeyCreateReplays stresses the lock-free publish
+// against a real Postgres: parallel requests carrying the same Idempotency-Key
+// must all succeed with the same Moment and leave exactly one row behind, whether
+// they replay the recorded operation or lose the insert race (see
+// TestMediaMoments_CreateMomentDuplicateReplaysRacingRequest for that branch).
+func TestMediaMoments_ConcurrentSameKeyCreateReplays(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	_, ctx := seedMediaMomentUser(t, "moment-create-race@example.com", userEntities.RoleDefault, true)
+	asset := createAvailableAsset(t, mediaService, storage, ctx, "image/jpeg")
+	key := uuid.NewString()
+	request := &messages.CreateMomentRequestDTO{MediaAssetID: asset.ID, PublishConsent: true}
+
+	const workers = 8
+	type outcome struct {
+		moment *messages.MomentResponseDTO
+		status int
+		err    error
+	}
+	outcomes := make(chan outcome, workers)
+	var group sync.WaitGroup
+	for index := 0; index < workers; index++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			moment, status, err := momentService.Create(ctx, key, request)
+			outcomes <- outcome{moment: moment, status: status, err: err}
+		}()
+	}
+	group.Wait()
+	close(outcomes)
+
+	momentID := ""
+	for result := range outcomes {
+		require.NoError(t, result.err)
+		require.Equal(t, http.StatusCreated, result.status)
+		require.NotNil(t, result.moment)
+		if momentID == "" {
+			momentID = result.moment.ID
+		}
+		assert.Equal(t, momentID, result.moment.ID)
+	}
+	var moments int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.Moment{}).Where("media_asset_id = ?", asset.ID).Count(&moments).Error)
+	assert.EqualValues(t, 1, moments)
+}

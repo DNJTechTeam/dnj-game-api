@@ -220,7 +220,7 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 			storage := mocks.NewMockMediaStorage(t)
 			users := mocks.NewMockUserRepositoryInterface(t)
 			users.On("FindByID", mock.Anything, uint64(42)).Return(defaultMediaUser(), nil)
-			media.On("FindAsset", mock.Anything, mock.Anything, true).Return(nil, databaseErr)
+			media.On("FindAsset", mock.Anything, mock.Anything, false).Return(nil, databaseErr)
 			_, _, err := mockMomentService(t, moments, media, storage, users).Create(
 				ctx,
 				uuid.NewString(),
@@ -249,7 +249,7 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 					assetID := uuid.NewString()
 					participationID := uuid.NewString()
 					users.On("FindByID", mock.Anything, uint64(42)).Return(defaultMediaUser(), nil)
-					media.On("FindAsset", mock.Anything, assetID, true).Return(&mediaEntities.Asset{
+					media.On("FindAsset", mock.Anything, assetID, false).Return(&mediaEntities.Asset{
 						ID: assetID, OwnerUserID: 42, State: mediaEntities.AssetAvailable,
 						RetentionDueAt: mediaMomentNow.Add(time.Hour),
 					}, nil)
@@ -289,8 +289,7 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 				users := mocks.NewMockUserRepositoryInterface(t)
 				assetID := uuid.NewString()
 				users.On("FindByID", mock.Anything, uint64(42)).Return(defaultMediaUser(), nil)
-				users.On("FindByIDForUpdate", mock.Anything, uint64(42)).Return(defaultMediaUser(), nil)
-				media.On("FindAsset", mock.Anything, assetID, true).Return(&mediaEntities.Asset{
+				media.On("FindAsset", mock.Anything, assetID, false).Return(&mediaEntities.Asset{
 					ID: assetID, OwnerUserID: 42, State: mediaEntities.AssetAvailable,
 					RetentionDueAt: mediaMomentNow.Add(time.Hour),
 				}, nil)

@@ -21,6 +21,11 @@ const momentPageLimit = 20
 
 type MomentRepository struct{ *BaseRepository[models.Moment] }
 
+// FindActiveMomentChallengeForUpdate resolves the single active Moment challenge.
+// Despite the name it takes no row lock any more: FOR UPDATE on the activity
+// queued every publishing participant behind one another and blocked the FOR KEY
+// SHARE their own moment/point_entries inserts take on that same row. Duplicates
+// are rejected by moments_challenge_user_activity_unique instead.
 func (r *MomentRepository) FindActiveMomentChallengeForUpdate(ctx context.Context, now time.Time) (string, int, error) {
 	type row struct {
 		ID           string
@@ -29,7 +34,6 @@ func (r *MomentRepository) FindActiveMomentChallengeForUpdate(ctx context.Contex
 	var rows []row
 	err := r.getDB(ctx).Table("activities").
 		Select("id,moment_points").
-		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("kind = ? AND status = ? AND allows_moment = TRUE AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at > ?)", "challenge", "active", now.UTC(), now.UTC()).
 		Order("starts_at ASC NULLS LAST").
 		Limit(2).
@@ -58,6 +62,9 @@ func NewMomentRepository(db *gorm.DB) momentInterfaces.Repository {
 	return &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](db)}
 }
 
+// FindParticipationForUpdate is a read-only lookup on the Moment publish path:
+// no row lock (see FindActiveMomentChallengeForUpdate); moments_participation_unique
+// rejects a second Moment for the same participation.
 func (r *MomentRepository) FindParticipationForUpdate(
 	ctx context.Context,
 	id string,
@@ -73,7 +80,6 @@ func (r *MomentRepository) FindParticipationForUpdate(
 		Select("participations.*,activities.name AS activity_name,spaces.id AS space_id,spaces.name AS space_name").
 		Joins("JOIN activities ON activities.id=participations.activity_id").
 		Joins("LEFT JOIN spaces ON spaces.id=activities.space_id").
-		Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "participations"}}).
 		Where("participations.id=?", id).
 		First(&row).
 		Error
@@ -97,6 +103,8 @@ func (r *MomentRepository) FindParticipationForUpdate(
 	}, nil
 }
 
+// FindActivityForUpdate is a read-only lookup on the Moment publish path: no row
+// lock (see FindActiveMomentChallengeForUpdate).
 func (r *MomentRepository) FindActivityForUpdate(
 	ctx context.Context,
 	id string,
@@ -113,7 +121,6 @@ func (r *MomentRepository) FindActivityForUpdate(
 		Table("activities").
 		Select("activities.status,activities.allows_moment,activities.starts_at,activities.ends_at,activities.moment_points,activities.name,spaces.name AS place_name").
 		Joins("LEFT JOIN spaces ON spaces.id=activities.space_id").
-		Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "activities"}}).
 		Where("activities.id=?", id).
 		Take(&row).
 		Error

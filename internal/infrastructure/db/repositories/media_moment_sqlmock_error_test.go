@@ -109,7 +109,7 @@ func TestMediaMoments_MediaRepositorySQLFailures(t *testing.T) {
 }
 
 // TestMediaMoments_MomentRepositorySQLFailures exercises moment_repository.go's error branches
-// that require a genuinely broken connection: the locked Participation/Activity lookups, the
+// that require a genuinely broken connection: the Participation/Activity lookups, the
 // visibility/moderation listing queries, the like toggle, the challenge award ledger write, the
 // award reversal's own lookups, moderation's asset/participation locks, and the moderation
 // decision write — none of which the real-Postgres integration suite can force.

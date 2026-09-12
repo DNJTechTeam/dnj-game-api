@@ -277,129 +277,126 @@ func (s *MomentService) Create(
 		ChallengeMode:   request.ChallengeMode,
 	})
 	now := utcNow(s.now)
-	signingTime := now
-	status := http.StatusCreated
-	var moment *momentEntities.Moment
 
-	err = s.WithTransaction(ctx, func(tx context.Context) error {
-		asset, findErr := s.media.FindAsset(tx, assetID.String(), true)
-		if errors.Is(findErr, appErrors.ErrNotFound) || findErr == nil && asset.OwnerUserID != actor.ID {
-			return notFoundError()
+	// Every read runs outside the transaction and without row locks, mirroring
+	// GameService.ValidateQR. The unique indexes on moments and point_entries
+	// already reject duplicates, so the old FOR UPDATE on the challenge
+	// activity only queued every publishing participant behind one another and
+	// collided with the FOR KEY SHARE their own inserts take on that same row.
+	asset, findErr := s.media.FindAsset(ctx, assetID.String(), false)
+	if errors.Is(findErr, appErrors.ErrNotFound) || findErr == nil && asset.OwnerUserID != actor.ID {
+		return nil, 0, notFoundError()
+	}
+	if findErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	prior, priorErr := findIdempotencyOperation(ctx, s.media, actor.ID, key, operation, fingerprint)
+	if priorErr != nil {
+		return nil, 0, priorErr
+	}
+	if prior != nil {
+		if prior.ResultRef == nil {
+			return nil, 0, appErrors.InternalError
 		}
-		if findErr != nil {
-			return appErrors.InternalError
+		replayed, momentErr := s.moments.FindMoment(ctx, *prior.ResultRef, actor.ID, false)
+		if momentErr != nil {
+			return nil, 0, appErrors.InternalError
 		}
-
-		prior, priorErr := findIdempotencyOperation(
-			tx,
-			s.media,
-			actor.ID,
-			key,
-			operation,
-			fingerprint,
+		response, err := s.responseFor(ctx, replayed, prior.CreatedAt.UTC())
+		if err != nil {
+			return nil, 0, err
+		}
+		return response, prior.HTTPStatus, nil
+	}
+	if asset.State != mediaEntities.AssetAvailable || !now.Before(asset.RetentionDueAt) {
+		return nil, 0, mediaMomentError(
+			http.StatusConflict,
+			"UPLOAD_STATE_CONFLICT",
+			"O asset não está disponível.",
 		)
-		if priorErr != nil {
-			return priorErr
-		}
-		if prior != nil {
-			if prior.ResultRef == nil {
-				return appErrors.InternalError
-			}
-			moment, findErr = s.moments.FindMoment(tx, *prior.ResultRef, actor.ID, false)
-			if findErr != nil {
-				return appErrors.InternalError
-			}
-			signingTime = prior.CreatedAt.UTC()
-			status = prior.HTTPStatus
-			return nil
-		}
-		if asset.State != mediaEntities.AssetAvailable || !now.Before(asset.RetentionDueAt) {
-			return mediaMomentError(
-				http.StatusConflict,
-				"UPLOAD_STATE_CONFLICT",
-				"O asset não está disponível.",
-			)
-		}
+	}
 
-		origin := momentEntities.OriginFree
-		rewardStatus := momentEntities.RewardNotApplicable
-		var activityID *string
-		points := 0
-		if participationID != nil {
-			if closed, csErr := s.eventSettings.Get(tx); csErr == nil && closed.ScoringClosed {
-				return mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
-			}
-			participation, activityPoints, eligibilityErr := s.eligibleParticipation(
-				tx,
-				*participationID,
-				actor.ID,
-				now,
-			)
-			if eligibilityErr != nil {
-				return eligibilityErr
-			}
-			origin = momentEntities.OriginChallenge
-			rewardStatus = momentEntities.RewardDenied
-			activityID = &participation.ActivityID
-			if request.PublishConsent {
-				points = activityPoints
-			}
-		} else if request.ChallengeMode {
-			if closed, csErr := s.eventSettings.Get(tx); csErr == nil && closed.ScoringClosed {
-				return mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
-			}
-			repo, ok := s.moments.(activeMomentChallengeRepository)
-			if !ok {
-				return appErrors.InternalError
-			}
-			challengeID, challengePoints, findErr := repo.FindActiveMomentChallengeForUpdate(tx, now)
-			if errors.Is(findErr, appErrors.ErrNotFound) || errors.Is(findErr, appErrors.ErrConflict) {
-				return mediaMomentError(http.StatusConflict, "MOMENT_UNAVAILABLE", "Não há desafio do momento ativo agora.")
-			}
-			if findErr != nil {
-				return appErrors.InternalError
-			}
-			already, duplicateErr := repo.HasMomentForActivity(tx, actor.ID, challengeID)
-			if duplicateErr != nil {
-				return appErrors.InternalError
-			}
-			if already {
-				return challengeAlreadyCompletedError()
-			}
-			origin = momentEntities.OriginChallenge
-			rewardStatus = momentEntities.RewardDenied
-			activityID = &challengeID
-			points = challengePoints
+	origin := momentEntities.OriginFree
+	rewardStatus := momentEntities.RewardNotApplicable
+	var activityID *string
+	points := 0
+	if participationID != nil {
+		if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+			return nil, 0, mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
 		}
-		if _, authErr := requireOnboardedActor(tx, s.users, true); authErr != nil {
-			return authErr
+		participation, activityPoints, eligibilityErr := s.eligibleParticipation(
+			ctx,
+			*participationID,
+			actor.ID,
+			now,
+		)
+		if eligibilityErr != nil {
+			return nil, 0, eligibilityErr
 		}
-		// Only participants (DEFAULT) compete: staff may publish challenge
-		// moments to share the experience, but never receive points.
-		if actor.Role != userEntities.RoleDefault {
-			points = 0
-		}
-
-		publicationStatus := momentEntities.PublicationPrivate
+		origin = momentEntities.OriginChallenge
+		rewardStatus = momentEntities.RewardDenied
+		activityID = &participation.ActivityID
 		if request.PublishConsent {
-			publicationStatus = momentEntities.PublicationPublic
+			points = activityPoints
 		}
-		moment = &momentEntities.Moment{
-			ID:                uuid.NewString(),
-			UserID:            actor.ID,
-			ParticipationID:   participationID,
-			ActivityID:        activityID,
-			MediaAssetID:      asset.ID,
-			Origin:            origin,
-			PublicationStatus: publicationStatus,
-			ModerationStatus:  momentEntities.ModerationPending,
-			RewardStatus:      rewardStatus,
-			CapturedAt:        now,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+	} else if request.ChallengeMode {
+		if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+			return nil, 0, mediaMomentError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
 		}
+		repo, ok := s.moments.(activeMomentChallengeRepository)
+		if !ok {
+			return nil, 0, appErrors.InternalError
+		}
+		challengeID, challengePoints, challengeErr := repo.FindActiveMomentChallengeForUpdate(ctx, now)
+		if errors.Is(challengeErr, appErrors.ErrNotFound) || errors.Is(challengeErr, appErrors.ErrConflict) {
+			return nil, 0, mediaMomentError(http.StatusConflict, "MOMENT_UNAVAILABLE", "Não há desafio do momento ativo agora.")
+		}
+		if challengeErr != nil {
+			return nil, 0, appErrors.InternalError
+		}
+		already, duplicateErr := repo.HasMomentForActivity(ctx, actor.ID, challengeID)
+		if duplicateErr != nil {
+			return nil, 0, appErrors.InternalError
+		}
+		if already {
+			return nil, 0, challengeAlreadyCompletedError()
+		}
+		origin = momentEntities.OriginChallenge
+		rewardStatus = momentEntities.RewardDenied
+		activityID = &challengeID
+		points = challengePoints
+	}
+	// Only participants (DEFAULT) compete: staff may publish challenge
+	// moments to share the experience, but never receive points.
+	if actor.Role != userEntities.RoleDefault {
+		points = 0
+	}
+
+	publicationStatus := momentEntities.PublicationPrivate
+	if request.PublishConsent {
+		publicationStatus = momentEntities.PublicationPublic
+	}
+	moment := &momentEntities.Moment{
+		ID:                uuid.NewString(),
+		UserID:            actor.ID,
+		ParticipationID:   participationID,
+		ActivityID:        activityID,
+		MediaAssetID:      asset.ID,
+		Origin:            origin,
+		PublicationStatus: publicationStatus,
+		ModerationStatus:  momentEntities.ModerationPending,
+		RewardStatus:      rewardStatus,
+		CapturedAt:        now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+	duplicate := false
+	err = s.WithTransaction(ctx, func(tx context.Context) error {
+		// Write phase only: a concurrent duplicate surfaces here as a unique
+		// violation instead of being fenced by a row lock.
 		if createErr := s.moments.CreateMoment(tx, moment); createErr != nil {
 			if errors.Is(createErr, appErrors.ErrConflict) {
+				duplicate = true
 				if request.ChallengeMode {
 					return challengeAlreadyCompletedError()
 				}
@@ -410,6 +407,7 @@ func (s *MomentService) Create(
 		if origin == momentEntities.OriginChallenge {
 			if awardErr := s.moments.AwardMoment(tx, moment.ID, actor.ID, *activityID, points, now); awardErr != nil {
 				if errors.Is(awardErr, appErrors.ErrConflict) {
+					duplicate = true
 					if request.ChallengeMode {
 						return challengeAlreadyCompletedError()
 					}
@@ -435,20 +433,30 @@ func (s *MomentService) Create(
 		}); createErr != nil {
 			return appErrors.InternalError
 		}
-		moment, findErr = s.moments.FindMoment(tx, moment.ID, actor.ID, false)
-		return findErr
+		return nil
 	})
 	if errors.Is(err, errIdempotencyRace) {
 		return s.Create(ctx, rawKey, request)
 	}
 	if err != nil {
+		if duplicate {
+			// A retry carrying the same Idempotency-Key may have raced the request
+			// that created the Moment: replay that result instead of a conflict.
+			if prior, priorErr := findIdempotencyOperation(ctx, s.media, actor.ID, key, operation, fingerprint); priorErr == nil && prior != nil {
+				return s.Create(ctx, rawKey, request)
+			}
+		}
 		return nil, 0, err
 	}
-	response, err := s.responseFor(ctx, moment, signingTime)
+	created, findErr := s.moments.FindMoment(ctx, moment.ID, actor.ID, false)
+	if findErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	response, err := s.responseFor(ctx, created, now)
 	if err != nil {
 		return nil, 0, err
 	}
-	return response, status, nil
+	return response, http.StatusCreated, nil
 }
 
 func (s *MomentService) eligibleParticipation(
