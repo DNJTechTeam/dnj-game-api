@@ -21,6 +21,7 @@ func TestIteration6GameMapper_PointPresentationIsAllowlisted(t *testing.T) {
 		{"activity_run_second", "2º lugar em jogo", "medal"},
 		{"activity_run_third", "3º lugar em jogo", "medal"},
 		{"activity_run_participation", "Participação em jogo", "game"},
+		{"schedule_qr_checkin", "Check-in confirmado", "qr"},
 		{"internal_unknown", "Pontos DNJ", "points"},
 	}
 	for _, testCase := range tests {
@@ -31,6 +32,8 @@ func TestIteration6GameMapper_PointPresentationIsAllowlisted(t *testing.T) {
 	}
 	response := MapPointEntryToResponseDTO(gameEntities.PointEntry{ID: "entry", Reason: "activity_run_first", ActivityName: "Corrida do Saco", Delta: 10, CreatedAt: now})
 	assert.Equal(t, "1º lugar em Corrida do Saco", response.Label)
+	response = MapPointEntryToResponseDTO(gameEntities.PointEntry{ID: "entry", Reason: "schedule_qr_checkin", ActivityName: "Teste QR Espaço 2 — Atividade 01", Delta: 20, CreatedAt: now})
+	assert.Equal(t, "Check-in em Teste QR Espaço 2 — Atividade 01", response.Label)
 	response = MapPointEntryToResponseDTO(gameEntities.PointEntry{ID: "entry", Reason: "moment_challenge_award", ActivityName: "Chafariz", Delta: 10, CreatedAt: now})
 	assert.Equal(t, "Desafio Momento - Chafariz", response.Label)
 }
