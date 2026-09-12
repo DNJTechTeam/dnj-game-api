@@ -126,7 +126,12 @@ func (r *GameRepository) FindManageableActivityForUpdate(
 	var row models.Activity
 	query := r.getDB(ctx).
 		Model(&models.Activity{}).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
+		// NO KEY UPDATE (not UPDATE): the activity's key never changes here, and a
+		// plain FOR UPDATE also blocks the FOR KEY SHARE that inserting a run or a QR
+		// code takes on the referenced activity. With FOR UPDATE, CreateRun (activity
+		// → open run) and RotateQR (run → QR insert → activity KEY SHARE) deadlock
+		// when two managers open the same activity at once.
+		Clauses(clause.Locking{Strength: "NO KEY UPDATE"}).
 		Where("activities.id = ? AND activities.kind IN ? AND activities.status IN ('active','paused')", activityID, managerRunActivityKinds)
 	query = publiclyVisibleActivities(query, generatedAt)
 	if !global {
