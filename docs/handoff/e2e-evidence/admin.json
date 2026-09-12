@@ -64,21 +64,21 @@
         {
           "id": "36",
           "name": "E2E Admin Journey Admin",
-          "email": "E2E Admin Journey Admin-74cabd80-ee83-4804-8d76-8b4f10f7ca1a@example.com",
+          "email": "E2E Admin Journey Admin-fedf19c4-4a59-4b7c-b4ba-0dca6eff5845@example.com",
           "role": "ADMIN",
           "onboardingComplete": true
         },
         {
           "id": "37",
           "name": "E2E Admin Journey Manager X",
-          "email": "E2E Admin Journey Manager X-b4750d44-bea3-4524-bfcc-6354ab7a2c69@example.com",
+          "email": "E2E Admin Journey Manager X-a0e05ad5-a127-4650-a25e-57f2090b4225@example.com",
           "role": "EVENT_MANAGER",
           "onboardingComplete": true
         },
         {
           "id": "38",
           "name": "E2E Admin Journey Manager Y",
-          "email": "E2E Admin Journey Manager Y-9e022f52-8d28-4f49-b411-f7e904182c56@example.com",
+          "email": "E2E Admin Journey Manager Y-7da1e976-98bc-479f-9acd-08465e4a42c1@example.com",
           "role": "EVENT_MANAGER",
           "onboardingComplete": true
         }
@@ -105,7 +105,7 @@
         {
           "id": "36",
           "name": "E2E Admin Journey Admin",
-          "email": "E2E Admin Journey Admin-74cabd80-ee83-4804-8d76-8b4f10f7ca1a@example.com",
+          "email": "E2E Admin Journey Admin-fedf19c4-4a59-4b7c-b4ba-0dca6eff5845@example.com",
           "role": "ADMIN",
           "onboardingComplete": true
         }
@@ -133,7 +133,7 @@
       "mapReference": "map:admin-journey-y"
     },
     "response": {
-      "id": "7a5460f8-a651-4882-bf1d-497e07d9cc9e",
+      "id": "0f0d6eb7-1c85-4cbe-b727-771a18a09fe6",
       "name": "Espaço admin-journey-y",
       "slug": "admin-journey-y-space",
       "mapReference": "map:admin-journey-y"
@@ -150,7 +150,7 @@
     "path": "/v2/admin/activities",
     "status": 201,
     "request": {
-      "spaceId": "7a5460f8-a651-4882-bf1d-497e07d9cc9e",
+      "spaceId": "0f0d6eb7-1c85-4cbe-b727-771a18a09fe6",
       "slug": "admin-journey-y",
       "name": "Atividade admin-journey-y",
       "description": null,
@@ -163,8 +163,8 @@
       "allowsMoment": true
     },
     "response": {
-      "id": "44b80fbb-ef40-4e75-823b-aec318975c71",
-      "spaceId": "7a5460f8-a651-4882-bf1d-497e07d9cc9e",
+      "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
+      "spaceId": "0f0d6eb7-1c85-4cbe-b727-771a18a09fe6",
       "slug": "admin-journey-y",
       "name": "Atividade admin-journey-y",
       "description": null,
@@ -186,10 +186,10 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "PUT",
-    "path": "/v2/admin/activities/44b80fbb-ef40-4e75-823b-aec318975c71/managers/38",
+    "path": "/v2/admin/activities/1f97bf40-c8a0-4987-bbc5-b856b70f4442/managers/38",
     "status": 200,
     "response": {
-      "activityId": "44b80fbb-ef40-4e75-823b-aec318975c71",
+      "activityId": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
       "userId": "38"
     },
     "proves": "PUT .../managers/:userId torna este Event Manager responsável pela activity (200)."
@@ -201,10 +201,10 @@
     "role": "EVENT_MANAGER",
     "actor": "manager",
     "method": "POST",
-    "path": "/v2/manager/activities/44b80fbb-ef40-4e75-823b-aec318975c71/start",
+    "path": "/v2/manager/activities/1f97bf40-c8a0-4987-bbc5-b856b70f4442/start",
     "status": 200,
     "response": {
-      "id": "44b80fbb-ef40-4e75-823b-aec318975c71",
+      "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
       "status": "active"
     },
     "proves": "POST /v2/manager/activities/:id/start transiciona draft-\u003eactive (200)."
@@ -219,12 +219,12 @@
     "path": "/v2/manager/runs",
     "status": 201,
     "request": {
-      "gameId": "44b80fbb-ef40-4e75-823b-aec318975c71"
+      "gameId": "1f97bf40-c8a0-4987-bbc5-b856b70f4442"
     },
     "response": {
-      "id": "459ae5f4-8e58-4c3d-97b2-5e3142d75b7a",
+      "id": "624013b9-6c4a-44e3-93a0-c1d161edb6b7",
       "game": {
-        "id": "44b80fbb-ef40-4e75-823b-aec318975c71",
+        "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
         "name": "Atividade admin-journey-y"
       },
       "status": "draft",
@@ -241,12 +241,12 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "GET",
-    "path": "/v2/manager/runs/459ae5f4-8e58-4c3d-97b2-5e3142d75b7a",
+    "path": "/v2/manager/runs/624013b9-6c4a-44e3-93a0-c1d161edb6b7",
     "status": 200,
     "response": {
-      "id": "459ae5f4-8e58-4c3d-97b2-5e3142d75b7a",
+      "id": "624013b9-6c4a-44e3-93a0-c1d161edb6b7",
       "game": {
-        "id": "44b80fbb-ef40-4e75-823b-aec318975c71",
+        "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
         "name": "Atividade admin-journey-y"
       },
       "status": "draft",
@@ -263,13 +263,13 @@
     "role": "EVENT_MANAGER",
     "actor": "manager-y",
     "method": "POST",
-    "path": "/v2/manager/runs/459ae5f4-8e58-4c3d-97b2-5e3142d75b7a/qr",
+    "path": "/v2/manager/runs/624013b9-6c4a-44e3-93a0-c1d161edb6b7/qr",
     "status": 201,
     "response": {
-      "runId": "459ae5f4-8e58-4c3d-97b2-5e3142d75b7a",
-      "qrId": "176b67b7-31a1-482c-90e8-9f02a395fbca",
-      "qrToken": "sREEEqHAXnhQ_tF-ZxzGTlxTA6mjf8WUZtbw-bCcQMM",
-      "expiresAt": "2026-09-07T17:28:29.853931Z"
+      "runId": "624013b9-6c4a-44e3-93a0-c1d161edb6b7",
+      "qrId": "e0c746ea-2b91-42de-97a7-11d588e0cdb6",
+      "qrToken": "k3IFeeV4sHHPqP_1TRjZJ1L2h_MicsAaKW4KvE1CGGg",
+      "expiresAt": "2026-09-11T18:41:35.758116296Z"
     },
     "proves": "POST .../qr emite um QR para check-in de jogadores (201)."
   },
@@ -280,14 +280,14 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "GET",
-    "path": "/v2/admin/activities/44b80fbb-ef40-4e75-823b-aec318975c71/managers",
+    "path": "/v2/admin/activities/1f97bf40-c8a0-4987-bbc5-b856b70f4442/managers",
     "status": 200,
     "response": {
       "data": [
         {
           "id": "38",
           "name": "E2E Admin Journey Manager Y",
-          "email": "E2E Admin Journey Manager Y-9e022f52-8d28-4f49-b411-f7e904182c56@example.com",
+          "email": "E2E Admin Journey Manager Y-7da1e976-98bc-479f-9acd-08465e4a42c1@example.com",
           "role": "EVENT_MANAGER",
           "onboardingComplete": true
         }
@@ -307,7 +307,7 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "DELETE",
-    "path": "/v2/admin/activities/44b80fbb-ef40-4e75-823b-aec318975c71/managers/38",
+    "path": "/v2/admin/activities/1f97bf40-c8a0-4987-bbc5-b856b70f4442/managers/38",
     "status": 204,
     "proves": "DELETE .../managers/:userId desvincula o gestor (204)."
   },
@@ -339,20 +339,20 @@
     "path": "/v2/qr/validate",
     "status": 201,
     "request": {
-      "qrToken": "sREEEqHAXnhQ_tF-ZxzGTlxTA6mjf8WUZtbw-bCcQMM"
+      "qrToken": "k3IFeeV4sHHPqP_1TRjZJ1L2h_MicsAaKW4KvE1CGGg"
     },
     "response": {
       "participation": {
-        "id": "e642458b-a575-4120-9353-7aa8836e1712",
+        "id": "04c53ad7-91b9-4705-81b4-a61d7b168118",
         "activity": {
-          "id": "44b80fbb-ef40-4e75-823b-aec318975c71",
+          "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
           "name": "Atividade admin-journey-y"
         },
         "place": {
-          "id": "7a5460f8-a651-4882-bf1d-497e07d9cc9e",
+          "id": "0f0d6eb7-1c85-4cbe-b727-771a18a09fe6",
           "name": "Espaço admin-journey-y"
         },
-        "checkedInAt": "2026-09-07T16:43:29.882881Z",
+        "checkedInAt": "2026-09-11T17:56:35.780914Z",
         "status": "active",
         "canShareMoment": true,
         "checkInPoints": 0,
@@ -378,14 +378,14 @@
       "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
     },
     "response": {
-      "id": "85c47f9a-77e1-4a01-b881-0b654ea3aab5",
-      "uploadUrl": "https://storage.example/85c47f9a-77e1-4a01-b881-0b654ea3aab5?signed=redacted",
+      "id": "0df75313-c455-4d71-bd1a-7f2bb96325d3",
+      "uploadUrl": "https://storage.example/0df75313-c455-4d71-bd1a-7f2bb96325d3?signed=redacted",
       "method": "PUT",
       "headers": {
         "Content-Type": "image/jpeg",
         "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
       },
-      "expiresAt": "2026-09-07T16:53:29.9014003Z"
+      "expiresAt": "2026-09-11T18:06:35.801757469Z"
     },
     "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
   },
@@ -396,15 +396,15 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/media/85c47f9a-77e1-4a01-b881-0b654ea3aab5/complete",
+    "path": "/v2/media/0df75313-c455-4d71-bd1a-7f2bb96325d3/complete",
     "status": 200,
     "response": {
-      "id": "85c47f9a-77e1-4a01-b881-0b654ea3aab5",
+      "id": "0df75313-c455-4d71-bd1a-7f2bb96325d3",
       "contentType": "image/jpeg",
       "bytes": 636,
       "state": "available",
-      "availableAt": "2026-09-07T16:43:29.9257832Z",
-      "retentionDueAt": "2026-12-06T16:43:29.9014Z"
+      "availableAt": "2026-09-11T17:56:35.821008014Z",
+      "retentionDueAt": "2026-12-10T17:56:35.801757Z"
     },
     "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
   },
@@ -415,30 +415,31 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/moments/challenge",
+    "path": "/v2/moments",
     "status": 201,
     "request": {
-      "mediaAssetId": "85c47f9a-77e1-4a01-b881-0b654ea3aab5",
-      "publishConsent": true
+      "mediaAssetId": "0df75313-c455-4d71-bd1a-7f2bb96325d3",
+      "publishConsent": true,
+      "participationId": "04c53ad7-91b9-4705-81b4-a61d7b168118"
     },
     "response": {
-      "id": "47c716be-4f54-4be6-8ce1-b2929f805d5b",
+      "id": "7b6bb43b-cf7e-4765-832b-559b2ae5f80a",
       "origin": "challenge",
-      "participationId": null,
-      "imageUrl": "https://storage.example/read/85c47f9a-77e1-4a01-b881-0b654ea3aab5?signed=redacted",
-      "thumbnailUrl": "https://storage.example/read/85c47f9a-77e1-4a01-b881-0b654ea3aab5?signed=redacted",
-      "shareImageUrl": "https://storage.example/read/85c47f9a-77e1-4a01-b881-0b654ea3aab5?signed=redacted",
-      "imageExpiresAt": "2026-09-07T16:48:29.931743Z",
-      "placeName": null,
+      "participationId": "04c53ad7-91b9-4705-81b4-a61d7b168118",
+      "imageUrl": "https://storage.example/read/0df75313-c455-4d71-bd1a-7f2bb96325d3?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/0df75313-c455-4d71-bd1a-7f2bb96325d3?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/0df75313-c455-4d71-bd1a-7f2bb96325d3?signed=redacted",
+      "imageExpiresAt": "2026-09-11T18:01:35.824925309Z",
+      "placeName": "Espaço admin-journey-y",
       "authorName": "E2E Admin Journey Player",
-      "capturedAt": "2026-09-07T16:43:29.931743Z",
+      "capturedAt": "2026-09-11T17:56:35.824925Z",
       "publicationStatus": "public",
       "moderationStatus": "pending",
-      "pointsAwarded": 25,
+      "pointsAwarded": 20,
       "likesCount": 0,
       "likedByCurrentUser": false
     },
-    "proves": "POST /v2/moments/challenge nasce pending e já aparece no feed (201)."
+    "proves": "POST /v2/moments nasce pending e já aparece no feed (201)."
   },
   {
     "journey": "admin",
@@ -455,14 +456,14 @@
       "checksumSha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
     },
     "response": {
-      "id": "4c82f8bd-e77c-42d7-8584-db8459162996",
-      "uploadUrl": "https://storage.example/4c82f8bd-e77c-42d7-8584-db8459162996?signed=redacted",
+      "id": "eeb71f5e-516a-4474-94a3-8564cdd459aa",
+      "uploadUrl": "https://storage.example/eeb71f5e-516a-4474-94a3-8564cdd459aa?signed=redacted",
       "method": "PUT",
       "headers": {
         "Content-Type": "image/jpeg",
         "x-amz-checksum-sha256": "XhYqnRfZkahEk2k9gu8+4gY+R0SE7ikzWTH9TsKmvXk="
       },
-      "expiresAt": "2026-09-07T16:53:29.9785692Z"
+      "expiresAt": "2026-09-11T18:06:35.844285802Z"
     },
     "proves": "POST /v2/media/upload-intents devolve uma URL assinada para upload direto ao storage (201)."
   },
@@ -473,15 +474,15 @@
     "role": "DEFAULT",
     "actor": "player",
     "method": "POST",
-    "path": "/v2/media/4c82f8bd-e77c-42d7-8584-db8459162996/complete",
+    "path": "/v2/media/eeb71f5e-516a-4474-94a3-8564cdd459aa/complete",
     "status": 200,
     "response": {
-      "id": "4c82f8bd-e77c-42d7-8584-db8459162996",
+      "id": "eeb71f5e-516a-4474-94a3-8564cdd459aa",
       "contentType": "image/jpeg",
       "bytes": 636,
       "state": "available",
-      "availableAt": "2026-09-07T16:43:29.9991543Z",
-      "retentionDueAt": "2026-12-06T16:43:29.978569Z"
+      "availableAt": "2026-09-11T17:56:35.853639309Z",
+      "retentionDueAt": "2026-12-10T17:56:35.844285Z"
     },
     "proves": "POST /v2/media/:id/complete valida a imagem e marca o asset como available (200)."
   },
@@ -495,20 +496,20 @@
     "path": "/v2/moments",
     "status": 201,
     "request": {
-      "mediaAssetId": "4c82f8bd-e77c-42d7-8584-db8459162996",
+      "mediaAssetId": "eeb71f5e-516a-4474-94a3-8564cdd459aa",
       "publishConsent": true
     },
     "response": {
-      "id": "e12a7e3f-d611-47b6-858d-428581d663a3",
+      "id": "b0ca48f8-4693-464e-9e45-6bcc0d79942d",
       "origin": "free",
       "participationId": null,
-      "imageUrl": "https://storage.example/read/4c82f8bd-e77c-42d7-8584-db8459162996?signed=redacted",
-      "thumbnailUrl": "https://storage.example/read/4c82f8bd-e77c-42d7-8584-db8459162996?signed=redacted",
-      "shareImageUrl": "https://storage.example/read/4c82f8bd-e77c-42d7-8584-db8459162996?signed=redacted",
-      "imageExpiresAt": "2026-09-07T16:48:30.0051983Z",
+      "imageUrl": "https://storage.example/read/eeb71f5e-516a-4474-94a3-8564cdd459aa?signed=redacted",
+      "thumbnailUrl": "https://storage.example/read/eeb71f5e-516a-4474-94a3-8564cdd459aa?signed=redacted",
+      "shareImageUrl": "https://storage.example/read/eeb71f5e-516a-4474-94a3-8564cdd459aa?signed=redacted",
+      "imageExpiresAt": "2026-09-11T18:01:35.856957887Z",
       "placeName": null,
       "authorName": "E2E Admin Journey Player",
-      "capturedAt": "2026-09-07T16:43:30.005198Z",
+      "capturedAt": "2026-09-11T17:56:35.856957Z",
       "publicationStatus": "public",
       "moderationStatus": "pending",
       "pointsAwarded": 0,
@@ -529,16 +530,16 @@
     "response": {
       "data": [
         {
-          "momentId": "47c716be-4f54-4be6-8ce1-b2929f805d5b",
-          "imageUrl": "https://storage.example/read/85c47f9a-77e1-4a01-b881-0b654ea3aab5?signed=redacted",
-          "imageExpiresAt": "2026-09-07T16:48:30.0133359Z",
-          "capturedAt": "2026-09-07T16:43:29.931743Z",
+          "momentId": "7b6bb43b-cf7e-4765-832b-559b2ae5f80a",
+          "imageUrl": "https://storage.example/read/0df75313-c455-4d71-bd1a-7f2bb96325d3?signed=redacted",
+          "imageExpiresAt": "2026-09-11T18:01:35.864256921Z",
+          "capturedAt": "2026-09-11T17:56:35.824925Z",
           "participantName": "E2E Admin Journey Player",
           "activity": {
-            "id": "aeb5ed79-5a84-433e-a9a1-2e3afb54147f",
-            "name": "Desafio do Momento E2E"
+            "id": "1f97bf40-c8a0-4987-bbc5-b856b70f4442",
+            "name": "Atividade admin-journey-y"
           },
-          "pointsAwarded": 25,
+          "pointsAwarded": 20,
           "publicationStatus": "public",
           "moderationStatus": "pending",
           "rewardStatus": "awarded",
@@ -565,19 +566,19 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "POST",
-    "path": "/v2/admin/moments/47c716be-4f54-4be6-8ce1-b2929f805d5b/moderation",
+    "path": "/v2/admin/moments/7b6bb43b-cf7e-4765-832b-559b2ae5f80a/moderation",
     "status": 200,
     "request": {
       "action": "approve"
     },
     "response": {
-      "momentId": "47c716be-4f54-4be6-8ce1-b2929f805d5b",
+      "momentId": "7b6bb43b-cf7e-4765-832b-559b2ae5f80a",
       "action": "approve",
       "publicationStatus": "public",
       "moderationStatus": "approved",
       "rewardStatus": "awarded",
       "photoStatus": "available",
-      "pointsAwarded": 25
+      "pointsAwarded": 20
     },
     "proves": "POST .../moderation com action=approve tira o moment da fila pendente (200)."
   },
@@ -593,10 +594,10 @@
     "response": {
       "data": [
         {
-          "momentId": "e12a7e3f-d611-47b6-858d-428581d663a3",
-          "imageUrl": "https://storage.example/read/4c82f8bd-e77c-42d7-8584-db8459162996?signed=redacted",
-          "imageExpiresAt": "2026-09-07T16:48:30.0293399Z",
-          "capturedAt": "2026-09-07T16:43:30.005198Z",
+          "momentId": "b0ca48f8-4693-464e-9e45-6bcc0d79942d",
+          "imageUrl": "https://storage.example/read/eeb71f5e-516a-4474-94a3-8564cdd459aa?signed=redacted",
+          "imageExpiresAt": "2026-09-11T18:01:35.876165468Z",
+          "capturedAt": "2026-09-11T17:56:35.856957Z",
           "participantName": "E2E Admin Journey Player",
           "activity": null,
           "pointsAwarded": 0,
@@ -625,13 +626,14 @@
     "role": "ADMIN",
     "actor": "admin",
     "method": "POST",
-    "path": "/v2/admin/moments/e12a7e3f-d611-47b6-858d-428581d663a3/moderation",
+    "path": "/v2/admin/moments/b0ca48f8-4693-464e-9e45-6bcc0d79942d/moderation",
     "status": 200,
     "request": {
-      "action": "delete_photo"
+      "action": "delete_photo",
+      "reason": "foto inadequada"
     },
     "response": {
-      "momentId": "e12a7e3f-d611-47b6-858d-428581d663a3",
+      "momentId": "b0ca48f8-4693-464e-9e45-6bcc0d79942d",
       "action": "delete_photo",
       "publicationStatus": "private",
       "moderationStatus": "rejected",
@@ -672,14 +674,14 @@
       "id": "1",
       "groupId": "2",
       "status": "ACTIVE",
-      "expiresAt": "2026-09-14T16:43:30.0499287Z",
+      "expiresAt": "2026-09-18T17:56:35.893843876Z",
       "revokedAt": null,
       "consumedAt": null,
       "consumedByUserId": null,
       "createdByUserId": "36",
       "replacesInviteId": null,
-      "createdAt": "2026-09-07T13:43:30.0499287-03:00",
-      "code": "E_CLoXgtO4lPlUdU84aA1w"
+      "createdAt": "2026-09-11T14:56:35.89408909-03:00",
+      "code": "tyt_eyQG_Clf1k_U7Vu1eQ"
     },
     "proves": "POST .../invites cria um convite de uso único (201)."
   },
@@ -696,14 +698,14 @@
       "id": "2",
       "groupId": "2",
       "status": "ACTIVE",
-      "expiresAt": "2026-09-14T16:43:30.0563979Z",
+      "expiresAt": "2026-09-18T17:56:35.897515212Z",
       "revokedAt": null,
       "consumedAt": null,
       "consumedByUserId": null,
       "createdByUserId": "36",
       "replacesInviteId": "1",
-      "createdAt": "2026-09-07T13:43:30.0563979-03:00",
-      "code": "XT4FrfKh86gaDNgjn7BIPw"
+      "createdAt": "2026-09-11T14:56:35.897525372-03:00",
+      "code": "xXsTmgYJX_w0Af1p21TYYA"
     },
     "proves": "POST .../renew revoga o convite antigo e emite um novo (201)."
   },
@@ -733,25 +735,25 @@
           "id": "2",
           "groupId": "2",
           "status": "REVOKED",
-          "expiresAt": "2026-09-14T13:43:30.056397-03:00",
-          "revokedAt": "2026-09-07T13:43:30.059644-03:00",
+          "expiresAt": "2026-09-18T14:56:35.897515-03:00",
+          "revokedAt": "2026-09-11T14:56:35.8989-03:00",
           "consumedAt": null,
           "consumedByUserId": null,
           "createdByUserId": "36",
           "replacesInviteId": "1",
-          "createdAt": "2026-09-07T13:43:30.056397-03:00"
+          "createdAt": "2026-09-11T14:56:35.897525-03:00"
         },
         {
           "id": "1",
           "groupId": "2",
           "status": "REVOKED",
-          "expiresAt": "2026-09-14T13:43:30.049928-03:00",
-          "revokedAt": "2026-09-07T13:43:30.05509-03:00",
+          "expiresAt": "2026-09-18T14:56:35.893843-03:00",
+          "revokedAt": "2026-09-11T14:56:35.897042-03:00",
           "consumedAt": null,
           "consumedByUserId": null,
           "createdByUserId": "36",
           "replacesInviteId": null,
-          "createdAt": "2026-09-07T13:43:30.049928-03:00"
+          "createdAt": "2026-09-11T14:56:35.894089-03:00"
         }
       ],
       "pagination": {
@@ -792,24 +794,24 @@
     "response": {
       "data": [
         {
-          "id": "f1e84f71-37f0-49d8-bb81-6a5685431068",
+          "id": "282e712f-27bc-4fa4-af6e-10625b97406a",
           "category": "announcement",
           "state": "unread",
           "title": "Aviso geral",
           "body": "Bem-vindos à jornada E2E.",
           "sourceType": "admin_broadcast",
-          "sourceId": "165bafc2-df29-48e1-a6f9-bef53c834e09",
-          "createdAt": "2026-09-07T16:43:30.064449Z"
+          "sourceId": "b82fd189-f0a3-49b4-ad06-8d5e1447b4dd",
+          "createdAt": "2026-09-11T17:56:35.902402Z"
         },
         {
-          "id": "aa12713c-2721-4956-9b18-e387304c0932",
+          "id": "455d9db6-767e-43d6-99c3-b2185d4c5c94",
           "category": "moment_moderation",
           "state": "unread",
           "title": "Sua foto foi moderada",
           "body": "Sua foto foi removida da galeria.",
           "sourceType": "moment",
-          "sourceId": "e12a7e3f-d611-47b6-858d-428581d663a3",
-          "createdAt": "2026-09-07T16:43:30.033098Z"
+          "sourceId": "b0ca48f8-4693-464e-9e45-6bcc0d79942d",
+          "createdAt": "2026-09-11T17:56:35.881446Z"
         }
       ],
       "pagination": {

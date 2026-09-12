@@ -22,6 +22,7 @@ import (
 	momentEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/entities"
 	momentInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/interfaces"
 	auditInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/operationaudit/interfaces"
+	userEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/user/entities"
 	userInterfaces "github.com/dnjtechteam/dnj-game-api/internal/domain/user/interfaces"
 	"github.com/google/uuid"
 )
@@ -202,7 +203,7 @@ func (s *MomentService) List(
 			"scope deve ser feed, mine ou group.",
 		)
 	}
-	actor, err := requireDefaultActor(ctx, s.users, false)
+	actor, err := requireOnboardedActor(ctx, s.users, false)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +264,7 @@ func (s *MomentService) Create(
 	if err != nil {
 		return nil, 0, err
 	}
-	actor, err := requireDefaultActor(ctx, s.users, false)
+	actor, err := requireOnboardedActor(ctx, s.users, false)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -370,8 +371,13 @@ func (s *MomentService) Create(
 			activityID = &challengeID
 			points = challengePoints
 		}
-		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+		if _, authErr := requireOnboardedActor(tx, s.users, true); authErr != nil {
 			return authErr
+		}
+		// Only participants (DEFAULT) compete: staff may publish challenge
+		// moments to share the experience, but never receive points.
+		if actor.Role != userEntities.RoleDefault {
+			points = 0
 		}
 
 		publicationStatus := momentEntities.PublicationPrivate

@@ -22,7 +22,7 @@ este handoff não depende de permissão de escrita nesse repositório.
 1. Leia "Antes de integrar qualquer tela" abaixo — contrato comum a toda a
    V2 (auth, erro, idempotência, paginação). Sem isso, todo fluxo abaixo vai
    dar errado da mesma forma.
-2. Copie os quatro helpers de referência (cliente autenticado, refresh/CSRF,
+2. Copie os quatro helpers de referência (cliente autenticado, refresh bearer,
    `Idempotency-Key`, UTC↔fuso-local) para o seu projeto — todo fluxo depende
    de pelo menos um deles.
 3. Siga a ordem de rollout por iteração na tabela "Backlog granular" — as
@@ -112,32 +112,74 @@ No Google Cloud Console, o OAuth Client (tipo **Web application**) precisa
 ter toda origem do frontend (produção e `http://localhost:3000` em dev) em
 **Authorized JavaScript origins** — sem isso o `initialize` falha silenciosamente.
 
-### Cliente autenticado com refresh automático e CSRF
+### Cliente autenticado com bearer token e refresh único
+
+A API é chamada diretamente do browser (`NEXT_PUBLIC_API_URL`, já com
+`/v2`), sem proxy Next e sem cookies. `accessToken` e `refreshToken` ficam no
+`localStorage`; toda chamada envia `Authorization: Bearer`. Um `401` dispara
+**um único** refresh compartilhado entre requisições concorrentes; se a
+renovação falhar, as credenciais são removidas e o `401` original é
+propagado. Como o refresh token fica no `localStorage`, proteção contra XSS
+é requisito operacional do frontend.
 
 ```typescript
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/v2";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081/v2";
 
-async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+const credentials = {
+  get: () => ({ accessToken: localStorage.getItem("accessToken"), refreshToken: localStorage.getItem("refreshToken") }),
+  set: (s: { accessToken: string; refreshToken: string }) => { localStorage.setItem("accessToken", s.accessToken); localStorage.setItem("refreshToken", s.refreshToken); },
+  clear: () => { localStorage.removeItem("accessToken"); localStorage.removeItem("refreshToken"); },
+};
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshOnce(): Promise<boolean> {
+  refreshPromise ??= (async () => {
+    const { refreshToken } = credentials.get();
+    if (!refreshToken) return false;
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!response.ok) { credentials.clear(); return false; }
+    credentials.set(await response.json()); // par rotacionado
+    return true;
+  })().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
+async function apiFetch(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
+  const { accessToken } = credentials.get();
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
-    credentials: "include", // envia o cookie identity_token
-    headers: { "Content-Type": "application/json", ...init.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...init.headers,
+    },
   });
-  if (response.status === 401) {
-    const refreshed = await apiFetch("/auth/refresh", { method: "POST" });
-    if (refreshed.ok) return apiFetch(path, init); // uma única retentativa
-  }
+  if (response.status === 401 && retry && (await refreshOnce())) return apiFetch(path, init, false);
   return response;
 }
-```
 
-### CSRF (só necessário para os endpoints de `/auth` que usam cookie)
-
-```typescript
-function withCsrf(init: RequestInit, csrfToken: string): RequestInit {
-  return { ...init, headers: { ...init.headers, "X-CSRF-Token": csrfToken } };
+async function logout() {
+  const { refreshToken } = credentials.get();
+  credentials.clear(); // limpa mesmo se a API estiver indisponível
+  if (refreshToken) {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    }).catch(() => undefined);
+  }
 }
 ```
+
+Restauração de sessão (participante, Admin e Gestor): `GET /auth/session`
+com o bearer devolve `user.role`; as áreas operacionais validam o papel a
+partir dessa resposta e redirecionam ao login quando token ou papel forem
+inválidos.
 
 ### `Idempotency-Key` por ação do usuário
 

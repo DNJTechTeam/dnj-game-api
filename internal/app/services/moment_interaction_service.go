@@ -88,7 +88,7 @@ func (s *MomentService) ToggleLike(
 	if err != nil {
 		return nil, err
 	}
-	actor, err := requireDefaultActor(ctx, s.users, false)
+	actor, err := requireOnboardedActor(ctx, s.users, false)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (s *MomentService) ToggleLike(
 			}
 			return nil
 		}
-		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+		if _, authErr := requireOnboardedActor(tx, s.users, true); authErr != nil {
 			return authErr
 		}
 		visible := moment.PublicationStatus == momentEntities.PublicationPublic &&

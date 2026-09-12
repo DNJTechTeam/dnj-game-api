@@ -9,8 +9,11 @@ coverage.gate.out
 coverage.maintained.out
 
 # Local build artifacts left in the repo root by `go build ./...` (it writes
-# one binary per cmd/* main package to cwd unless -o is given)
+# one binary per cmd/* main package to cwd unless -o is given).
+# NOTE: `/loadtest` matches both the compiled binary AND the loadtest/ source
+# dir (the k6 suite); re-include the directory below so only the binary is ignored.
 /loadtest
+!/loadtest/
 /handoff-check
 /openapi-check
 /migrate

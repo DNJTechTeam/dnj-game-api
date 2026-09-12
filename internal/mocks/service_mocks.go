@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/dnjtechteam/dnj-game-api/internal/app/interfaces"
 	"github.com/dnjtechteam/dnj-game-api/internal/app/messages"
@@ -411,8 +412,8 @@ func (_c *MockActivityServiceInterface_Start_Call) RunAndReturn(run func(ctx con
 }
 
 // StartScheduled provides a mock function for the type MockActivityServiceInterface
-func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error) {
-	ret := _mock.Called(ctx, activityID, idempotencyKey)
+func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, activityID string, idempotencyKey string, startedAt *time.Time) (*messages.ActivityStateResponseDTO, error) {
+	ret := _mock.Called(ctx, activityID, idempotencyKey, startedAt)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StartScheduled")
@@ -420,18 +421,18 @@ func (_mock *MockActivityServiceInterface) StartScheduled(ctx context.Context, a
 
 	var r0 *messages.ActivityStateResponseDTO
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*messages.ActivityStateResponseDTO, error)); ok {
-		return returnFunc(ctx, activityID, idempotencyKey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *time.Time) (*messages.ActivityStateResponseDTO, error)); ok {
+		return returnFunc(ctx, activityID, idempotencyKey, startedAt)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *messages.ActivityStateResponseDTO); ok {
-		r0 = returnFunc(ctx, activityID, idempotencyKey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *time.Time) *messages.ActivityStateResponseDTO); ok {
+		r0 = returnFunc(ctx, activityID, idempotencyKey, startedAt)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*messages.ActivityStateResponseDTO)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, activityID, idempotencyKey)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *time.Time) error); ok {
+		r1 = returnFunc(ctx, activityID, idempotencyKey, startedAt)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -447,11 +448,12 @@ type MockActivityServiceInterface_StartScheduled_Call struct {
 //   - ctx context.Context
 //   - activityID string
 //   - idempotencyKey string
-func (_e *MockActivityServiceInterface_Expecter) StartScheduled(ctx interface{}, activityID interface{}, idempotencyKey interface{}) *MockActivityServiceInterface_StartScheduled_Call {
-	return &MockActivityServiceInterface_StartScheduled_Call{Call: _e.mock.On("StartScheduled", ctx, activityID, idempotencyKey)}
+//   - startedAt *time.Time
+func (_e *MockActivityServiceInterface_Expecter) StartScheduled(ctx interface{}, activityID interface{}, idempotencyKey interface{}, startedAt interface{}) *MockActivityServiceInterface_StartScheduled_Call {
+	return &MockActivityServiceInterface_StartScheduled_Call{Call: _e.mock.On("StartScheduled", ctx, activityID, idempotencyKey, startedAt)}
 }
 
-func (_c *MockActivityServiceInterface_StartScheduled_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string)) *MockActivityServiceInterface_StartScheduled_Call {
+func (_c *MockActivityServiceInterface_StartScheduled_Call) Run(run func(ctx context.Context, activityID string, idempotencyKey string, startedAt *time.Time)) *MockActivityServiceInterface_StartScheduled_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -465,10 +467,15 @@ func (_c *MockActivityServiceInterface_StartScheduled_Call) Run(run func(ctx con
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 *time.Time
+		if args[3] != nil {
+			arg3 = args[3].(*time.Time)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -479,7 +486,7 @@ func (_c *MockActivityServiceInterface_StartScheduled_Call) Return(activityState
 	return _c
 }
 
-func (_c *MockActivityServiceInterface_StartScheduled_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_StartScheduled_Call {
+func (_c *MockActivityServiceInterface_StartScheduled_Call) RunAndReturn(run func(ctx context.Context, activityID string, idempotencyKey string, startedAt *time.Time) (*messages.ActivityStateResponseDTO, error)) *MockActivityServiceInterface_StartScheduled_Call {
 	_c.Call.Return(run)
 	return _c
 }

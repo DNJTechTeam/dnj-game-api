@@ -153,7 +153,7 @@ func (r *MigrationRegistry) GetAppliedMigrations() ([]string, error) {
 }
 
 // ensureMigrationLock creates the singleton row used to serialize migration
-// runners. A row lock is supported by PostgreSQL and CockroachDB, unlike
+// runners. A row lock keeps coordination state in the same database, unlike
 // PostgreSQL advisory locks, and keeps the coordination state in the same
 // database whose schema is being changed.
 func (r *MigrationRegistry) ensureMigrationLock() error {

@@ -174,6 +174,7 @@ type ManagerOperation struct {
 type IndividualRanking struct {
 	UserID    uint64
 	Name      string
+	AvatarURL *string
 	GroupName *string
 	Points    int
 	Position  uint64

@@ -26,9 +26,9 @@ endpoint é coberto por testes de integração dedicados
 |---|---|---|---|
 | `POST /v2/auth/google` | Login/signup via Google ID token | público | — |
 | `POST /v2/auth/signup` | Pede signup por e-mail; envia código de verificação | público | Default |
-| `POST /v2/auth/signup/verify` | Troca o código por uma sessão (accessToken/refreshToken/csrfToken via cookie + body) | público | Default |
-| `POST /v2/auth/refresh` | Renova o access token a partir do refresh token (cookie) + CSRF | público (requer cookie) | — |
-| `POST /v2/auth/logout` | Revoga a sessão (refresh token) | requer cookie + CSRF | — |
+| `POST /v2/auth/signup/verify` | Troca o código por uma sessão (`accessToken`/`refreshToken` no body; cookies só no fluxo legado) | público | Default |
+| `POST /v2/auth/refresh` | Rotaciona o par de tokens a partir de `{"refreshToken"}` no body (fallback legado: cookie + CSRF) | público | — |
+| `POST /v2/auth/logout` | Revoga a sessão a partir de `{"refreshToken"}` no body (fallback legado: cookie + CSRF) | público | — |
 | `GET /v2/auth/session` | Identidade do usuário autenticado | autenticado | Default |
 | `PATCH /v2/auth/onboarding` | Completa CPF + telefone; `groupId` é opcional (pode entrar num grupo depois via convite) | autenticado | Default |
 

@@ -36,7 +36,10 @@ func parseIdempotencyKey(raw string) (string, error) {
 	return key.String(), nil
 }
 
-func requireDefaultActor(
+// requireOnboardedActor loads the authenticated user and requires a completed
+// onboarding, regardless of role. Use it for participant-facing flows that any
+// signed-in person (including ADMIN and EVENT_MANAGER) may use inside the app.
+func requireOnboardedActor(
 	ctx context.Context,
 	users userInterfaces.UserRepositoryInterface,
 	lock bool,
@@ -75,6 +78,20 @@ func requireDefaultActor(
 			"ONBOARDING_REQUIRED",
 			"Conclua o onboarding antes de continuar.",
 		)
+	}
+	return user, nil
+}
+
+// requireDefaultActor is requireOnboardedActor restricted to the DEFAULT role.
+// Keep it for flows that must stay exclusive to participants.
+func requireDefaultActor(
+	ctx context.Context,
+	users userInterfaces.UserRepositoryInterface,
+	lock bool,
+) (*userEntities.User, error) {
+	user, err := requireOnboardedActor(ctx, users, lock)
+	if err != nil {
+		return nil, err
 	}
 	if user.Role != userEntities.RoleDefault {
 		return nil, mediaMomentError(

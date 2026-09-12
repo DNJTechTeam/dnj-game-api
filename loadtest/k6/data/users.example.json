@@ -1,0 +1,5 @@
+[
+  { "id": "101", "role": "DEFAULT" },
+  { "id": "102", "role": "DEFAULT" },
+  { "id": "103", "role": "EVENT_MANAGER" }
+]

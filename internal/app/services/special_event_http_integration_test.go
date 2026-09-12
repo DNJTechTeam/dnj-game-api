@@ -129,8 +129,8 @@ func TestIteration6_SpecialEventsHTTPFullLifecycleAwardsPointsAndNotifies(t *tes
 	special.secret = func() string { return "special-event-http-secret" }
 	earlyQR := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/special-events/qr", `{"eventId":"`+created.ID+`"}`, managerToken, "")
 
-	special.now = func() time.Time { return specialEventHTTPNow.Add(16 * time.Second) }
-	game.now = func() time.Time { return specialEventHTTPNow.Add(16 * time.Second) }
+	special.now = func() time.Time { return specialEventHTTPNow.Add(31 * time.Second) }
+	game.now = func() time.Time { return specialEventHTTPNow.Add(31 * time.Second) }
 	qrUnknownField := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/special-events/qr", `{"eventId":"`+created.ID+`","actorId":"1"}`, managerToken, "")
 	qrMissing := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/special-events/qr", `{"eventId":"`+uuid.NewString()+`"}`, managerToken, "")
 	participantQR := adminHTTPRequest(engine, http.MethodPost, "/v2/manager/special-events/qr", `{"eventId":"`+created.ID+`"}`, participantToken, "")
@@ -197,8 +197,12 @@ func TestIteration6_SpecialEventsHTTPFullLifecycleAwardsPointsAndNotifies(t *tes
 	require.NotNil(t, teaserActiveBody.Event)
 	require.NotNil(t, teaserActiveBody.Event.QRAvailableAt)
 	require.NotNil(t, teaserDisplayBody.ReadyAt)
-	assert.Equal(t, specialEventHTTPNow.Add(15*time.Second), teaserActiveBody.Event.QRAvailableAt.UTC())
-	assert.Equal(t, specialEventHTTPNow.Add(15*time.Second), teaserDisplayBody.ReadyAt.UTC())
+	require.NotNil(t, teaserActiveBody.Event.QRToken)
+	require.NotNil(t, teaserDisplayBody.QRToken)
+	assert.Equal(t, specialEventHTTPNow.Add(30*time.Second), teaserActiveBody.Event.QRAvailableAt.UTC())
+	assert.Equal(t, specialEventHTTPNow.Add(30*time.Second), teaserDisplayBody.ReadyAt.UTC())
+	assert.Equal(t, specialEventHTTPNow.Add(30*time.Minute), teaserActiveBody.Event.EndsAt.UTC())
+	assert.Equal(t, specialEventHTTPNow.Add(30*time.Minute), teaserDisplayBody.EndsAt.UTC())
 	assert.Equal(t, http.StatusInternalServerError, missingSecretQR.Code)
 	assert.Contains(t, missingSecretQR.Body.String(), "INTERNAL_ERROR")
 	assert.Equal(t, http.StatusConflict, earlyQR.Code)

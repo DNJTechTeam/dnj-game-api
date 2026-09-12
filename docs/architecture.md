@@ -64,6 +64,29 @@ transaction is stored in the context; repositories call `r.getDB(ctx)` which
 returns the transaction when present, the base connection otherwise. Nested
 `WithTransaction` calls join the outer transaction (only the outermost commits).
 
+## Database connection pool (Lambda + Supabase)
+
+`internal/infrastructure/db/db.go` builds one GORM/pgx pool per process. On
+Lambda that process is a container that serves one request at a time and is
+reused across many warm invocations, so the pool is sized for the parallelism
+inside a single request, and idle connections are kept rather than closed:
+every reconnect to Supabase costs a TLS handshake plus pooler authentication.
+
+| Env | Default | Meaning |
+|-----|---------|---------|
+| `DB_MAX_OPEN_CONNS` | `4` | Open limit; idle limit is always the same value |
+| `DB_CONN_MAX_IDLE_SECONDS` | `300` | Drop connections unused for this long |
+| `DB_CONN_MAX_LIFETIME_SECONDS` | `3600` | Recycle connections older than this |
+| `DB_PREFER_SIMPLE_PROTOCOL` | auto | `true` when `DB_PORT=6543` (Supavisor transaction mode has no prepared statements) |
+
+The API runner pings the database during process start-up (Lambda init phase)
+so the first request does not pay for the connection. Failure is logged, not
+fatal; `/v2/readiness` keeps reporting 503 until PostgreSQL is reachable.
+
+Every request log (`http_request_completed`) carries `dbQueries` and `dbMs`,
+collected by GORM callbacks through `db.WithQueryStats`, so database time can
+be separated from Lambda CPU and network time in CloudWatch.
+
 ## Key building blocks
 
 | Concern | File |

@@ -15,7 +15,7 @@ func MapGameToResponseDTO(game *activityEntities.PublicActivity, state *string) 
 }
 
 func MapIndividualRankingToResponseDTO(item gameEntities.IndividualRanking) messages.IndividualRankingResponseDTO {
-	return messages.IndividualRankingResponseDTO{ID: messages.Uint64StringFromUint64(item.UserID), Name: item.Name, GroupName: item.GroupName, Points: item.Points, Position: item.Position}
+	return messages.IndividualRankingResponseDTO{ID: messages.Uint64StringFromUint64(item.UserID), Name: item.Name, AvatarURL: item.AvatarURL, GroupName: item.GroupName, Points: item.Points, Position: item.Position}
 }
 
 func MapGroupRankingToResponseDTO(item gameEntities.GroupRanking) messages.GroupRankingResponseDTO {

@@ -130,6 +130,36 @@ func TestActivityService_AdminGlobalStartPauseAndIdempotency(t *testing.T) {
 	assert.NotContains(t, string(audits[0].Metadata), "example.com")
 }
 
+func TestActivityService_ScheduledStartAcceptsManualTimeAndRejectsFuture(t *testing.T) {
+	// given
+	setupIteration4Test(t)
+	_, activityService := newIteration4Services()
+	_, managerCtx := seedIteration4User(t, "iteration4-schedule-manager@example.com", userEntities.RoleEventManager)
+	require.NoError(t, TestSuite.DbConn.Model(&models.User{}).Where("email = ?", "iteration4-schedule-manager@example.com").Update("manager_scope", "space").Error)
+	start := time.Now().UTC().Add(-time.Hour)
+	end := start.Add(2 * time.Hour)
+	activityID := uuid.NewString()
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: activityID, Slug: "schedule-" + activityID, Name: "Programação", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: &start, EndsAt: &end, CreatedAt: start, UpdatedAt: start}).Error)
+	manual := start.Add(15 * time.Minute)
+	futureID := uuid.NewString()
+	futureStart := time.Now().UTC().Add(time.Hour)
+	futureEnd := futureStart.Add(time.Hour)
+	require.NoError(t, TestSuite.DbConn.Create(&models.Activity{ID: futureID, Slug: "schedule-" + futureID, Name: "Futura", Kind: string(activityEntities.KindSchedule), Status: string(activityEntities.StatusActive), StartsAt: &futureStart, EndsAt: &futureEnd, CreatedAt: start, UpdatedAt: start}).Error)
+
+	// when
+	started, startErr := activityService.StartScheduled(managerCtx, activityID, uuid.NewString(), &manual)
+	_, futureErr := activityService.StartScheduled(managerCtx, futureID, uuid.NewString(), timePointer(time.Now().UTC().Add(time.Hour)))
+
+	// then
+	require.NoError(t, startErr)
+	assert.Equal(t, "active", started.Status)
+	var saved models.Activity
+	require.NoError(t, TestSuite.DbConn.Where("id = ?", activityID).Take(&saved).Error)
+	require.NotNil(t, saved.ActualStartedAt)
+	assert.WithinDuration(t, manual, *saved.ActualStartedAt, time.Second)
+	apiServiceError(t, futureErr, http.StatusBadRequest, "INVALID_REQUEST")
+}
+
 func TestActivityService_ConcludeTransitionsAndKindRestriction(t *testing.T) {
 	// given
 	setupIteration4Test(t)

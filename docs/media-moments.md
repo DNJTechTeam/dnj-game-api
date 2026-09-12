@@ -70,8 +70,9 @@ parciais no banco, não em memória.
 `cursor` opaco, assinado por HMAC e sem PII; cursor inválido retorna `400`.
 Paginação de 20 itens por página, ordenada por `capturedAt DESC,id DESC`.
 `feed` e `group` mostram somente Moments públicos, aprovados, com asset
-disponível e autor elegível (existente, onboarding completo, papel atual
-`DEFAULT`); `group` usa o grupo atual persistido do ator, refletindo
+disponível e autor elegível (existente, onboarding completo, qualquer papel —
+`ADMIN` e `EVENT_MANAGER` publicam e leem Moments como participantes, mas
+nunca recebem pontos); `group` usa o grupo atual persistido do ator, refletindo
 imediatamente qualquer mudança de grupo. `mine` preserva todo o histórico
 próprio, inclusive privados ou rejeitados, mas nunca emite URL para um asset
 removido. Moment de usuário removido some de `feed`/`group` mas seu histórico
