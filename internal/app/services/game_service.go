@@ -337,73 +337,74 @@ func (s *GameService) ValidateQR(ctx context.Context, request *messages.QRValida
 	}{QRHash: tokenHash})
 	var response *messages.ParticipationEnvelopeDTO
 	status := http.StatusCreated
-	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
-		user, authErr := s.participant(txCtx, false)
-		if authErr != nil {
-			return authErr
+	// Every read runs outside the transaction: none of them takes a lock any more,
+	// and keeping them out means a scan pins a pooler server connection (Supavisor
+	// transaction mode) only for the write phase instead of all ~20 round trips.
+	user, authErr := s.participant(ctx, false)
+	if authErr != nil {
+		return nil, 0, authErr
+	}
+	prior, findErr := s.games.FindParticipantOperation(ctx, user.ID, key.String())
+	if findErr == nil {
+		if prior.Operation != operation || prior.IntentHash != requestHash || prior.ResultRef == nil || prior.ResultPoints == nil {
+			return nil, 0, gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
 		}
-		prior, findErr := s.games.FindParticipantOperation(txCtx, user.ID, key.String())
-		if findErr == nil {
-			if prior.Operation != operation || prior.IntentHash != requestHash || prior.ResultRef == nil || prior.ResultPoints == nil {
-				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
-			}
-			participation, participationErr := s.games.FindParticipationByID(txCtx, *prior.ResultRef)
-			if participationErr != nil {
-				return appErrors.InternalError
-			}
-			activity, activityErr := s.activities.FindByID(txCtx, participation.ActivityID)
-			if activityErr != nil {
-				return appErrors.InternalError
-			}
-			total := *prior.ResultPoints
-			action, pointsAwarded := "joined", 0
-			if qrScoresCheckIn(activity.Kind) {
-				action, pointsAwarded = "scored", activity.CheckInPoints
-			}
-			response = &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}
-			status = prior.HTTPStatus
-			return nil
+		participation, participationErr := s.games.FindParticipationByID(ctx, *prior.ResultRef)
+		if participationErr != nil {
+			return nil, 0, appErrors.InternalError
 		}
-		if !errors.Is(findErr, appErrors.ErrNotFound) {
-			return appErrors.InternalError
-		}
-		if _, managerErr := s.games.FindManagerOperation(txCtx, user.ID, key.String()); managerErr == nil {
-			return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
-		} else if !errors.Is(managerErr, appErrors.ErrNotFound) {
-			return appErrors.InternalError
-		}
-		if _, auditErr := s.audits.FindByActorAndIdempotencyKey(txCtx, user.ID, key.String()); auditErr == nil {
-			return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
-		} else if !errors.Is(auditErr, appErrors.ErrNotFound) {
-			return appErrors.InternalError
-		}
-		now := s.now().UTC()
-		qr, qrErr := s.games.FindQRByTokenHashForUpdate(txCtx, tokenHash, now)
-		if errors.Is(qrErr, appErrors.ErrNotFound) {
-			return gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
-		}
-		if qrErr != nil {
-			return appErrors.InternalError
-		}
-		if !now.Before(qr.ExpiresAt.UTC()) {
-			return gameError(http.StatusGone, "QR_EXPIRED", "O prazo deste QR terminou.")
-		}
-		if qr.Status != gameEntities.QRCodeStatusActive {
-			return gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
-		}
-		activity, activityErr := s.activities.FindByID(txCtx, qr.ActivityID)
+		activity, activityErr := s.activities.FindByID(ctx, participation.ActivityID)
 		if activityErr != nil {
-			return appErrors.InternalError
+			return nil, 0, appErrors.InternalError
 		}
-		specialEventRun, specialEventErr := s.games.IsActiveSpecialEventRun(txCtx, qr.ActivityRunID, now)
-		if specialEventErr != nil {
-			return appErrors.InternalError
+		total := *prior.ResultPoints
+		action, pointsAwarded := "joined", 0
+		if qrScoresCheckIn(activity.Kind) {
+			action, pointsAwarded = "scored", activity.CheckInPoints
 		}
-		if !specialEventRun {
-			if closed, csErr := s.eventSettings.Get(txCtx); csErr == nil && closed.ScoringClosed {
-				return gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
-			}
+		return &messages.ParticipationEnvelopeDTO{Participation: appMappers.MapParticipationToResponseDTO(participation, &total), ActivityKind: string(activity.Kind), Action: action, PointsAwarded: pointsAwarded}, prior.HTTPStatus, nil
+	}
+	if !errors.Is(findErr, appErrors.ErrNotFound) {
+		return nil, 0, appErrors.InternalError
+	}
+	if _, managerErr := s.games.FindManagerOperation(ctx, user.ID, key.String()); managerErr == nil {
+		return nil, 0, gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
+	} else if !errors.Is(managerErr, appErrors.ErrNotFound) {
+		return nil, 0, appErrors.InternalError
+	}
+	if _, auditErr := s.audits.FindByActorAndIdempotencyKey(ctx, user.ID, key.String()); auditErr == nil {
+		return nil, 0, gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
+	} else if !errors.Is(auditErr, appErrors.ErrNotFound) {
+		return nil, 0, appErrors.InternalError
+	}
+	now := s.now().UTC()
+	qr, qrErr := s.games.FindQRByTokenHashForUpdate(ctx, tokenHash, now)
+	if errors.Is(qrErr, appErrors.ErrNotFound) {
+		return nil, 0, gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
+	}
+	if qrErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	if !now.Before(qr.ExpiresAt.UTC()) {
+		return nil, 0, gameError(http.StatusGone, "QR_EXPIRED", "O prazo deste QR terminou.")
+	}
+	if qr.Status != gameEntities.QRCodeStatusActive {
+		return nil, 0, gameError(http.StatusConflict, "QR_UNAVAILABLE", "Este QR não está disponível.")
+	}
+	activity, activityErr := s.activities.FindByID(ctx, qr.ActivityID)
+	if activityErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	specialEventRun, specialEventErr := s.games.IsActiveSpecialEventRun(ctx, qr.ActivityRunID, now)
+	if specialEventErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	if !specialEventRun {
+		if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+			return nil, 0, gameError(http.StatusForbidden, "SCORING_CLOSED", "A pontuação está fechada.")
 		}
+	}
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
 		if !specialEventRun {
 			if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
 				return err
@@ -484,40 +485,40 @@ func (s *GameService) validateScheduleQR(ctx context.Context, request *messages.
 	}{SpaceID: spaceID})
 	status := http.StatusCreated
 	var response *messages.ParticipationEnvelopeDTO
-	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
-		user, authErr := s.participant(txCtx, false)
-		if authErr != nil {
-			return authErr
+	// Reads outside the transaction (see ValidateQR): the pooler connection is
+	// pinned only while writing.
+	user, authErr := s.participant(ctx, false)
+	if authErr != nil {
+		return nil, 0, authErr
+	}
+	prior, findErr := s.games.FindParticipantOperation(ctx, user.ID, key.String())
+	if findErr == nil {
+		if prior.Operation != operation || prior.IntentHash != requestHash || prior.ResultRef == nil || prior.ResultPoints == nil {
+			return nil, 0, gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
 		}
-		prior, findErr := s.games.FindParticipantOperation(txCtx, user.ID, key.String())
-		if findErr == nil {
-			if prior.Operation != operation || prior.IntentHash != requestHash || prior.ResultRef == nil || prior.ResultPoints == nil {
-				return gameError(http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "idempotencyKey já foi usada em outra intenção.")
-			}
-			checkIn, checkInErr := s.games.FindScheduleQRCheckInByID(txCtx, *prior.ResultRef)
-			if checkInErr != nil {
-				return appErrors.InternalError
-			}
-			activity, activityErr := s.activities.FindByID(txCtx, checkIn.ActivityID)
-			if activityErr != nil {
-				return appErrors.InternalError
-			}
-			total := *prior.ResultPoints
-			response = &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(checkIn, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "scored", PointsAwarded: activity.CheckInPoints}
-			status = prior.HTTPStatus
-			return nil
+		checkIn, checkInErr := s.games.FindScheduleQRCheckInByID(ctx, *prior.ResultRef)
+		if checkInErr != nil {
+			return nil, 0, appErrors.InternalError
 		}
-		if !errors.Is(findErr, appErrors.ErrNotFound) {
-			return appErrors.InternalError
-		}
-		now := s.now().UTC()
-		activity, activityErr := s.activities.FindScheduleForSpaceAt(txCtx, spaceID, now)
-		if errors.Is(activityErr, appErrors.ErrNotFound) {
-			return gameError(http.StatusConflict, "QR_UNAVAILABLE", "Não há programação disponível neste Space agora.")
-		}
+		activity, activityErr := s.activities.FindByID(ctx, checkIn.ActivityID)
 		if activityErr != nil {
-			return appErrors.InternalError
+			return nil, 0, appErrors.InternalError
 		}
+		total := *prior.ResultPoints
+		return &messages.ParticipationEnvelopeDTO{Participation: scheduleParticipation(checkIn, activity, &total), ActivityKind: string(activityEntities.KindSchedule), Action: "scored", PointsAwarded: activity.CheckInPoints}, prior.HTTPStatus, nil
+	}
+	if !errors.Is(findErr, appErrors.ErrNotFound) {
+		return nil, 0, appErrors.InternalError
+	}
+	now := s.now().UTC()
+	activity, activityErr := s.activities.FindScheduleForSpaceAt(ctx, spaceID, now)
+	if errors.Is(activityErr, appErrors.ErrNotFound) {
+		return nil, 0, gameError(http.StatusConflict, "QR_UNAVAILABLE", "Não há programação disponível neste Space agora.")
+	}
+	if activityErr != nil {
+		return nil, 0, appErrors.InternalError
+	}
+	err = s.WithTransaction(ctx, func(txCtx context.Context) error {
 		if err := s.claimQRScanWindow(txCtx, user.ID, now); err != nil {
 			return err
 		}
