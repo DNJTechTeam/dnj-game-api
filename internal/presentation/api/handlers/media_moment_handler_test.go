@@ -31,6 +31,7 @@ func mediaMomentHandlerEngine(
 	engine.POST("/v2/media/:mediaAssetId/complete", mediaHandler.CompleteUpload)
 	engine.GET("/v2/moments", momentHandler.List)
 	engine.POST("/v2/moments", momentHandler.Create)
+	engine.DELETE("/v2/moments/:momentId", momentHandler.Delete)
 	engine.POST("/v2/moments/challenge", momentHandler.CreateChallenge)
 	engine.POST("/v2/moments/:momentId/likes", momentHandler.ToggleLike)
 	engine.GET("/v2/admin/moments/moderation", momentHandler.ListModeration)
@@ -64,6 +65,8 @@ func TestMediaMoments_HandlerHappyPaths(t *testing.T) {
 		Return(&messages.MomentPageResponseDTO{Items: []messages.MomentResponseDTO{}}, nil).Once()
 	momentService.On("Create", mock.Anything, key, mock.AnythingOfType("*messages.CreateMomentRequestDTO")).
 		Return(&messages.MomentResponseDTO{ID: "moment-1"}, http.StatusCreated, nil).Once()
+	momentService.On("Delete", mock.Anything, "moment-1", key).
+		Return(&messages.DeleteMomentResponseDTO{MomentID: "moment-1"}, nil).Once()
 	momentService.On("ToggleLike", mock.Anything, "moment-1", key).
 		Return(&messages.LikeResponseDTO{MomentID: "moment-1", Liked: true, LikesCount: 1}, nil).Once()
 	momentService.On("ListModeration", mock.Anything, "general", uint64(0)).
@@ -78,6 +81,7 @@ func TestMediaMoments_HandlerHappyPaths(t *testing.T) {
 		mediaMomentRequest(engine, http.MethodPost, "/v2/media/asset-1/complete", "", map[string]string{"Idempotency-Key": key}),
 		mediaMomentRequest(engine, http.MethodGet, "/v2/moments?scope=mine", "", nil),
 		mediaMomentRequest(engine, http.MethodPost, "/v2/moments", `{"mediaAssetId":"asset-1","publishConsent":true}`, map[string]string{"Idempotency-Key": key}),
+		mediaMomentRequest(engine, http.MethodDelete, "/v2/moments/moment-1", "", map[string]string{"Idempotency-Key": key}),
 		mediaMomentRequest(engine, http.MethodPost, "/v2/moments/moment-1/likes", "", map[string]string{"Idempotency-Key": key}),
 		mediaMomentRequest(engine, http.MethodGet, "/v2/admin/moments/moderation?queue=general", "", nil),
 		mediaMomentRequest(engine, http.MethodPost, "/v2/admin/moments/moment-1/moderation", `{"action":"deny_points","reason":"teste"}`, map[string]string{"Idempotency-Key": key}),
@@ -128,10 +132,12 @@ func TestMediaMoments_HandlerErrorBranches(t *testing.T) {
 	r = mediaMomentRequest(engine, http.MethodPost, "/v2/media/upload-intents", `{"contentType":"image/jpeg","bytes":100,"checksumSha256":"abc","bucket":"x"}`, nil)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
-	// CompleteUpload/ToggleLike do not accept a body.
+	// CompleteUpload/Delete/ToggleLike do not accept a body.
 	r = mediaMomentRequest(engine, http.MethodPost, "/v2/media/asset-1/complete", `{"x":1}`, nil)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 	r = mediaMomentRequest(engine, http.MethodPost, "/v2/moments/moment-1/likes", `{"x":1}`, nil)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+	r = mediaMomentRequest(engine, http.MethodDelete, "/v2/moments/moment-1", `{"x":1}`, nil)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
 	// List/ListModeration require their discriminating query param.

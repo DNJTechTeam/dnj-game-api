@@ -15,6 +15,66 @@ import (
 	"github.com/google/uuid"
 )
 
+func (s *MomentService) Delete(ctx context.Context, rawMomentID string, rawKey string) (*messages.DeleteMomentResponseDTO, error) {
+	momentID, err := uuid.Parse(rawMomentID)
+	if err != nil {
+		return nil, notFoundError()
+	}
+	key, err := parseIdempotencyKey(rawKey)
+	if err != nil {
+		return nil, err
+	}
+	actor, err := requireDefaultActor(ctx, s.users, false)
+	if err != nil {
+		return nil, err
+	}
+	operation := "moment.delete"
+	fingerprint := intentHash(operation, struct {
+		MomentID string `json:"momentId"`
+	}{MomentID: momentID.String()})
+	now := utcNow(s.now)
+	response := &messages.DeleteMomentResponseDTO{MomentID: momentID.String()}
+	err = s.WithTransaction(ctx, func(tx context.Context) error {
+		prior, priorErr := findIdempotencyOperation(tx, s.media, actor.ID, key, operation, fingerprint)
+		if priorErr != nil {
+			return priorErr
+		}
+		if prior != nil {
+			return nil
+		}
+		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+			return authErr
+		}
+		asset, changed, deleteErr := s.moments.DeleteOwnedMoment(tx, momentID.String(), actor.ID, now)
+		if errors.Is(deleteErr, appErrors.ErrNotFound) {
+			return notFoundError()
+		}
+		if deleteErr != nil {
+			return appErrors.InternalError
+		}
+		if changed {
+			if _, err := s.media.CreateCleanupJob(tx, &mediaEntities.CleanupJob{ID: uuid.NewString(), MediaAssetID: asset.ID, Kind: "delete_photo", State: "pending", DueAt: now, MaxAttempts: 8, NextAttemptAt: now, CreatedAt: now, UpdatedAt: now}); err != nil {
+				return appErrors.InternalError
+			}
+			metadata, _ := json.Marshal(map[string]string{"source": "owner"})
+			entityID := momentID.String()
+			if _, err := s.audits.Create(tx, &auditEntities.OperationAudit{ID: uuid.NewString(), ActorUserID: &actor.ID, Action: "moment.deleted", EntityType: "moment", EntityID: &entityID, EntityReference: &entityID, Metadata: metadata, IdempotencyKey: key, CreatedAt: now}); err != nil {
+				return appErrors.InternalError
+			}
+		}
+		completedAt := now
+		resultRef := momentID.String()
+		return createIdempotencyOperation(tx, s.media, &mediaEntities.Operation{ID: uuid.NewString(), ActorUserID: actor.ID, IdempotencyKey: key, Operation: operation, ResourceRef: &resultRef, IntentHash: fingerprint, State: "completed", ResultRef: &resultRef, ResponseSnapshot: []byte(`{}`), HTTPStatus: http.StatusOK, CreatedAt: now, CompletedAt: &completedAt})
+	})
+	if errors.Is(err, errIdempotencyRace) {
+		return s.Delete(ctx, rawMomentID, rawKey)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 func (s *MomentService) ToggleLike(
 	ctx context.Context,
 	rawMomentID string,

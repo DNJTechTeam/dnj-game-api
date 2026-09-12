@@ -90,6 +90,21 @@ func (h *MomentHandler) CreateChallenge(c *gin.Context) {
 	ResponseSuccess(c, status, response)
 }
 
+func (h *MomentHandler) Delete(c *gin.Context) {
+	if !validatePublishedQuery(c) || !requireEmptyBody(c) {
+		return
+	}
+	response, err := h.MomentService.Delete(
+		c.Request.Context(), c.Param("momentId"), c.GetHeader("Idempotency-Key"),
+	)
+	if err != nil {
+		identityFailure(c, err)
+		return
+	}
+	c.Header("Cache-Control", "private, no-store")
+	ResponseSuccess(c, http.StatusOK, response)
+}
+
 func (h *MomentHandler) ToggleLike(c *gin.Context) {
 	if !validatePublishedQuery(c) || !requireEmptyBody(c) {
 		return

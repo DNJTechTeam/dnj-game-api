@@ -372,6 +372,54 @@ func TestMediaMoments_ChallengeModeAwardsWithoutQRParticipation(t *testing.T) {
 	assert.Equal(t, "MOMENT_ALREADY_COMPLETED", apiErr.Code)
 }
 
+func TestMediaMoments_OwnerDeletesOwnPhoto(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	owner, ownerCtx := seedMediaMomentUser(t, "moment-delete-owner@example.com", userEntities.RoleDefault, true)
+	_, otherCtx := seedMediaMomentUser(t, "moment-delete-other@example.com", userEntities.RoleDefault, true)
+	TestSuite.TruncateTable(t, &models.Activity{})
+	seedActiveMomentChallenge(t)
+	asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+	moment, _, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: asset.ID, PublishConsent: true, ChallengeMode: true,
+	})
+	require.NoError(t, err)
+
+	_, err = momentService.Delete(otherCtx, moment.ID, uuid.NewString())
+	assertAPIErrorCode(t, err, "NOT_FOUND")
+
+	key := uuid.NewString()
+	deleted, err := momentService.Delete(ownerCtx, moment.ID, key)
+	require.NoError(t, err)
+	assert.Equal(t, moment.ID, deleted.MomentID)
+	replayed, err := momentService.Delete(ownerCtx, moment.ID, key)
+	require.NoError(t, err)
+	assert.Equal(t, deleted, replayed)
+
+	var persistedUser models.User
+	require.NoError(t, TestSuite.DbConn.First(&persistedUser, owner.ID).Error)
+	assert.Zero(t, persistedUser.Points)
+	var persistedMoment models.Moment
+	require.NoError(t, TestSuite.DbConn.First(&persistedMoment, "id = ?", moment.ID).Error)
+	assert.Equal(t, "reversed", persistedMoment.RewardStatus)
+	assert.Equal(t, "private", persistedMoment.PublicationStatus)
+	var persistedAsset models.MediaAsset
+	require.NoError(t, TestSuite.DbConn.First(&persistedAsset, "id = ?", asset.ID).Error)
+	assert.Equal(t, string(mediaEntities.AssetDeleted), persistedAsset.State)
+
+	var cleanupJobs, audits int64
+	require.NoError(t, TestSuite.DbConn.Model(&models.MediaCleanupJob{}).Where("media_asset_id = ? AND kind = ?", asset.ID, "delete_photo").Count(&cleanupJobs).Error)
+	require.NoError(t, TestSuite.DbConn.Model(&models.OperationAudit{}).Where("action = ? AND entity_id = ?", "moment.deleted", moment.ID).Count(&audits).Error)
+	assert.EqualValues(t, 1, cleanupJobs)
+	assert.EqualValues(t, 1, audits)
+
+	mine, err := momentService.List(ownerCtx, "mine", "")
+	require.NoError(t, err)
+	assert.Empty(t, mine.Items)
+	feed, err := momentService.List(ownerCtx, "feed", "")
+	require.NoError(t, err)
+	assert.Empty(t, feed.Items)
+}
+
 func TestMediaMoments_StaffPublishesWithParticipantViewButNoPoints(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	admin, adminCtx := seedMediaMomentUser(t, "staff-admin@example.com", userEntities.RoleAdmin, true)
@@ -1133,8 +1181,9 @@ func TestMediaMoments_CursorPaginationAndPreservedMineProjection(t *testing.T) {
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}).Error)
+	deletedMomentID := uuid.NewString()
 	require.NoError(t, TestSuite.DbConn.Create(&models.Moment{
-		ID:                uuid.NewString(),
+		ID:                deletedMomentID,
 		UserID:            owner.ID,
 		MediaAssetID:      deletedAssetID,
 		Origin:            "free",
@@ -1148,8 +1197,9 @@ func TestMediaMoments_CursorPaginationAndPreservedMineProjection(t *testing.T) {
 	mine, err := momentService.List(ownerCtx, "mine", "")
 	require.NoError(t, err)
 	require.NotEmpty(t, mine.Items)
-	assert.Empty(t, mine.Items[0].ImageURL)
-	assert.NotNil(t, mine.Items[0].ModerationMessage)
+	for _, item := range mine.Items {
+		assert.NotEqual(t, deletedMomentID, item.ID)
+	}
 }
 
 func TestMediaMoments_CannotCreateMomentWithOtherUsersAsset(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	appErrors "github.com/dnjtechteam/dnj-game-api/internal/app/errors"
 	"github.com/dnjtechteam/dnj-game-api/internal/domain/media/entities"
 	momentEntities "github.com/dnjtechteam/dnj-game-api/internal/domain/moment/entities"
@@ -182,6 +183,65 @@ func TestMediaMoments_MomentRepositorySQLFailures(t *testing.T) {
 		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
 		mock.ExpectBegin().WillReturnError(errors.New("connection reset"))
 		_, err := repo.CreateModerationDecision(context.Background(), &momentEntities.ModerationDecision{ID: "d-1"})
+		assert.ErrorIs(t, err, appErrors.InternalError)
+	})
+}
+
+// TestMediaMoments_DeleteOwnedMomentSQLFailures exercises DeleteOwnedMoment's error
+// branches that sit behind a successful owner lookup: the asset lookup, the award
+// reversal, the moment update and the asset update. None of them is reachable through
+// the real-Postgres suite without a genuinely broken connection.
+func TestMediaMoments_DeleteOwnedMomentSQLFailures(t *testing.T) {
+	momentRows := func(rewardStatus, publicationStatus, moderationStatus string) *sqlmock.Rows {
+		return sqlmock.NewRows([]string{"id", "user_id", "media_asset_id", "reward_status", "publication_status", "moderation_status", "points_awarded"}).
+			AddRow("moment-1", 1, "asset-1", rewardStatus, publicationStatus, moderationStatus, 50)
+	}
+	assetRows := func() *sqlmock.Rows {
+		return sqlmock.NewRows([]string{"id", "owner_user_id", "state"}).AddRow("asset-1", 1, "available")
+	}
+
+	t.Run("a generic asset lookup failure is redacted", func(t *testing.T) {
+		gormDB, mock := newMockDB(t)
+		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
+		mock.ExpectQuery(`FROM "moments"`).WillReturnRows(momentRows("denied", "public", "pending"))
+		mock.ExpectQuery(`FROM "media_assets"`).WillReturnError(errors.New("connection reset"))
+		_, _, err := repo.DeleteOwnedMoment(context.Background(), "moment-1", 1, time.Now())
+		assert.ErrorIs(t, err, appErrors.InternalError)
+	})
+
+	t.Run("a generic award reversal failure is redacted", func(t *testing.T) {
+		gormDB, mock := newMockDB(t)
+		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
+		mock.ExpectQuery(`FROM "moments"`).WillReturnRows(momentRows("awarded", "public", "approved"))
+		mock.ExpectQuery(`FROM "media_assets"`).WillReturnRows(assetRows())
+		// ReverseMomentAward re-reads the moment before touching the ledger.
+		mock.ExpectQuery(`FROM "moments"`).WillReturnError(errors.New("connection reset"))
+		_, _, err := repo.DeleteOwnedMoment(context.Background(), "moment-1", 1, time.Now())
+		assert.ErrorIs(t, err, appErrors.InternalError)
+	})
+
+	t.Run("a generic moment update failure is redacted", func(t *testing.T) {
+		gormDB, mock := newMockDB(t)
+		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
+		mock.ExpectQuery(`FROM "moments"`).WillReturnRows(momentRows("denied", "public", "pending"))
+		mock.ExpectQuery(`FROM "media_assets"`).WillReturnRows(assetRows())
+		mock.ExpectBegin()
+		mock.ExpectExec(`UPDATE "moments"`).WillReturnError(errors.New("connection reset"))
+		mock.ExpectRollback()
+		_, _, err := repo.DeleteOwnedMoment(context.Background(), "moment-1", 1, time.Now())
+		assert.ErrorIs(t, err, appErrors.InternalError)
+	})
+
+	t.Run("a generic asset update failure is redacted", func(t *testing.T) {
+		gormDB, mock := newMockDB(t)
+		repo := &MomentRepository{BaseRepository: NewBaseRepository[models.Moment](gormDB)}
+		// Already private and rejected, so the moment row itself is left untouched.
+		mock.ExpectQuery(`FROM "moments"`).WillReturnRows(momentRows("denied", "private", "rejected"))
+		mock.ExpectQuery(`FROM "media_assets"`).WillReturnRows(assetRows())
+		mock.ExpectBegin()
+		mock.ExpectExec(`UPDATE "media_assets"`).WillReturnError(errors.New("connection reset"))
+		mock.ExpectRollback()
+		_, _, err := repo.DeleteOwnedMoment(context.Background(), "moment-1", 1, time.Now())
 		assert.ErrorIs(t, err, appErrors.InternalError)
 	})
 }

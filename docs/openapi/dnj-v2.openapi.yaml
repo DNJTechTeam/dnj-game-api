@@ -1128,7 +1128,8 @@ paths:
         repetição é inválida. cursor é opaco, assinado e sem PII; inválido
         retorna 400. feed e group exibem somente público, aprovado e com
         asset disponível de autores elegíveis; mine preserva todos os Moments
-        próprios, inclusive privados ou rejeitados. group usa o grupo atual
+        próprios, inclusive privados ou rejeitados, exceto fotos excluídas.
+        group usa o grupo atual
         persistido do ator. Ordena por capturedAt DESC, id DESC; 20 por
         página.
       security: [{bearerAuth: []}, {identityCookie: []}]
@@ -1169,6 +1170,28 @@ paths:
         content: {application/json: {schema: {$ref: '#/components/schemas/CreateMomentRequest'}}}
       responses:
         '201': {description: Moment criado ou resultado original do retry, content: {application/json: {schema: {$ref: '#/components/schemas/Moment'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /moments/{momentId}:
+    parameters:
+      - {$ref: '#/components/parameters/MomentID'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+    delete:
+      tags: [Moments]
+      operationId: deleteMoment
+      summary: Exclui a foto de um Moment do próprio ator
+      description: >-
+        Não aceita corpo. O Moment fica invisível em todos os escopos, o asset
+        é marcado para limpeza assíncrona e pontos de desafio já concedidos
+        são revertidos. Inexistente ou pertencente a outro ator retorna 404.
+        A mesma Idempotency-Key retorna o resultado original.
+      security: [{bearerAuth: []}, {identityCookie: []}]
+      responses:
+        '200': {description: Foto excluída, content: {application/json: {schema: {$ref: '#/components/schemas/DeleteMoment'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
@@ -2288,6 +2311,12 @@ components:
         momentId: {type: string, format: uuid}
         liked: {type: boolean}
         likesCount: {type: integer}
+    DeleteMoment:
+      type: object
+      additionalProperties: false
+      required: [momentId]
+      properties:
+        momentId: {type: string, format: uuid}
     ModerationRequest:
       type: object
       additionalProperties: false

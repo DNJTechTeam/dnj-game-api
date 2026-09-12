@@ -13,6 +13,7 @@ type Repository interface {
 	FindActivityForUpdate(context.Context, string) (string, bool, *time.Time, *time.Time, int, string, *string, error)
 	CreateMoment(context.Context, *entities.Moment) error
 	FindMoment(context.Context, string, uint64, bool) (*entities.Moment, error)
+	DeleteOwnedMoment(context.Context, string, uint64, time.Time) (*mediaEntities.Asset, bool, error)
 	ListMoments(context.Context, string, uint64, *uint64, *entities.Cursor, time.Time) (*entities.Page, error)
 	ToggleLike(context.Context, string, uint64, time.Time) (bool, int, error)
 	ListModeration(context.Context, string, uint64, time.Time) (*entities.ModerationPage, error)

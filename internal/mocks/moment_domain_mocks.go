@@ -33,6 +33,16 @@ type MockMomentRepository struct {
 	mock.Mock
 }
 
+// DeleteOwnedMoment provides a mock function for the type MockMomentRepository.
+func (_mock *MockMomentRepository) DeleteOwnedMoment(ctx context.Context, momentID string, ownerID uint64, at time.Time) (*entities0.Asset, bool, error) {
+	ret := _mock.Called(ctx, momentID, ownerID, at)
+	var asset *entities0.Asset
+	if value, ok := ret.Get(0).(*entities0.Asset); ok {
+		asset = value
+	}
+	return asset, ret.Bool(1), ret.Error(2)
+}
+
 type MockMomentRepository_Expecter struct {
 	mock *mock.Mock
 }

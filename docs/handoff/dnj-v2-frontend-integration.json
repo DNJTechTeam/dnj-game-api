@@ -290,6 +290,20 @@
       "evidence": "docs/game-frontend-handoff.md#grafo-de-requests--like, internal/app/services/moment_interaction_service_repository_failure_test.go"
     },
     {
+      "id": "moment-delete",
+      "screen": "Excluir foto de Moment",
+      "scope": "frontend",
+      "iteration": 11,
+      "priority": "P1",
+      "state": "ready",
+      "dependencies": ["gallery-open"],
+      "endpoints": ["deleteMoment"],
+      "owner": "frontend",
+      "blockers": [],
+      "acceptanceTest": "DELETE sem corpo com Idempotency-Key; só o autor exclui, Moment inexistente ou de outro ator retorna 404; a foto some de todos os escopos (inclusive mine), pontos de desafio já concedidos são revertidos e a mesma chave devolve o resultado original.",
+      "evidence": "internal/app/services/media_moment_service_test.go, internal/presentation/api/handlers/media_moment_handler_test.go"
+    },
+    {
       "id": "moderation-queue-and-decide",
       "screen": "Fila de moderação corretiva (admin)",
       "scope": "admin-tooling",

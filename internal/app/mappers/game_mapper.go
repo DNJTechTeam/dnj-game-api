@@ -39,6 +39,8 @@ func pointPresentation(reason, activityName string) (string, string) {
 		return withActivity("3º lugar", "3º lugar em jogo"), "medal"
 	case "activity_run_participation":
 		return withActivity("Participação", "Participação em jogo"), "game"
+	case "schedule_qr_checkin":
+		return withActivity("Check-in", "Check-in confirmado"), "qr"
 	case "moment_challenge_award":
 		if activityName != "" {
 			return "Desafio Momento - " + activityName, "camera"

@@ -182,6 +182,44 @@ func (r *MomentRepository) FindMoment(
 	return projectMoment(&row), nil
 }
 
+func (r *MomentRepository) DeleteOwnedMoment(ctx context.Context, id string, owner uint64, now time.Time) (*mediaEntities.Asset, bool, error) {
+	var row models.Moment
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=? AND user_id=?", id, owner).Take(&row).Error; err != nil {
+		return nil, false, handleRepositoryError(err)
+	}
+	var asset models.MediaAsset
+	if err := r.getDB(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id=?", row.MediaAssetID).Take(&asset).Error; err != nil {
+		return nil, false, handleRepositoryError(err)
+	}
+	changed := false
+	if row.RewardStatus == string(momentEntities.RewardAwarded) {
+		if _, err := r.ReverseMomentAward(ctx, row.ID, owner, "Exclusão solicitada pelo usuário.", now); err != nil {
+			return nil, false, err
+		}
+		row.RewardStatus = string(momentEntities.RewardReversed)
+		changed = true
+	}
+	if row.PublicationStatus != string(momentEntities.PublicationPrivate) || row.ModerationStatus != string(momentEntities.ModerationRejected) {
+		row.PublicationStatus = string(momentEntities.PublicationPrivate)
+		row.ModerationStatus = string(momentEntities.ModerationRejected)
+		row.UpdatedAt = now
+		if err := r.getDB(ctx).Save(&row).Error; err != nil {
+			return nil, false, handleRepositoryError(err)
+		}
+		changed = true
+	}
+	if asset.State != string(mediaEntities.AssetDeleted) {
+		asset.State = string(mediaEntities.AssetDeleted)
+		asset.DeletedAt = &now
+		asset.UpdatedAt = now
+		if err := r.getDB(ctx).Save(&asset).Error; err != nil {
+			return nil, false, handleRepositoryError(err)
+		}
+		changed = true
+	}
+	return mappers.MapMediaAssetToEntity(&asset), changed, nil
+}
+
 func (r *MomentRepository) ListMoments(
 	ctx context.Context,
 	scope string,
@@ -193,7 +231,7 @@ func (r *MomentRepository) ListMoments(
 	q := projectionQuery(r.getDB(ctx), actor)
 	switch scope {
 	case "mine":
-		q = q.Where("moments.user_id=?", actor)
+		q = q.Where("moments.user_id=? AND media_assets.state<>'deleted'", actor)
 	case "feed":
 		q = q.Where(
 			"moments.publication_status='public' AND moments.moderation_status<>'rejected' AND media_assets.state='available' AND media_assets.retention_due_at>? AND users.deleted_at IS NULL AND users.onboarding_complete=TRUE",
