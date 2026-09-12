@@ -420,6 +420,43 @@ func TestMediaMoments_OwnerDeletesOwnPhoto(t *testing.T) {
 	assert.Empty(t, feed.Items)
 }
 
+// TestMediaMoments_StaffDeletesOwnPhoto: staff can publish (see the test below),
+// so they must also be able to delete what they published; ownership still
+// keeps them away from anyone else's photo.
+func TestMediaMoments_StaffDeletesOwnPhoto(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	_, managerCtx := seedMediaMomentUser(t, "moment-delete-manager@example.com", userEntities.RoleEventManager, true)
+	_, participantCtx := seedMediaMomentUser(t, "moment-delete-participant@example.com", userEntities.RoleDefault, true)
+
+	managerAsset := createAvailableAsset(t, mediaService, storage, managerCtx, "image/jpeg")
+	managerMoment, _, err := momentService.Create(managerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: managerAsset.ID, PublishConsent: true,
+	})
+	require.NoError(t, err)
+	participantAsset := createAvailableAsset(t, mediaService, storage, participantCtx, "image/jpeg")
+	participantMoment, _, err := momentService.Create(participantCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: participantAsset.ID, PublishConsent: true,
+	})
+	require.NoError(t, err)
+
+	_, err = momentService.Delete(managerCtx, participantMoment.ID, uuid.NewString())
+	assertAPIErrorCode(t, err, "NOT_FOUND")
+
+	deleted, err := momentService.Delete(managerCtx, managerMoment.ID, uuid.NewString())
+	require.NoError(t, err)
+	assert.Equal(t, managerMoment.ID, deleted.MomentID)
+	mine, err := momentService.List(managerCtx, "mine", "")
+	require.NoError(t, err)
+	assert.Empty(t, mine.Items)
+	var persistedAsset models.MediaAsset
+	require.NoError(t, TestSuite.DbConn.First(&persistedAsset, "id = ?", managerAsset.ID).Error)
+	assert.Equal(t, string(mediaEntities.AssetDeleted), persistedAsset.State)
+	feed, err := momentService.List(participantCtx, "feed", "")
+	require.NoError(t, err)
+	require.Len(t, feed.Items, 1)
+	assert.Equal(t, participantMoment.ID, feed.Items[0].ID)
+}
+
 func TestMediaMoments_StaffPublishesWithParticipantViewButNoPoints(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	admin, adminCtx := seedMediaMomentUser(t, "staff-admin@example.com", userEntities.RoleAdmin, true)

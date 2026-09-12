@@ -24,7 +24,9 @@ func (s *MomentService) Delete(ctx context.Context, rawMomentID string, rawKey s
 	if err != nil {
 		return nil, err
 	}
-	actor, err := requireDefaultActor(ctx, s.users, false)
+	// Any onboarded role may delete a photo it published itself (staff can
+	// publish, see Create); ownership is enforced by DeleteOwnedMoment.
+	actor, err := requireOnboardedActor(ctx, s.users, false)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +44,7 @@ func (s *MomentService) Delete(ctx context.Context, rawMomentID string, rawKey s
 		if prior != nil {
 			return nil
 		}
-		if _, authErr := requireDefaultActor(tx, s.users, true); authErr != nil {
+		if _, authErr := requireOnboardedActor(tx, s.users, true); authErr != nil {
 			return authErr
 		}
 		asset, changed, deleteErr := s.moments.DeleteOwnedMoment(tx, momentID.String(), actor.ID, now)
