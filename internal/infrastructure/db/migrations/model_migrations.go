@@ -1608,4 +1608,38 @@ func RegisterModelMigrations(registry *MigrationRegistry) {
 			return nil
 		},
 	})
+	registry.Register(Migration{
+		Name:        "allow_free_moment_point_entries",
+		Description: "Let the points ledger carry free Moment awards, which have no activity",
+		Version:     "2.27.0",
+		Definition:  "free-moment-point-entries-v1",
+		Up: func(db *gorm.DB) error {
+			// Free (spontaneous) Moments now earn a flat reward: the moment keeps
+			// origin 'free' but carries points and a reward status, and its ledger
+			// row keeps origin 'moment' without an activity. Both checks are
+			// dropped and re-added with the same definition, so this Up stays
+			// idempotent. ALTER TABLE needs ACCESS EXCLUSIVE on small tables:
+			// fail fast instead of queueing every participant behind a stuck
+			// transaction (SET LOCAL is scoped to this migration's transaction).
+			if err := db.Exec("SET LOCAL lock_timeout = '5s'").Error; err != nil {
+				return err
+			}
+			checks := []struct{ table, name, definition string }{
+				{"moments", "moments_origin_status_check", `CHECK ((origin = 'free' AND participation_id IS NULL AND activity_id IS NULL AND points_awarded >= 0 AND reward_status IN ('awarded','denied','reversed','not_applicable')) OR (origin = 'challenge' AND activity_id IS NOT NULL AND points_awarded >= 0 AND reward_status IN ('awarded','denied','reversed')))`},
+				{"point_entries", "point_entries_origin_check", `CHECK ((origin = 'activity_run_results' AND activity_id IS NOT NULL AND activity_run_id IS NOT NULL AND participation_id IS NOT NULL AND moment_id IS NULL) OR (origin = 'legacy_balance' AND activity_id IS NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL) OR (origin = 'moment' AND activity_run_id IS NULL AND moment_id IS NOT NULL) OR (origin = 'schedule_qr_checkin' AND activity_id IS NOT NULL AND activity_run_id IS NULL AND participation_id IS NULL AND moment_id IS NULL))`},
+			}
+			for _, check := range checks {
+				if db.Migrator().HasConstraint(check.table, check.name) {
+					if err := db.Migrator().DropConstraint(check.table, check.name); err != nil {
+						return err
+					}
+				}
+				if err := addConstraintIfMissing(db, check.table, check.name, check.definition); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Down: func(db *gorm.DB) error { return nil },
+	})
 }

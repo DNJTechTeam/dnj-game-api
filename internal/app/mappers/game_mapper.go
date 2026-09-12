@@ -46,6 +46,8 @@ func pointPresentation(reason, activityName string) (string, string) {
 			return "Desafio Momento - " + activityName, "camera"
 		}
 		return "Momento em desafio", "camera"
+	case "moment_free_award":
+		return "Momento compartilhado", "camera"
 	case "moment_moderation_reversal":
 		if activityName != "" {
 			return "Ajuste de Momento - " + activityName, "shield"

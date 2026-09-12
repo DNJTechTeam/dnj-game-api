@@ -353,8 +353,16 @@ func (r *MomentRepository) AwardMoment(
 			Error
 	}
 	entryID := uuid.NewString()
+	// Free moments carry no activity: the flat share reward is ledgered under
+	// its own reason so the points history can label it.
+	reason, activityPredicate := "moment_challenge_award", "m.activity_id=?"
+	args := []any{entryID, points, now, momentID, userID, activityID}
+	if activityID == "" {
+		reason, activityPredicate = "moment_free_award", "m.activity_id IS NULL"
+		args = []any{entryID, points, now, momentID, userID}
+	}
 	result := r.getDB(ctx).
-		Exec(`INSERT INTO point_entries (id,user_id,activity_id,activity_run_id,participation_id,moment_id,origin,reason,delta,created_at) SELECT ?,m.user_id,m.activity_id,NULL,m.participation_id,m.id,'moment','moment_challenge_award',?,? FROM moments m WHERE m.id=? AND m.user_id=? AND m.activity_id=? ON CONFLICT (moment_id,user_id,reason) WHERE moment_id IS NOT NULL DO NOTHING`, entryID, points, now, momentID, userID, activityID)
+		Exec(`INSERT INTO point_entries (id,user_id,activity_id,activity_run_id,participation_id,moment_id,origin,reason,delta,created_at) SELECT ?,m.user_id,m.activity_id,NULL,m.participation_id,m.id,'moment','`+reason+`',?,? FROM moments m WHERE m.id=? AND m.user_id=? AND `+activityPredicate+` ON CONFLICT (moment_id,user_id,reason) WHERE moment_id IS NOT NULL DO NOTHING`, args...)
 	if result.Error != nil {
 		return handleRepositoryError(result.Error)
 	}

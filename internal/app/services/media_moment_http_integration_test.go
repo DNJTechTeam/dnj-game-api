@@ -76,7 +76,7 @@ func TestMediaMomentsHTTP_MiddlewareHandlerServiceRepositoryAndDatabase(t *testi
 	var moment messages.MomentResponseDTO
 	require.NoError(t, json.Unmarshal(createResponse.Body.Bytes(), &moment))
 	assert.Equal(t, "free", moment.Origin)
-	assert.Zero(t, moment.PointsAwarded)
+	assert.Equal(t, freeMomentPoints, moment.PointsAwarded)
 
 	feed := adminHTTPRequest(engine, http.MethodGet, "/v2/moments?scope=feed", "", participantToken, "")
 	like := adminHTTPRequest(

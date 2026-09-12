@@ -1155,14 +1155,17 @@ paths:
       summary: Publica um Moment free ou challenge a partir de um asset disponível
       description: >-
         Corpo estrito {mediaAssetId, publishConsent, participationId
-        opcional}. Sem participationId cria Moment free sem pontos; com
-        participationId deriva origem challenge, exigindo Participation
-        própria, elegível e dentro da janela operacional da Activity. Origem,
-        pontos, ownership e timestamps são sempre derivados pelo servidor.
-        publishConsent=true publica public e concede o snapshot de
-        Activity.momentPoints quando challenge; publishConsent=false nunca
-        concede pontos. Um asset e uma Participation não podem produzir mais
-        de um Moment, mesmo sob concorrência.
+        opcional}. Sem participationId cria Moment free, que concede 20
+        pontos fixos (reason moment_free_award) quando publishConsent=true e
+        a pontuação está aberta; com pontuação fechada o Moment free ainda é
+        publicado, sem pontos. Com participationId deriva origem challenge,
+        exigindo Participation própria, elegível e dentro da janela
+        operacional da Activity. Origem, pontos, ownership e timestamps são
+        sempre derivados pelo servidor. publishConsent=true publica public e
+        concede o snapshot de Activity.momentPoints quando challenge;
+        publishConsent=false nunca concede pontos. Staff (ADMIN,
+        EVENT_MANAGER) publica mas nunca pontua. Um asset e uma Participation
+        não podem produzir mais de um Moment, mesmo sob concorrência.
       security: [{bearerAuth: []}, {identityCookie: []}]
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody:

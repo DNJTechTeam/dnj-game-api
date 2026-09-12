@@ -316,6 +316,9 @@ func TestMediaMoments_ServiceDependencyFailuresAreRedacted(t *testing.T) {
 				if result.award {
 					moments.On("AwardMoment", mock.Anything, mock.Anything, uint64(42), mock.Anything, 10, mediaMomentNow).
 						Return(databaseErr)
+				} else if name != "moment insert" {
+					// a private free share is ledgered with zero points
+					moments.On("AwardMoment", mock.Anything, mock.Anything, uint64(42), "", 0, mediaMomentNow).Return(nil)
 				}
 				if result.operationFailure {
 					media.On("CreateOperation", mock.Anything, mock.Anything).Return(databaseErr)

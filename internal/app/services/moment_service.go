@@ -29,6 +29,10 @@ import (
 
 const mediaReadLifetime = 5 * time.Minute
 
+// freeMomentPoints is the flat reward for sharing a spontaneous Moment with
+// the feed (publishConsent=true) while scoring is open.
+const freeMomentPoints = 20
+
 type MomentService struct {
 	*BaseService
 	moments       momentInterfaces.Repository
@@ -365,9 +369,19 @@ func (s *MomentService) Create(
 		rewardStatus = momentEntities.RewardDenied
 		activityID = &challengeID
 		points = challengePoints
+	} else {
+		// A spontaneous share earns a flat reward when it goes to the feed and
+		// scoring is still open; publishing itself is never blocked.
+		rewardStatus = momentEntities.RewardDenied
+		if request.PublishConsent {
+			points = freeMomentPoints
+			if closed, csErr := s.eventSettings.Get(ctx); csErr == nil && closed.ScoringClosed {
+				points = 0
+			}
+		}
 	}
-	// Only participants (DEFAULT) compete: staff may publish challenge
-	// moments to share the experience, but never receive points.
+	// Only participants (DEFAULT) compete: staff may publish moments to
+	// share the experience, but never receive points.
 	if actor.Role != userEntities.RoleDefault {
 		points = 0
 	}
@@ -404,17 +418,19 @@ func (s *MomentService) Create(
 			}
 			return appErrors.InternalError
 		}
-		if origin == momentEntities.OriginChallenge {
-			if awardErr := s.moments.AwardMoment(tx, moment.ID, actor.ID, *activityID, points, now); awardErr != nil {
-				if errors.Is(awardErr, appErrors.ErrConflict) {
-					duplicate = true
-					if request.ChallengeMode {
-						return challengeAlreadyCompletedError()
-					}
-					return momentAlreadyCreatedError()
+		activityRef := ""
+		if activityID != nil {
+			activityRef = *activityID
+		}
+		if awardErr := s.moments.AwardMoment(tx, moment.ID, actor.ID, activityRef, points, now); awardErr != nil {
+			if errors.Is(awardErr, appErrors.ErrConflict) {
+				duplicate = true
+				if request.ChallengeMode {
+					return challengeAlreadyCompletedError()
 				}
-				return appErrors.InternalError
+				return momentAlreadyCreatedError()
 			}
+			return appErrors.InternalError
 		}
 		completedAt := now
 		if createErr := createIdempotencyOperation(tx, s.media, &mediaEntities.Operation{

@@ -423,6 +423,58 @@ func TestMediaMoments_OwnerDeletesOwnPhoto(t *testing.T) {
 // TestMediaMoments_StaffDeletesOwnPhoto: staff can publish (see the test below),
 // so they must also be able to delete what they published; ownership still
 // keeps them away from anyone else's photo.
+// TestMediaMoments_FreeMomentAwardsFlatPoints pins the flat reward of a
+// spontaneous share: 20 points when it reaches the feed while scoring is open,
+// nothing for a private share or after scoring closes (the photo still
+// publishes), and the reward is taken back when the owner deletes the photo.
+func TestMediaMoments_FreeMomentAwardsFlatPoints(t *testing.T) {
+	mediaService, momentService, storage := setupMediaMomentServices(t)
+	owner, ownerCtx := seedMediaMomentUser(t, "moment-free-points@example.com", userEntities.RoleDefault, true)
+	userPoints := func() uint64 {
+		var points uint64
+		require.NoError(t, TestSuite.DbConn.Table("users").Select("points").Where("id = ?", owner.ID).Scan(&points).Error)
+		return points
+	}
+
+	asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+	moment, status, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: asset.ID, PublishConsent: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "free", moment.Origin)
+	assert.Equal(t, freeMomentPoints, moment.PointsAwarded)
+	assert.EqualValues(t, freeMomentPoints, userPoints())
+	var entries int64
+	require.NoError(t, TestSuite.DbConn.Table("point_entries").
+		Where("user_id = ? AND moment_id = ? AND reason = ? AND activity_id IS NULL", owner.ID, moment.ID, "moment_free_award").
+		Count(&entries).Error)
+	assert.EqualValues(t, 1, entries)
+
+	privateAsset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+	privateMoment, _, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: privateAsset.ID, PublishConsent: false,
+	})
+	require.NoError(t, err)
+	assert.Zero(t, privateMoment.PointsAwarded)
+	assert.EqualValues(t, freeMomentPoints, userPoints())
+
+	require.NoError(t, momentService.eventSettings.(*fakeEventSettingsRepository).SetScoringClosed(ownerCtx, true, nil, "test"))
+	closedAsset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
+	closedMoment, status, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{
+		MediaAssetID: closedAsset.ID, PublishConsent: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "public", closedMoment.PublicationStatus)
+	assert.Zero(t, closedMoment.PointsAwarded)
+	assert.EqualValues(t, freeMomentPoints, userPoints())
+
+	_, err = momentService.Delete(ownerCtx, moment.ID, uuid.NewString())
+	require.NoError(t, err)
+	assert.Zero(t, userPoints())
+}
+
 func TestMediaMoments_StaffDeletesOwnPhoto(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	_, managerCtx := seedMediaMomentUser(t, "moment-delete-manager@example.com", userEntities.RoleEventManager, true)
