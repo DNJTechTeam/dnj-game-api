@@ -376,6 +376,7 @@ func TestMediaMoments_OwnerDeletesOwnPhoto(t *testing.T) {
 	mediaService, momentService, storage := setupMediaMomentServices(t)
 	owner, ownerCtx := seedMediaMomentUser(t, "moment-delete-owner@example.com", userEntities.RoleDefault, true)
 	_, otherCtx := seedMediaMomentUser(t, "moment-delete-other@example.com", userEntities.RoleDefault, true)
+	TestSuite.TruncateTable(t, &models.Activity{})
 	seedActiveMomentChallenge(t)
 	asset := createAvailableAsset(t, mediaService, storage, ownerCtx, "image/jpeg")
 	moment, _, err := momentService.Create(ownerCtx, uuid.NewString(), &messages.CreateMomentRequestDTO{

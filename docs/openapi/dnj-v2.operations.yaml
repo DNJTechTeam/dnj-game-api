@@ -425,6 +425,13 @@ operations:
       - internal/app/services/moment_create_repository_failure_test.go
       - internal/infrastructure/db/repositories/moment_award_moderation_repository_test.go
       - internal/presentation/api/handlers/media_moment_handler_test.go
+  - operationId: deleteMoment
+    method: DELETE
+    path: /moments/{momentId}
+    statuses: ['200', '400', '401', '403', '404', '409', '500']
+    automatedTests:
+      - internal/app/services/media_moment_service_test.go
+      - internal/presentation/api/handlers/media_moment_handler_test.go
   - operationId: toggleMomentLike
     method: POST
     path: /moments/{momentId}/likes
